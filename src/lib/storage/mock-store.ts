@@ -1,0 +1,1395 @@
+'use client';
+
+import {
+  Resource,
+  ProjectItem,
+  UserProfile,
+  ResourceComment,
+  ResourceReport,
+  NotificationItem,
+  ResourceRequest,
+  RequestOffer,
+  RequestResponse,
+  SavedRequest,
+  RequestReport,
+  RequestStatus,
+  OfferStatus,
+} from '@/types';
+import { SAMPLE_RESOURCES, SAMPLE_PROJECTS, DEMO_USERS } from '../data/sample-data';
+import { generateUserCodeName, getUserAcademicPosition } from '../data/academic-heads';
+
+const STORAGE_KEYS = {
+  RESOURCES: 'vss_resources_v2',
+  PROJECTS: 'vss_projects_v2',
+  COMMENTS: 'vss_comments_v2',
+  REPORTS: 'vss_reports_v2',
+  BOOKMARKS: 'vss_bookmarks_v2',
+  LIKED_RESOURCES: 'vss_liked_v2',
+  CURRENT_USER: 'vss_current_user_v2',
+  NOTIFICATIONS: 'vss_notifications_v2',
+  OTP_PENDING: 'vss_otp_pending_v2',
+  REQUESTS: 'vss_requests_v2',
+  OFFERS: 'vss_offers_v2',
+  RESPONSES: 'vss_responses_v2',
+  SAVED_REQUESTS: 'vss_saved_requests_v2',
+  REQUEST_REPORTS: 'vss_request_reports_v2',
+};
+
+// Initial Resource Requests
+const INITIAL_REQUESTS: ResourceRequest[] = [
+  {
+    id: 'req-klu-001',
+    user_id: 'usr-student-01',
+    title: 'Does anyone have Module 3 Maths notes for 23MT2001 Discrete Mathematics?',
+    description:
+      'Looking for clear handwritten or typed notes covering Recurrence Relations, Generating Functions, and Graph Isomorphism for the upcoming In-Sem 2 exam. Please share if you have solved examples or previous semester review questions.',
+    programme: 'B.Tech',
+    course_code: '23MT2001',
+    course_name: 'Discrete Mathematics & Graph Theory',
+    semester: 'Sem 3',
+    category: 'Mathematics',
+    resource_type: 'Unit Notes',
+    module_number: 'Module 3',
+    topic: 'Recurrence Relations & Generating Functions',
+    assignment_number: 'In-Sem 2 Prep',
+    academic_year: '2025-2026',
+    preferred_format: 'PDF',
+    tags: ['23MT2001', 'Maths', 'Module 3', 'Graph Theory', 'In-Sem 2'],
+    deadline: '2026-11-28',
+    is_anonymous: false,
+    status: 'open',
+    requester_name: 'ShadowScholar_01',
+    requester_username: 'shadow_scholar_01',
+    requester_department: 'CSE',
+    requester_is_verified: true,
+    created_at: '2026-11-18T09:30:00Z',
+    updated_at: '2026-11-18T09:30:00Z',
+  },
+  {
+    id: 'req-klu-002',
+    user_id: 'usr-moderator-01',
+    title: 'Can someone share the DTIE project report format & Phase 3 evaluation rubrics?',
+    description:
+      'Our team is finalizing the Phase 3 Design Thinking review documentation for 26UC1137. We need the official KLEF report template containing the Pugh selection matrix and prototyping cost estimation sheets.',
+    programme: 'B.Tech',
+    course_code: '26UC1137',
+    course_name: 'Design Thinking for Innovation & Entrepreneurship',
+    semester: 'Tri-Sem 1 (T1)',
+    category: 'DTIE Projects',
+    resource_type: 'Project Report',
+    module_number: 'Phase 3',
+    topic: 'Pugh Selection Matrix & Prototyping',
+    academic_year: '2026-2027',
+    preferred_format: 'PDF / DOCX',
+    tags: ['26UC1137', 'DTIE', 'Phase 3', 'Pugh Matrix', 'Report Format'],
+    deadline: '2026-11-25',
+    is_anonymous: false,
+    status: 'fulfilled',
+    requester_name: 'NeuralViper_X',
+    requester_username: 'neural_viper_x',
+    requester_department: 'AI&DS',
+    requester_is_verified: true,
+    created_at: '2026-11-15T14:15:00Z',
+    updated_at: '2026-11-16T11:20:00Z',
+    fulfilled_at: '2026-11-16T11:20:00Z',
+  },
+  {
+    id: 'req-klu-003',
+    user_id: 'usr-student-01',
+    title: 'I need Java lab experiment 7 - Multithreading & Producer-Consumer Problem',
+    description:
+      'Need the working Java source code with thread synchronization using wait() and notify(), plus the input/output console execution screenshot for the 23CS2103 lab record evaluation.',
+    programme: 'B.Tech',
+    course_code: '23CS2103',
+    course_name: 'Object Oriented Programming through Java',
+    semester: 'Sem 4',
+    category: 'Lab Experiments',
+    resource_type: 'Lab Experiment',
+    module_number: 'Module 4',
+    topic: 'Multithreading & Synchronization',
+    assignment_number: 'Experiment 7',
+    academic_year: '2025-2026',
+    preferred_format: 'Code (.java, .txt)',
+    tags: ['23CS2103', 'Java', 'Exp 7', 'Multithreading', 'Lab Record'],
+    deadline: '2026-11-30',
+    is_anonymous: false,
+    status: 'partially_fulfilled',
+    requester_name: 'ShadowScholar_01',
+    requester_username: 'shadow_scholar_01',
+    requester_department: 'CSE',
+    requester_is_verified: true,
+    created_at: '2026-11-19T08:00:00Z',
+    updated_at: '2026-11-20T10:45:00Z',
+  },
+  {
+    id: 'req-klu-004',
+    user_id: 'usr-student-02',
+    title: 'Previous semester question papers (In-Sem 1 & In-Sem 2) for DSA (23CS2101)',
+    description:
+      'Does anyone have last year In-Sem 1 and In-Sem 2 question papers for 23CS2101 Data Structures and Algorithms with the answer key or marking scheme?',
+    programme: 'B.Tech',
+    course_code: '23CS2101',
+    course_name: 'Data Structures and Algorithms',
+    semester: 'Sem 3',
+    category: 'Study Resources',
+    resource_type: 'Question Papers',
+    module_number: 'Module 1-3',
+    topic: 'In-Sem 1 & 2 Question Papers',
+    academic_year: '2024-2025',
+    preferred_format: 'PDF',
+    tags: ['23CS2101', 'DSA', 'Question Paper', 'In-Sem', 'KLEF Exams'],
+    deadline: '2026-12-05',
+    is_anonymous: false,
+    status: 'open',
+    requester_name: 'CircuitTitan_77',
+    requester_username: 'circuit_titan_77',
+    requester_department: 'CSE',
+    requester_is_verified: true,
+    created_at: '2026-11-19T16:20:00Z',
+    updated_at: '2026-11-19T16:20:00Z',
+  },
+  {
+    id: 'req-klu-005',
+    user_id: 'usr-student-03',
+    title: 'Reference PPT on CNN Architectures (ResNet & VGG) for AI Lab Seminar',
+    description:
+      'Looking for a well-illustrated slide deck explaining Convolutional Neural Networks, residual skip connections in ResNet-50, and feature map visualizations for our 15-minute seminar presentation.',
+    programme: 'B.Tech',
+    course_code: '23AI2201',
+    course_name: 'Deep Learning & Computer Vision',
+    semester: 'Sem 5',
+    category: 'Presentations',
+    resource_type: 'Seminar PPT',
+    module_number: 'Module 2',
+    topic: 'CNN Architectures (ResNet, VGG)',
+    academic_year: '2025-2026',
+    preferred_format: 'PPTX / PDF',
+    tags: ['23AI2201', 'Deep Learning', 'CNN', 'ResNet', 'PPT'],
+    deadline: '2026-12-02',
+    is_anonymous: false,
+    status: 'open',
+    requester_name: 'DataValkyrie_09',
+    requester_username: 'data_valkyrie_09',
+    requester_department: 'AI&DS',
+    requester_is_verified: false,
+    created_at: '2026-11-20T11:10:00Z',
+    updated_at: '2026-11-20T11:10:00Z',
+  },
+];
+
+// Initial Offers
+const INITIAL_OFFERS: RequestOffer[] = [
+  {
+    id: 'off-klu-001',
+    request_id: 'req-klu-002',
+    contributor_id: 'usr-student-01',
+    contributor_name: 'ShadowScholar_01',
+    contributor_username: 'shadow_scholar_01',
+    contributor_department: 'CSE',
+    contributor_is_verified: true,
+    offer_type: 'existing_resource',
+    resource_id: 'res-klu-y26-001',
+    title: '26UC1137 DTIE Stanford 5-Stage Innovation Portfolio',
+    description:
+      'Complete Phase 1 to Phase 5 documentation including Pugh matrix and BOM calculation sheets.',
+    message: 'Here is our team’s complete Phase 3 report that received full marks during the DTIE review.',
+    status: 'accepted',
+    created_at: '2026-11-16T10:00:00Z',
+    updated_at: '2026-11-16T11:20:00Z',
+  },
+  {
+    id: 'off-klu-002',
+    request_id: 'req-klu-003',
+    contributor_id: 'usr-moderator-01',
+    contributor_name: 'NeuralViper_X',
+    contributor_username: 'neural_viper_x',
+    contributor_department: 'AI&DS',
+    contributor_is_verified: true,
+    offer_type: 'upload',
+    uploaded_file_name: 'ProducerConsumerSynchronization.java',
+    uploaded_file_url: '/samples/ProducerConsumerSynchronization.java',
+    uploaded_file_type: 'java',
+    uploaded_file_size: 3450,
+    title: 'Producer-Consumer Synchronization Java Source Code',
+    description: 'Tested Java program using synchronized wait() and notify() with sample terminal logs.',
+    message: 'Includes comments for each thread block and expected output screenshot in the header.',
+    status: 'accepted',
+    created_at: '2026-11-19T14:30:00Z',
+    updated_at: '2026-11-20T09:00:00Z',
+  },
+  {
+    id: 'off-klu-003',
+    request_id: 'req-klu-003',
+    contributor_id: 'usr-student-02',
+    contributor_name: 'CircuitTitan_77',
+    contributor_username: 'circuit_titan_77',
+    contributor_department: 'CSE',
+    contributor_is_verified: true,
+    offer_type: 'external_link',
+    external_url: 'https://docs.oracle.com/javase/tutorial/essential/concurrency/guardmeth.html',
+    title: 'Oracle Official Guarded Blocks & Producer-Consumer Tutorial',
+    description: 'Official Java SE documentation on thread coordination and bounded buffers.',
+    message: 'Also check this official Oracle reference if your faculty asks about condition queues.',
+    status: 'pending',
+    created_at: '2026-11-20T10:45:00Z',
+    updated_at: '2026-11-20T10:45:00Z',
+  },
+];
+
+// Initial Discussion Responses
+const INITIAL_RESPONSES: RequestResponse[] = [
+  {
+    id: 'resp-klu-001',
+    request_id: 'req-klu-001',
+    user_id: 'usr-moderator-01',
+    user_name: 'NeuralViper_X',
+    user_username: 'neural_viper_x',
+    user_department: 'AI&DS',
+    user_is_verified: true,
+    parent_response_id: null,
+    content:
+      'Check the central library drive folder too; Professor Rao shared a solved question bank on Recurrence Relations last term.',
+    created_at: '2026-11-18T10:15:00Z',
+    updated_at: '2026-11-18T10:15:00Z',
+  },
+  {
+    id: 'resp-klu-002',
+    request_id: 'req-klu-001',
+    user_id: 'usr-student-01',
+    user_name: 'ShadowScholar_01',
+    user_username: 'shadow_scholar_01',
+    user_department: 'CSE',
+    user_is_verified: true,
+    parent_response_id: 'resp-klu-001',
+    content: 'Thanks Ananya! I will check that out as well.',
+    created_at: '2026-11-18T11:00:00Z',
+    updated_at: '2026-11-18T11:00:00Z',
+  },
+];
+
+// Initial Saved Requests
+const INITIAL_SAVED_REQUESTS: string[] = ['req-klu-001', 'req-klu-003'];
+
+// Initial Comments
+const INITIAL_COMMENTS: ResourceComment[] = [
+  {
+    id: 'comm-1',
+    resource_id: 'res-klu-001',
+    user_id: 'usr-moderator-01',
+    user_name: 'NeuralViper_X',
+    user_username: 'neural_viper_x',
+    content: 'Very well structured! The AVL double rotation derivation saved a lot of time before the lab evaluation.',
+    created_at: '2024-09-14T11:20:00Z',
+  },
+  {
+    id: 'comm-2',
+    resource_id: 'res-klu-002',
+    user_id: 'usr-student-01',
+    user_name: 'ShadowScholar_01',
+    user_username: 'shadow_scholar_01',
+    content: 'The Pugh selection matrix in Phase 3 is a great reference for our DTIE second review next Monday.',
+    created_at: '2024-04-20T16:05:00Z',
+  },
+];
+
+// Initial Reports
+const INITIAL_REPORTS: ResourceReport[] = [
+  {
+    id: 'rep-1',
+    resource_id: 'res-klu-007',
+    resource_title: '4-Bit Arithmetic Logic Unit (ALU) Verilog HDL Code, Testbench & Waveforms',
+    reported_by: 'usr-student-01',
+    reporter_username: 'shadow_scholar_01',
+    reason: 'wrong_category',
+    description: 'This is an ECE hardware code resource; check if it fits better under Digital Logic or Programming tag.',
+    status: 'pending',
+    created_at: '2024-11-12T14:00:00Z',
+  },
+];
+
+// Initial Notifications
+const INITIAL_NOTIFICATIONS: NotificationItem[] = [
+  {
+    id: 'notif-1',
+    user_id: 'usr-student-01',
+    actor_name: 'NeuralViper_X',
+    type: 'comment',
+    title: 'New comment on your lab record',
+    message: '@neural_viper_x commented on "Binary Search Trees & AVL Tree Rotations Lab Record".',
+    resource_id: 'res-klu-001',
+    is_read: false,
+    created_at: '2024-09-14T11:20:00Z',
+  },
+  {
+    id: 'notif-2',
+    user_id: 'usr-student-01',
+    actor_name: 'VSS System Bot',
+    type: 'system',
+    title: 'Welcome to Virtual Student Space',
+    message: 'Welcome to Virtual Student Space (VSS)! Explore peer coursework, lab records, and notes.',
+    is_read: true,
+    created_at: '2024-09-12T10:00:00Z',
+  },
+];
+
+export class MockStorageManager {
+  private static isBrowser(): boolean {
+    return typeof window !== 'undefined';
+  }
+
+  // --- Current User ---
+  static getCurrentUser(): UserProfile {
+    if (!this.isBrowser()) return DEMO_USERS[0];
+    try {
+      const data = localStorage.getItem(STORAGE_KEYS.CURRENT_USER);
+      if (data) {
+        const parsed: UserProfile = JSON.parse(data);
+        if (parsed.username === 'rahul_cse') {
+          parsed.username = 'shadow_scholar_01';
+        }
+        if (!parsed.code_name || parsed.code_name.includes('RAHUL')) {
+          parsed.code_name = generateUserCodeName(parsed.username);
+        }
+        if (!parsed.academic_position) {
+          parsed.academic_position = getUserAcademicPosition(parsed);
+        }
+        // Ensure strictly anonymous random unique usernames (no real names or roll numbers)
+        if (
+          !parsed.full_name ||
+          parsed.full_name.toLowerCase().includes('rahul') ||
+          parsed.full_name.toLowerCase().includes('demo') ||
+          parsed.full_name.toLowerCase().includes('sharma') ||
+          parsed.full_name.toLowerCase().includes('rao')
+        ) {
+          parsed.full_name = parsed.code_name || 'ShadowScholar_01';
+        }
+        parsed.student_id = undefined;
+        return parsed;
+      }
+    } catch (e) {
+      console.warn('Failed reading currentUser from storage', e);
+    }
+    return DEMO_USERS[0]; // Default: ShadowScholar_01
+  }
+
+  static setCurrentUser(user: UserProfile): void {
+    if (!this.isBrowser()) return;
+    localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(user));
+    window.dispatchEvent(new Event('klu_auth_change'));
+  }
+
+  static logout(): void {
+    if (!this.isBrowser()) return;
+    localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
+    window.dispatchEvent(new Event('klu_auth_change'));
+  }
+
+  // --- Resources ---
+  static getResources(): Resource[] {
+    if (!this.isBrowser()) return SAMPLE_RESOURCES;
+    try {
+      const data = localStorage.getItem(STORAGE_KEYS.RESOURCES);
+      if (data) return JSON.parse(data);
+      localStorage.setItem(STORAGE_KEYS.RESOURCES, JSON.stringify(SAMPLE_RESOURCES));
+      return SAMPLE_RESOURCES;
+    } catch (e) {
+      console.warn('Failed reading resources from storage', e);
+      return SAMPLE_RESOURCES;
+    }
+  }
+
+  static saveResources(resources: Resource[]): void {
+    if (!this.isBrowser()) return;
+    localStorage.setItem(STORAGE_KEYS.RESOURCES, JSON.stringify(resources));
+    window.dispatchEvent(new Event('klu_resources_change'));
+  }
+
+  static checkDuplicateResource(data: {
+    title: string;
+    course_code: string;
+    category?: string;
+    file_name?: string;
+    file_size?: number;
+    file_content_preview?: string;
+  }): { isDuplicate: boolean; pioneer?: Resource; matchType?: 'file' | 'title' | 'content' } {
+    const resources = this.getResources().filter((r) => r.status === 'approved');
+    const norm = (s?: string) => (s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+
+    const targetTitle = norm(data.title || '');
+    const targetCode = (data.course_code || '').trim().toUpperCase();
+
+    for (const r of resources) {
+      // 1. Exact identical file match (same file name and same byte size)
+      if (
+        data.file_name &&
+        r.file_name &&
+        r.file_name.toLowerCase() === data.file_name.toLowerCase() &&
+        data.file_size &&
+        r.file_size &&
+        data.file_size === r.file_size
+      ) {
+        return { isDuplicate: true, pioneer: r, matchType: 'file' };
+      }
+
+      // 2. Exact identical title match in the same course code
+      // (Requires 100% exact normalized title match, so distinct assignments/units are never blocked)
+      if ((r.course_code || '').toUpperCase() === targetCode && targetTitle.length >= 6) {
+        const existingTitle = norm(r.title);
+        if (targetTitle === existingTitle) {
+          return { isDuplicate: true, pioneer: r, matchType: 'title' };
+        }
+      }
+
+      // 3. Exact file content preview match
+      if (
+        data.file_content_preview &&
+        data.file_content_preview.length > 50 &&
+        r.file_content_preview &&
+        r.file_content_preview.length > 50 &&
+        data.file_content_preview.trim() === r.file_content_preview.trim()
+      ) {
+        return { isDuplicate: true, pioneer: r, matchType: 'content' };
+      }
+    }
+
+    return { isDuplicate: false };
+  }
+
+  static getWeeklyUploadCount(userId?: string, authorName?: string, username?: string): number {
+    const resources = this.getResources();
+    const oneWeekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+
+    return resources.filter((r) => {
+      if (r.status !== 'approved' || r.is_anonymous) return false;
+      const createdTime = new Date(r.created_at).getTime();
+      if (isNaN(createdTime) || createdTime < oneWeekAgo) return false;
+
+      return (
+        (userId && r.author_id === userId) ||
+        (authorName && r.author_name === authorName) ||
+        (username && r.author_username === username)
+      );
+    }).length;
+  }
+
+  static isPdfStudioUnlocked(userId?: string, authorName?: string, username?: string): {
+    isUnlocked: boolean;
+    weeklyCount: number;
+    required: number;
+    remaining: number;
+    progressPercent: number;
+  } {
+    const REQUIRED = 5;
+    const weeklyCount = this.getWeeklyUploadCount(userId, authorName, username);
+    const isUnlocked = weeklyCount >= REQUIRED;
+    const remaining = Math.max(0, REQUIRED - weeklyCount);
+    const progressPercent = Math.min(100, Math.round((weeklyCount / REQUIRED) * 100));
+
+    return {
+      isUnlocked,
+      weeklyCount,
+      required: REQUIRED,
+      remaining,
+      progressPercent,
+    };
+  }
+
+  static addResource(newResource: Omit<Resource, 'id' | 'likes_count' | 'downloads_count' | 'views_count' | 'created_at' | 'updated_at'>): Resource {
+    const resources = this.getResources();
+
+    // DUPLICATE WORK DETECTION:
+    // If work already exists, accept the first pioneer and REJECT the duplicate!
+    const dupCheck = this.checkDuplicateResource({
+      title: newResource.title,
+      course_code: newResource.course_code,
+      category: newResource.category,
+      file_name: newResource.file_name,
+      file_size: newResource.file_size,
+      file_content_preview: newResource.file_content_preview,
+    });
+
+    if (dupCheck.isDuplicate && dupCheck.pioneer) {
+      const pioneer = dupCheck.pioneer;
+      const rejectedResource: Resource = {
+        ...newResource,
+        id: `res-rejected-${Date.now()}`,
+        likes_count: 0,
+        downloads_count: 0,
+        views_count: 0,
+        status: 'rejected',
+        is_pioneer: false,
+        rejection_reason: `Duplicate detected: This work was already submitted by ${pioneer.author_name} for ${pioneer.course_code} on ${new Date(pioneer.created_at).toLocaleDateString()}. VSS accepts only the original first submission.`,
+        duplicate_of_id: pioneer.id,
+        duplicate_of_title: pioneer.title,
+        duplicate_of_author: pioneer.author_name,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+
+      if (newResource.author_id) {
+        this.addNotification({
+          id: `notif-dup-reject-${Date.now()}`,
+          user_id: newResource.author_id,
+          actor_name: 'VSS Integrity Engine',
+          type: 'system',
+          title: '🛡️ Duplicate Eliminated: Pioneer Work Exists',
+          message: `The duplicate submission "${newResource.title}" was eliminated because an identical copy was already published by ${pioneer.author_name}. All your other distinct uploads (including your 2nd, 3rd, 4th, 5th works) are fully accepted!`,
+          is_read: false,
+          created_at: new Date().toISOString(),
+        });
+      }
+
+      // DUPLICATE IS COMPLETELY ELIMINATED: Not persisted into the resources collection
+      return rejectedResource;
+    }
+
+    // ORIGINAL PIONEER SUBMISSION: ACCEPTED & APPROVED
+    const created: Resource = {
+      ...newResource,
+      id: `res-user-${Date.now()}`,
+      likes_count: 0,
+      downloads_count: 0,
+      views_count: 1,
+      status: 'approved',
+      is_pioneer: true,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    const updated = [created, ...resources];
+    this.saveResources(updated);
+
+    if (newResource.author_id) {
+      const weeklyCount = this.getWeeklyUploadCount(newResource.author_id);
+      this.addNotification({
+        id: `notif-upload-success-${Date.now()}`,
+        user_id: newResource.author_id,
+        actor_name: 'VSS Academic Network',
+        type: 'system',
+        title: '🎉 Pioneer Work Accepted!',
+        message: `Your upload "${newResource.title}" is verified as original. Weekly upload count: ${weeklyCount}/5 towards unlocking PDF Studio.`,
+        is_read: false,
+        created_at: new Date().toISOString(),
+      });
+    }
+
+    return created;
+  }
+
+  static getResourceById(id: string): Resource | undefined {
+    return this.getResources().find((r) => r.id === id);
+  }
+
+  static deleteResource(id: string): boolean {
+    const resources = this.getResources();
+    const filtered = resources.filter((r) => r.id !== id);
+    if (filtered.length !== resources.length) {
+      this.saveResources(filtered);
+      return true;
+    }
+    return false;
+  }
+
+  static updateResourceStatus(id: string, status: 'approved' | 'pending' | 'flagged' | 'archived' | 'rejected'): void {
+    const resources = this.getResources();
+    const updated = resources.map((r) => (r.id === id ? { ...r, status, updated_at: new Date().toISOString() } : r));
+    this.saveResources(updated);
+  }
+
+  static incrementDownload(id: string): void {
+    const resources = this.getResources();
+    const updated = resources.map((r) => (r.id === id ? { ...r, downloads_count: r.downloads_count + 1 } : r));
+    this.saveResources(updated);
+  }
+
+  // --- Likes ---
+  static getLikedResourceIds(): string[] {
+    if (!this.isBrowser()) return ['res-klu-001'];
+    try {
+      const data = localStorage.getItem(STORAGE_KEYS.LIKED_RESOURCES);
+      if (data) return JSON.parse(data);
+    } catch (e) {
+      console.warn('Failed reading likes', e);
+    }
+    return ['res-klu-001'];
+  }
+
+  static toggleLike(resourceId: string): boolean {
+    if (!this.isBrowser()) return false;
+    const liked = this.getLikedResourceIds();
+    const hasLiked = liked.includes(resourceId);
+    let newLiked: string[];
+
+    if (hasLiked) {
+      newLiked = liked.filter((id) => id !== resourceId);
+    } else {
+      newLiked = [...liked, resourceId];
+    }
+    localStorage.setItem(STORAGE_KEYS.LIKED_RESOURCES, JSON.stringify(newLiked));
+
+    const resources = this.getResources();
+    const updated = resources.map((r) => {
+      if (r.id === resourceId) {
+        return {
+          ...r,
+          likes_count: hasLiked ? Math.max(0, r.likes_count - 1) : r.likes_count + 1,
+        };
+      }
+      return r;
+    });
+    this.saveResources(updated);
+    window.dispatchEvent(new Event('klu_likes_change'));
+    return !hasLiked;
+  }
+
+  // --- Bookmarks / Saved Resources ---
+  static getSavedResourceIds(): string[] {
+    if (!this.isBrowser()) return ['res-klu-002', 'res-klu-004'];
+    try {
+      const data = localStorage.getItem(STORAGE_KEYS.BOOKMARKS);
+      if (data) return JSON.parse(data);
+    } catch (e) {
+      console.warn('Failed reading bookmarks', e);
+    }
+    return ['res-klu-002', 'res-klu-004'];
+  }
+
+  static toggleBookmark(resourceId: string): boolean {
+    if (!this.isBrowser()) return false;
+    const saved = this.getSavedResourceIds();
+    const isSaved = saved.includes(resourceId);
+    let newSaved: string[];
+
+    if (isSaved) {
+      newSaved = saved.filter((id) => id !== resourceId);
+    } else {
+      newSaved = [...saved, resourceId];
+    }
+    localStorage.setItem(STORAGE_KEYS.BOOKMARKS, JSON.stringify(newSaved));
+    window.dispatchEvent(new Event('klu_bookmarks_change'));
+    return !isSaved;
+  }
+
+  // --- Projects ---
+  static getProjects(): ProjectItem[] {
+    if (!this.isBrowser()) return SAMPLE_PROJECTS;
+    try {
+      const data = localStorage.getItem(STORAGE_KEYS.PROJECTS);
+      if (data) return JSON.parse(data);
+      localStorage.setItem(STORAGE_KEYS.PROJECTS, JSON.stringify(SAMPLE_PROJECTS));
+      return SAMPLE_PROJECTS;
+    } catch (e) {
+      console.warn('Failed reading projects', e);
+      return SAMPLE_PROJECTS;
+    }
+  }
+
+  static saveProjects(projects: ProjectItem[]): void {
+    if (!this.isBrowser()) return;
+    localStorage.setItem(STORAGE_KEYS.PROJECTS, JSON.stringify(projects));
+    window.dispatchEvent(new Event('klu_projects_change'));
+  }
+
+  static addProject(newProject: Omit<ProjectItem, 'id' | 'likes_count' | 'created_at'>): ProjectItem {
+    const projects = this.getProjects();
+    const created: ProjectItem = {
+      ...newProject,
+      id: `proj-user-${Date.now()}`,
+      likes_count: 0,
+      created_at: new Date().toISOString(),
+    };
+    const updated = [created, ...projects];
+    this.saveProjects(updated);
+    return created;
+  }
+
+  // --- Comments ---
+  static getComments(resourceId?: string): ResourceComment[] {
+    if (!this.isBrowser()) return INITIAL_COMMENTS;
+    try {
+      const data = localStorage.getItem(STORAGE_KEYS.COMMENTS);
+      const comments: ResourceComment[] = data ? JSON.parse(data) : INITIAL_COMMENTS;
+      if (resourceId) {
+        return comments.filter((c) => c.resource_id === resourceId);
+      }
+      return comments;
+    } catch (e) {
+      console.warn('Failed reading comments', e);
+    }
+    return INITIAL_COMMENTS;
+  }
+
+  static addComment(resourceId: string, content: string, user: UserProfile): ResourceComment {
+    const comments = this.getComments();
+    const created: ResourceComment = {
+      id: `comm-${Date.now()}`,
+      resource_id: resourceId,
+      user_id: user.id,
+      user_name: user.code_name || user.username || 'Anonymous',
+      user_username: user.username,
+      user_avatar: user.avatar_url,
+      content,
+      created_at: new Date().toISOString(),
+    };
+    const updated = [...comments, created];
+    if (this.isBrowser()) {
+      localStorage.setItem(STORAGE_KEYS.COMMENTS, JSON.stringify(updated));
+      window.dispatchEvent(new Event('klu_comments_change'));
+    }
+    return created;
+  }
+
+  static deleteComment(commentId: string): void {
+    const comments = this.getComments();
+    const updated = comments.filter((c) => c.id !== commentId);
+    if (this.isBrowser()) {
+      localStorage.setItem(STORAGE_KEYS.COMMENTS, JSON.stringify(updated));
+      window.dispatchEvent(new Event('klu_comments_change'));
+    }
+  }
+
+  // --- Reports (Admin / Moderation) ---
+  static getReports(): ResourceReport[] {
+    if (!this.isBrowser()) return INITIAL_REPORTS;
+    try {
+      const data = localStorage.getItem(STORAGE_KEYS.REPORTS);
+      if (data) return JSON.parse(data);
+    } catch (e) {
+      console.warn('Failed reading reports', e);
+    }
+    return INITIAL_REPORTS;
+  }
+
+  static addReport(report: Omit<ResourceReport, 'id' | 'status' | 'created_at'>): ResourceReport {
+    const reports = this.getReports();
+    const created: ResourceReport = {
+      ...report,
+      id: `rep-${Date.now()}`,
+      status: 'pending',
+      created_at: new Date().toISOString(),
+    };
+    const updated = [created, ...reports];
+    if (this.isBrowser()) {
+      localStorage.setItem(STORAGE_KEYS.REPORTS, JSON.stringify(updated));
+      window.dispatchEvent(new Event('klu_reports_change'));
+    }
+    return created;
+  }
+
+  static resolveReport(reportId: string, status: 'resolved' | 'dismissed', notes?: string): void {
+    const reports = this.getReports();
+    const updated = reports.map((r) =>
+      r.id === reportId ? { ...r, status, resolution_notes: notes } : r
+    );
+    if (this.isBrowser()) {
+      localStorage.setItem(STORAGE_KEYS.REPORTS, JSON.stringify(updated));
+      window.dispatchEvent(new Event('klu_reports_change'));
+    }
+  }
+
+  // --- Notifications ---
+  static getNotifications(): NotificationItem[] {
+    if (!this.isBrowser()) return INITIAL_NOTIFICATIONS;
+    try {
+      const data = localStorage.getItem(STORAGE_KEYS.NOTIFICATIONS);
+      if (data) return JSON.parse(data);
+    } catch (e) {
+      console.warn('Failed reading notifications', e);
+    }
+    return INITIAL_NOTIFICATIONS;
+  }
+
+  static markNotificationRead(notifId: string): void {
+    const notifs = this.getNotifications();
+    const updated = notifs.map((n) => (n.id === notifId ? { ...n, is_read: true } : n));
+    if (this.isBrowser()) {
+      localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(updated));
+      window.dispatchEvent(new Event('klu_notifs_change'));
+    }
+  }
+
+  static markAllNotificationsRead(): void {
+    const notifs = this.getNotifications();
+    const updated = notifs.map((n) => ({ ...n, is_read: true }));
+    if (this.isBrowser()) {
+      localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(updated));
+      window.dispatchEvent(new Event('klu_notifs_change'));
+    }
+  }
+
+  static addNotification(notif: NotificationItem): void {
+    const notifs = this.getNotifications();
+    const updated = [notif, ...notifs];
+    if (this.isBrowser()) {
+      localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(updated));
+      window.dispatchEvent(new Event('klu_notifs_change'));
+    }
+  }
+
+  // --- Campus Institutional Email & OTP Verification ---
+  static sendVerificationOtp(email: string): { success: boolean; otp?: string; message: string; expiry?: number } {
+    const cleanEmail = email.trim().toLowerCase();
+    const allowedDomains = ['kluniversity.in', 'klu.ac.in', 'klef.in', 'klef.edu.in'];
+    const domain = cleanEmail.split('@')[1];
+
+    if (!domain || !allowedDomains.includes(domain)) {
+      return {
+        success: false,
+        message: 'Please enter a valid official KL University email ending in @kluniversity.in or @klu.ac.in',
+      };
+    }
+
+    // Extract institutional identifier handle
+    const usernamePart = cleanEmail.split('@')[0];
+    const matchDigits = usernamePart.match(/\d{7,12}/);
+    const studentId = matchDigits ? matchDigits[0] : usernamePart;
+
+    // Generate random 6-digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiry = Date.now() + 5 * 60 * 1000; // 5 minutes
+
+    if (this.isBrowser()) {
+      localStorage.setItem(
+        STORAGE_KEYS.OTP_PENDING,
+        JSON.stringify({ email: cleanEmail, otp, expiry, studentId })
+      );
+    }
+
+    return {
+      success: true,
+      otp,
+      expiry,
+      message: `A 6-digit verification code has been dispatched to ${cleanEmail}.`,
+    };
+  }
+
+  static getPendingOtpData(): { email: string; otp: string; expiry: number; studentId: string } | null {
+    if (!this.isBrowser()) return null;
+    try {
+      const data = localStorage.getItem(STORAGE_KEYS.OTP_PENDING);
+      if (data) return JSON.parse(data);
+    } catch {
+      return null;
+    }
+    return null;
+  }
+
+  static verifyInstitutionalOtp(
+    email: string,
+    enteredOtp: string
+  ): { success: boolean; message: string; user?: UserProfile } {
+    const cleanEmail = email.trim().toLowerCase();
+    const pending = this.getPendingOtpData();
+
+    if (!pending || pending.email !== cleanEmail) {
+      return {
+        success: false,
+        message: 'No pending verification found for this email. Please request a new verification code.',
+      };
+    }
+
+    if (Date.now() > pending.expiry) {
+      return {
+        success: false,
+        message: 'The verification code has expired (valid for 5 minutes). Please request a fresh OTP.',
+      };
+    }
+
+    if (pending.otp !== enteredOtp.trim()) {
+      return {
+        success: false,
+        message: 'Incorrect 6-digit verification code. Please check and try again.',
+      };
+    }
+
+    // Success! Update current user
+    const currentUser = this.getCurrentUser();
+    const updatedUser: UserProfile = {
+      ...currentUser,
+      is_verified_student: true,
+      university_email: cleanEmail,
+      student_id: undefined,
+      verified_at: new Date().toISOString(),
+    };
+
+    this.setCurrentUser(updatedUser);
+
+    // Add celebration notification
+    this.addNotification({
+      id: `notif-verify-${Date.now()}`,
+      user_id: updatedUser.id,
+      actor_name: 'KLEF Academic Registry',
+      type: 'system',
+      title: '✓ Campus Identity Verified',
+      message: `Your KL University email (${cleanEmail}) has been confirmed. You now possess the official "Verified KLEF Student" badge!`,
+      is_read: false,
+      created_at: new Date().toISOString(),
+    });
+
+    if (this.isBrowser()) {
+      localStorage.removeItem(STORAGE_KEYS.OTP_PENDING);
+    }
+
+    return {
+      success: true,
+      message: 'Congratulations! Your official KL University student identity has been verified.',
+      user: updatedUser,
+    };
+  }
+
+  static unverifyCurrentUser(): void {
+    const currentUser = this.getCurrentUser();
+    const updatedUser: UserProfile = {
+      ...currentUser,
+      is_verified_student: false,
+      university_email: undefined,
+      student_id: undefined,
+      verified_at: undefined,
+    };
+    this.setCurrentUser(updatedUser);
+  }
+
+  // ==========================================
+  // RESOURCE REQUESTS METHODS
+  // ==========================================
+
+  static getResourceRequests(): ResourceRequest[] {
+    if (!this.isBrowser()) return INITIAL_REQUESTS;
+    try {
+      const data = localStorage.getItem(STORAGE_KEYS.REQUESTS);
+      if (data) return JSON.parse(data);
+      localStorage.setItem(STORAGE_KEYS.REQUESTS, JSON.stringify(INITIAL_REQUESTS));
+      return INITIAL_REQUESTS;
+    } catch (e) {
+      console.warn('Failed reading requests from storage', e);
+      return INITIAL_REQUESTS;
+    }
+  }
+
+  static saveResourceRequests(requests: ResourceRequest[]): void {
+    if (!this.isBrowser()) return;
+    localStorage.setItem(STORAGE_KEYS.REQUESTS, JSON.stringify(requests));
+    window.dispatchEvent(new Event('klu_requests_change'));
+  }
+
+  static getResourceRequestById(id: string): ResourceRequest | undefined {
+    return this.getResourceRequests().find((r) => r.id === id);
+  }
+
+  static addResourceRequest(
+    data: Omit<ResourceRequest, 'id' | 'status' | 'created_at' | 'updated_at'>
+  ): ResourceRequest {
+    const requests = this.getResourceRequests();
+    const newRequest: ResourceRequest = {
+      ...data,
+      id: `req-user-${Date.now()}`,
+      status: 'open',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    const updated = [newRequest, ...requests];
+    this.saveResourceRequests(updated);
+
+    // Notify user of successful request publishing
+    this.addNotification({
+      id: `notif-req-create-${Date.now()}`,
+      user_id: data.user_id,
+      actor_name: 'VSS Academic Network',
+      type: 'system',
+      title: 'Resource Request Published',
+      message: `Your request for "${data.title}" is now active in the peer requests feed.`,
+      request_id: newRequest.id,
+      is_read: false,
+      created_at: new Date().toISOString(),
+    });
+
+    return newRequest;
+  }
+
+  static updateResourceRequest(
+    id: string,
+    updates: Partial<ResourceRequest>
+  ): ResourceRequest | undefined {
+    const requests = this.getResourceRequests();
+    let updatedReq: ResourceRequest | undefined;
+
+    const updated = requests.map((r) => {
+      if (r.id === id) {
+        updatedReq = {
+          ...r,
+          ...updates,
+          updated_at: new Date().toISOString(),
+        };
+        return updatedReq;
+      }
+      return r;
+    });
+
+    if (updatedReq) {
+      this.saveResourceRequests(updated);
+    }
+    return updatedReq;
+  }
+
+  static deleteResourceRequest(id: string): boolean {
+    const requests = this.getResourceRequests();
+    const filtered = requests.filter((r) => r.id !== id);
+    if (filtered.length !== requests.length) {
+      this.saveResourceRequests(filtered);
+      return true;
+    }
+    return false;
+  }
+
+  static updateRequestStatus(id: string, status: RequestStatus): boolean {
+    const requests = this.getResourceRequests();
+    let found = false;
+    const now = new Date().toISOString();
+
+    const updated = requests.map((r) => {
+      if (r.id === id) {
+        found = true;
+        return {
+          ...r,
+          status,
+          fulfilled_at: status === 'fulfilled' ? now : status === 'open' ? undefined : r.fulfilled_at,
+          updated_at: now,
+        };
+      }
+      return r;
+    });
+
+    if (found) {
+      this.saveResourceRequests(updated);
+    }
+    return found;
+  }
+
+  // --- Request Offers ---
+  static getRequestOffers(requestId?: string): RequestOffer[] {
+    if (!this.isBrowser()) {
+      return requestId ? INITIAL_OFFERS.filter((o) => o.request_id === requestId) : INITIAL_OFFERS;
+    }
+    try {
+      const data = localStorage.getItem(STORAGE_KEYS.OFFERS);
+      const offers: RequestOffer[] = data ? JSON.parse(data) : INITIAL_OFFERS;
+      if (!data) {
+        localStorage.setItem(STORAGE_KEYS.OFFERS, JSON.stringify(INITIAL_OFFERS));
+      }
+      return requestId ? offers.filter((o) => o.request_id === requestId) : offers;
+    } catch (e) {
+      console.warn('Failed reading offers from storage', e);
+      return requestId ? INITIAL_OFFERS.filter((o) => o.request_id === requestId) : INITIAL_OFFERS;
+    }
+  }
+
+  static saveRequestOffers(offers: RequestOffer[]): void {
+    if (!this.isBrowser()) return;
+    localStorage.setItem(STORAGE_KEYS.OFFERS, JSON.stringify(offers));
+    window.dispatchEvent(new Event('klu_offers_change'));
+  }
+
+  static addRequestOffer(
+    data: Omit<RequestOffer, 'id' | 'status' | 'created_at' | 'updated_at'>
+  ): RequestOffer {
+    const offers = this.getRequestOffers();
+    const newOffer: RequestOffer = {
+      ...data,
+      id: `off-user-${Date.now()}`,
+      status: 'pending',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    const updated = [newOffer, ...offers];
+    this.saveRequestOffers(updated);
+
+    // If offer was an uploaded file, optionally add it to resources store as well
+    if (data.offer_type === 'upload' && data.uploaded_file_name) {
+      const request = this.getResourceRequestById(data.request_id);
+      if (request) {
+        const addedResource = this.addResource({
+          title: data.title || `Resource for: ${request.title}`,
+          description: data.description || `Shared to fulfill academic request: ${request.title}`,
+          category: request.category,
+          course_code: request.course_code,
+          course_name: request.course_name,
+          semester: request.semester,
+          academic_year: request.academic_year || '2025-2026',
+          resource_type: request.resource_type,
+          file_name: data.uploaded_file_name,
+          file_url: data.uploaded_file_url || '/samples/23CS2101_Exp5_AVL_Trees_LabRecord.pdf',
+          file_size: data.uploaded_file_size || 154200,
+          file_type: data.uploaded_file_type || 'pdf',
+          author_id: data.contributor_id,
+          author_name: data.contributor_name,
+          author_username: data.contributor_username,
+          author_avatar: data.contributor_avatar,
+          author_is_verified: data.contributor_is_verified,
+          is_anonymous: false,
+          status: 'approved',
+          tags: [...request.tags, 'RequestFulfillment'],
+        });
+        newOffer.resource_id = addedResource.id;
+      }
+    }
+
+    // Notify the request owner
+    const request = this.getResourceRequestById(data.request_id);
+    if (request && request.user_id !== data.contributor_id) {
+      this.addNotification({
+        id: `notif-offer-${Date.now()}`,
+        user_id: request.user_id,
+        actor_name: data.contributor_name,
+        type: 'request_offer',
+        title: 'New Resource Offer Received',
+        message: `${data.contributor_name} offered a resource for "${request.title}".`,
+        request_id: request.id,
+        is_read: false,
+        created_at: new Date().toISOString(),
+      });
+    }
+
+    return newOffer;
+  }
+
+  static updateOfferStatus(offerId: string, status: OfferStatus): RequestOffer | undefined {
+    const offers = this.getRequestOffers();
+    let updatedOffer: RequestOffer | undefined;
+
+    const updated = offers.map((o) => {
+      if (o.id === offerId) {
+        updatedOffer = {
+          ...o,
+          status,
+          updated_at: new Date().toISOString(),
+        };
+        return updatedOffer;
+      }
+      return o;
+    });
+
+    if (updatedOffer) {
+      this.saveRequestOffers(updated);
+
+      const request = this.getResourceRequestById(updatedOffer.request_id);
+      if (status === 'accepted' && request) {
+        // Automatically mark request as fulfilled when an offer is accepted
+        this.updateRequestStatus(request.id, 'fulfilled');
+
+        // Notify contributor that their offer was accepted
+        this.addNotification({
+          id: `notif-offer-acc-${Date.now()}`,
+          user_id: updatedOffer.contributor_id,
+          actor_name: request.requester_name,
+          type: 'offer_accepted',
+          title: '🎉 Your Resource Offer Was Accepted!',
+          message: `${request.requester_name} accepted your offer for "${request.title}". You helped a fellow student!`,
+          request_id: request.id,
+          is_read: false,
+          created_at: new Date().toISOString(),
+        });
+      }
+    }
+
+    return updatedOffer;
+  }
+
+  static deleteRequestOffer(offerId: string): boolean {
+    const offers = this.getRequestOffers();
+    const filtered = offers.filter((o) => o.id !== offerId);
+    if (filtered.length !== offers.length) {
+      this.saveRequestOffers(filtered);
+      return true;
+    }
+    return false;
+  }
+
+  // --- Request Responses / Comments ---
+  static getRequestResponses(requestId?: string): RequestResponse[] {
+    if (!this.isBrowser()) {
+      return requestId ? INITIAL_RESPONSES.filter((r) => r.request_id === requestId) : INITIAL_RESPONSES;
+    }
+    try {
+      const data = localStorage.getItem(STORAGE_KEYS.RESPONSES);
+      const responses: RequestResponse[] = data ? JSON.parse(data) : INITIAL_RESPONSES;
+      if (!data) {
+        localStorage.setItem(STORAGE_KEYS.RESPONSES, JSON.stringify(INITIAL_RESPONSES));
+      }
+      return requestId ? responses.filter((r) => r.request_id === requestId) : responses;
+    } catch (e) {
+      console.warn('Failed reading responses from storage', e);
+      return requestId ? INITIAL_RESPONSES.filter((r) => r.request_id === requestId) : INITIAL_RESPONSES;
+    }
+  }
+
+  static addRequestResponse(
+    requestId: string,
+    content: string,
+    user: UserProfile,
+    parentResponseId?: string | null
+  ): RequestResponse {
+    const responses = this.getRequestResponses();
+    const newResponse: RequestResponse = {
+      id: `resp-user-${Date.now()}`,
+      request_id: requestId,
+      user_id: user.id,
+      user_name: user.code_name || user.username || 'Anonymous',
+      user_username: user.username,
+      user_avatar: user.avatar_url,
+      user_department: user.department,
+      user_is_verified: user.is_verified_student,
+      parent_response_id: parentResponseId || null,
+      content,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    const updated = [...responses, newResponse];
+    if (this.isBrowser()) {
+      localStorage.setItem(STORAGE_KEYS.RESPONSES, JSON.stringify(updated));
+      window.dispatchEvent(new Event('klu_request_responses_change'));
+    }
+
+    // Notify request owner
+    const request = this.getResourceRequestById(requestId);
+    if (request && request.user_id !== user.id) {
+      this.addNotification({
+        id: `notif-resp-${Date.now()}`,
+        user_id: request.user_id,
+        actor_name: user.code_name || user.username || 'Peer Scholar',
+        type: 'request_comment',
+        title: 'New Discussion Reply on Request',
+        message: `${user.code_name || user.username} commented on "${request.title}".`,
+        request_id: request.id,
+        is_read: false,
+        created_at: new Date().toISOString(),
+      });
+    }
+
+    return newResponse;
+  }
+
+  static updateRequestResponse(responseId: string, content: string): RequestResponse | undefined {
+    const responses = this.getRequestResponses();
+    let updatedResp: RequestResponse | undefined;
+
+    const updated = responses.map((r) => {
+      if (r.id === responseId) {
+        updatedResp = {
+          ...r,
+          content,
+          updated_at: new Date().toISOString(),
+        };
+        return updatedResp;
+      }
+      return r;
+    });
+
+    if (updatedResp && this.isBrowser()) {
+      localStorage.setItem(STORAGE_KEYS.RESPONSES, JSON.stringify(updated));
+      window.dispatchEvent(new Event('klu_request_responses_change'));
+    }
+    return updatedResp;
+  }
+
+  static deleteRequestResponse(responseId: string): boolean {
+    const responses = this.getRequestResponses();
+    const filtered = responses.filter((r) => r.id !== responseId);
+    if (filtered.length !== responses.length) {
+      if (this.isBrowser()) {
+        localStorage.setItem(STORAGE_KEYS.RESPONSES, JSON.stringify(filtered));
+        window.dispatchEvent(new Event('klu_request_responses_change'));
+      }
+      return true;
+    }
+    return false;
+  }
+
+  // --- Saved Requests (Bookmarks for Requests) ---
+  static getSavedRequestIds(): string[] {
+    if (!this.isBrowser()) return INITIAL_SAVED_REQUESTS;
+    try {
+      const data = localStorage.getItem(STORAGE_KEYS.SAVED_REQUESTS);
+      if (data) return JSON.parse(data);
+      localStorage.setItem(STORAGE_KEYS.SAVED_REQUESTS, JSON.stringify(INITIAL_SAVED_REQUESTS));
+      return INITIAL_SAVED_REQUESTS;
+    } catch (e) {
+      console.warn('Failed reading saved requests', e);
+      return INITIAL_SAVED_REQUESTS;
+    }
+  }
+
+  static toggleSavedRequest(requestId: string): boolean {
+    if (!this.isBrowser()) return false;
+    const saved = this.getSavedRequestIds();
+    const isSaved = saved.includes(requestId);
+    let newSaved: string[];
+
+    if (isSaved) {
+      newSaved = saved.filter((id) => id !== requestId);
+    } else {
+      newSaved = [...saved, requestId];
+    }
+    localStorage.setItem(STORAGE_KEYS.SAVED_REQUESTS, JSON.stringify(newSaved));
+    window.dispatchEvent(new Event('klu_saved_requests_change'));
+    return !isSaved;
+  }
+
+  // --- Request Reports ---
+  static getRequestReports(): RequestReport[] {
+    if (!this.isBrowser()) return [];
+    try {
+      const data = localStorage.getItem(STORAGE_KEYS.REQUEST_REPORTS);
+      if (data) return JSON.parse(data);
+    } catch (e) {
+      console.warn('Failed reading request reports', e);
+    }
+    return [];
+  }
+
+  static addRequestReport(report: Omit<RequestReport, 'id' | 'status' | 'created_at'>): RequestReport {
+    const reports = this.getRequestReports();
+    const created: RequestReport = {
+      ...report,
+      id: `req-rep-${Date.now()}`,
+      status: 'pending',
+      created_at: new Date().toISOString(),
+    };
+    const updated = [created, ...reports];
+    if (this.isBrowser()) {
+      localStorage.setItem(STORAGE_KEYS.REQUEST_REPORTS, JSON.stringify(updated));
+      window.dispatchEvent(new Event('klu_request_reports_change'));
+    }
+    return created;
+  }
+
+  static resolveRequestReport(reportId: string, status: 'resolved' | 'dismissed', notes?: string): void {
+    const reports = this.getRequestReports();
+    const updated = reports.map((r) =>
+      r.id === reportId ? { ...r, status, resolution_notes: notes } : r
+    );
+    if (this.isBrowser()) {
+      localStorage.setItem(STORAGE_KEYS.REQUEST_REPORTS, JSON.stringify(updated));
+      window.dispatchEvent(new Event('klu_request_reports_change'));
+    }
+  }
+
+  // --- Summary Statistics ---
+  static getRequestsSummaryStats(currentUserId?: string): {
+    total: number;
+    open: number;
+    fulfilled: number;
+    myRequests: number;
+  } {
+    const requests = this.getResourceRequests();
+    const total = requests.length;
+    const open = requests.filter((r) => r.status === 'open' || r.status === 'partially_fulfilled').length;
+    const fulfilled = requests.filter((r) => r.status === 'fulfilled').length;
+    const myRequests = currentUserId
+      ? requests.filter((r) => r.user_id === currentUserId).length
+      : 0;
+
+    return { total, open, fulfilled, myRequests };
+  }
+}

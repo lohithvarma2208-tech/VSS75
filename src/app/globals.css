@@ -1,0 +1,75 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply antialiased text-white bg-[#0B0F19];
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+  *:focus-visible {
+    @apply outline-none ring-2 ring-purple-500/70 ring-offset-2 ring-offset-[#0B0F19];
+  }
+}
+
+/* Agentic Midnight Wireframe Grid with High Video Transparency */
+.bg-forest-grid,
+.bg-agentic-grid {
+  background-color: rgba(11, 15, 25, 0.35);
+  background-image: 
+    radial-gradient(circle at 10% 15%, rgba(59, 130, 246, 0.15) 0%, transparent 45%),
+    radial-gradient(circle at 90% 25%, rgba(168, 85, 247, 0.16) 0%, transparent 50%),
+    linear-gradient(to right, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  background-size: 100% 100%, 100% 100%, 48px 48px, 48px 48px;
+}
+
+/* Subtler dense grid */
+.bg-forest-grid-dense,
+.bg-agentic-grid-dense {
+  background-color: #0D1527;
+  background-image: 
+    linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+/* Agentic Glassmorphism */
+.forest-glass,
+.agentic-glass {
+  background: rgba(19, 27, 46, 0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Hover lift effect */
+.hover-card-lift {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease;
+}
+.hover-card-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px -8px rgba(168, 85, 247, 0.22);
+}
+
+/* Custom refined scrollbars with purple glow */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0B0F19;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1E293B;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #A855F7;
+}
