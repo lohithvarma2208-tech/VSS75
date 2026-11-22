@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { RefreshCw } from 'lucide-react';
@@ -38,6 +38,11 @@ export default function LoginForm() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [captcha, setCaptcha] = useState('');
+  const captchaInput = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (challenge) captchaInput.current?.focus();
+  }, [challenge]);
 
   function openDemo(user: UserProfile) {
     sessionStorage.setItem('vss_show_benefits_ad', 'true');
@@ -109,22 +114,22 @@ export default function LoginForm() {
               <input className={inputClass} type="password" autoComplete="current-password" required maxLength={256} value={password} onChange={(event) => setPassword(event.target.value)} />
             </label>
 
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="space-y-2">
               {challenge && (
                 // The response is a short-lived data URL scoped to this CAPTCHA.
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={challenge.image} alt="ERP CAPTCHA challenge" className="rounded-md bg-white" width={120} height={50} />
+                <img src={challenge.image} alt="ERP CAPTCHA challenge" className="block h-auto w-72 max-w-full rounded-md bg-white" width={288} height={120} />
               )}
               <button type="button" className={buttonClass + ' inline-flex items-center gap-2'} onClick={loadCaptcha} disabled={!!busy}>
                 <RefreshCw className="h-3.5 w-3.5" aria-hidden="true" />
-                {busy === 'captcha' ? 'Loading CAPTCHA…' : challenge ? 'New CAPTCHA' : 'Load CAPTCHA'}
+                {busy === 'captcha' ? 'Loading CAPTCHA…' : challenge ? 'Try a different image' : 'Load CAPTCHA'}
               </button>
             </div>
 
             {challenge && (
               <label className="block space-y-1 text-sm font-semibold">
                 <span>Characters shown in the image</span>
-                <input className={inputClass} autoComplete="off" autoCapitalize="none" spellCheck={false} required maxLength={32} value={captcha} onChange={(event) => setCaptcha(event.target.value)} />
+                <input ref={captchaInput} className={inputClass} autoComplete="off" autoCapitalize="none" spellCheck={false} required maxLength={32} value={captcha} onChange={(event) => setCaptcha(event.target.value)} />
               </label>
             )}
 
