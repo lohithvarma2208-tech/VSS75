@@ -4,6 +4,8 @@ import { CookieJar } from 'tough-cookie';
 const ERP_ORIGIN = 'https://newerp.kluniversity.in';
 const HOME_URL = new URL('/index.php', ERP_ORIGIN);
 const PROFILE_URL = new URL('/index.php?r=site%2Findexindi', ERP_ORIGIN);
+const ATTENDANCE_URL = new URL('/index.php?r=studentattendance%2Fstudentdailyattendance', ERP_ORIGIN);
+const ATTENDANCE_COURSES_URL = new URL('/index.php?r=studentattendance%2Fstudentdailyattendance%2Fcourselist', ERP_ORIGIN);
 
 export interface ErpProfile {
   name: string;
@@ -130,6 +132,97 @@ function normalizeSemester(value: string) {
   return '';
 }
 
+function inferCurrentSemester(rollNumber: string, now = new Date()) {
+  const batch = Number(rollNumber.slice(0, 2));
+  if (!Number.isInteger(batch) || batch < 20 || batch > 40) return '';
+  const fullBatchYear = 2000 + batch;
+  const academicStartYear = now.getMonth() >= 5 ? now.getFullYear() : now.getFullYear() - 1;
+  const studyYear = academicStartYear - fullBatchYear;
+  if (studyYear < 0) return '';
+
+  // KLU's Y25/Y26 curricula use three terms per academic year. Older
+  // curricula use the regular two-semester calendar.
+  if (batch >= 25) {
+    const phase = now.getMonth() >= 9 ? 2 : now.getMonth() >= 5 ? 1 : 3;
+    const term = studyYear * 3 + phase;
+    return term >= 1 && term <= 12 ? `Tri-Sem ${term} (T${term})` : '';
+  }
+  const phase = now.getMonth() >= 5 ? 1 : 2;
+  const semester = studyYear * 2 + phase;
+  return semester >= 1 && semester <= 8 ? `Sem ${semester}` : '';
+}
+
+function selectedOption($: ReturnType<typeof load>, selector: string) {
+  const select = $(selector).first();
+  if (!select.length) return null;
+  const option = select.find('option:selected').first().length
+    ? select.find('option:selected').first()
+    : select.find('option[value]').filter((_, item) => Boolean($(item).attr('value'))).first();
+  const value = option.attr('value') || '';
+  return value ? { value, label: cleanText(option.text()) } : null;
+}
+
+async function fetchCurrentCourses(jar: CookieJar, profile: ErpProfile) {
+  try {
+    const landing = await requestErp(jar, ATTENDANCE_URL, { headers: { Referer: PROFILE_URL.href } });
+    if (!landing.ok) {
+      await landing.body?.cancel();
+      return profile;
+    }
+    const html = await landing.text();
+    const $ = load(html);
+    const csrf = $('input[name="_csrf"]').attr('value') || $('meta[name="csrf-token"]').attr('content') || '';
+    const year = selectedOption($, 'select[name*="academicyear" i]');
+    const period = selectedOption($, 'select[name*="semesterid" i]');
+    if (!csrf || !year || !period) return profile;
+
+    const body = new URLSearchParams({
+      _csrf: csrf,
+      'DynamicModel[academicyear]': year.value,
+      'DynamicModel[semesterid]': period.value,
+    });
+    const response = await requestErp(jar, ATTENDANCE_COURSES_URL, {
+      method: 'POST',
+      headers: {
+        Referer: ATTENDANCE_URL.href,
+        Origin: ERP_ORIGIN,
+        'X-CSRF-Token': csrf,
+        'X-Requested-With': 'XMLHttpRequest',
+      },
+      body,
+    });
+    if (!response.ok) {
+      await response.body?.cancel();
+      return profile;
+    }
+
+    const coursePage = load(await response.text());
+    const semester = profile.semester || inferCurrentSemester(profile.rollNumber);
+    const courses: NonNullable<ErpProfile['courses']> = [];
+    const seen = new Set<string>();
+    coursePage('table tbody tr').each((_, row) => {
+      const cells = coursePage(row).find('td').map((__, cell) => cleanText(coursePage(cell).text())).get();
+      // ERP attendance rows are: index, code, description, LTPS, section,
+      // academic year, semester, ... The same course appears once per LTPS component.
+      if (cells.length < 7) return;
+      const code = cells[1]?.match(/^(\d{2}[A-Z]{2,4}\d{3,4}[A-Z]?)$/i)?.[1]?.toUpperCase();
+      const name = cells[2];
+      if (!code || seen.has(code) || !name || name.length > 200 || !/[A-Za-z]{3}/.test(name)) return;
+      seen.add(code);
+      courses.push({ code, name, semester: semester || undefined });
+    });
+
+    return {
+      ...profile,
+      semester: semester || undefined,
+      academicYear: year.label || profile.academicYear,
+      courses,
+    };
+  } catch {
+    return profile;
+  }
+}
+
 function parseProfile(html: string, username: string): ErpProfile | null {
   const $ = load(html);
   if ($('#login-form').length) return null;
@@ -230,7 +323,7 @@ export async function verifyErpLogin(challenge: ErpChallenge, input: LoginInput)
   if (response.ok) {
     const html = await response.text();
     const profile = parseProfile(html, input.username);
-    if (profile) return profile;
+    if (profile) return fetchCurrentCourses(jar, profile);
     if (load(html)('#login-form').length) return null;
   } else {
     await response.body?.cancel();
@@ -245,5 +338,6 @@ export async function verifyErpLogin(challenge: ErpChallenge, input: LoginInput)
     if (dashboard.status === 429 || dashboard.status >= 500) throw new Error('ERP profile is unavailable');
     return null;
   }
-  return parseProfile(await dashboard.text(), input.username);
+  const profile = parseProfile(await dashboard.text(), input.username);
+  return profile ? fetchCurrentCourses(jar, profile) : null;
 }

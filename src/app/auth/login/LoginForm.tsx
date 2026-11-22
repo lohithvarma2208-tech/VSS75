@@ -6,7 +6,7 @@ import { ArrowLeft, ArrowRight, Eye, EyeOff, LockKeyhole, RefreshCw, ShieldCheck
 
 interface CaptchaChallenge { image: string; challengeId: string; }
 
-async function sendErpRequest(body: Record<string, string>) {
+async function sendErpRequest(body: Record<string, string | boolean>) {
   const response = await fetch('/api/auth/erp', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
   const data = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(data.error || 'ERP sign-in is temporarily unavailable.');
@@ -23,6 +23,7 @@ export default function LoginForm() {
   const [password, setPassword] = useState('');
   const [captcha, setCaptcha] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const captchaInput = useRef<HTMLInputElement>(null);
 
   useEffect(() => { if (challenge) captchaInput.current?.focus(); }, [challenge]);
@@ -43,7 +44,7 @@ export default function LoginForm() {
     if (!challenge || busy) return;
     setBusy('login'); setError('');
     try {
-      await sendErpRequest({ action: 'login', username, password, captcha, challengeId: challenge.challengeId });
+      await sendErpRequest({ action: 'login', username, password, captcha, challengeId: challenge.challengeId, acceptedTerms });
       setPassword(''); setCaptcha(''); setChallenge(null);
       window.location.replace('/auth/erp/profile');
     } catch (failure) {
@@ -87,7 +88,12 @@ export default function LoginForm() {
               </div> : <button type="button" onClick={loadCaptcha} disabled={!!busy} className="flex w-full items-center justify-center gap-2 rounded-2xl border border-white/[0.08] bg-white/[0.04] px-4 py-3 text-xs font-bold text-white/65 hover:bg-white/[0.07] disabled:opacity-40"><RefreshCw className={`h-3.5 w-3.5 ${busy === 'captcha' ? 'animate-spin' : ''}`} />{busy === 'captcha' ? 'Loading verification image…' : 'Load verification image'}</button>}
             </div>
 
-            <button type="submit" disabled={!challenge || !captcha.trim() || !!busy} className="vss-button min-h-12 w-full disabled:cursor-not-allowed disabled:opacity-35">{busy === 'login' ? 'Verifying…' : <>Continue <ArrowRight className="h-4 w-4" /></>}</button>
+            <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-white/[0.07] bg-white/[0.025] p-3.5 text-[10px] leading-4 text-white/42">
+              <input type="checkbox" required checked={acceptedTerms} onChange={(event) => setAcceptedTerms(event.target.checked)} className="mt-0.5 h-4 w-4 shrink-0 accent-violet-400" />
+              <span>I agree to the VSS terms and consent to live verification with KL ERP. VSS stores my verified student profile and login-consent record, but never my ERP password, CAPTCHA answer, or ERP cookies.</span>
+            </label>
+
+            <button type="submit" disabled={!challenge || !captcha.trim() || !acceptedTerms || !!busy} className="vss-button min-h-12 w-full disabled:cursor-not-allowed disabled:opacity-35">{busy === 'login' ? 'Verifying…' : <>Continue <ArrowRight className="h-4 w-4" /></>}</button>
           </form>
 
           <p className="mt-6 text-center text-[10px] text-white/28">Independent student community · Not an official ERP portal</p>

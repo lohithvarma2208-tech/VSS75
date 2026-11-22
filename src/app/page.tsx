@@ -1,24 +1,23 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
   ArrowRight, BookOpen, Braces, Clock3, Download, FileText,
-  FlaskConical, Lightbulb, Search, Sparkles, Upload, Users,
+  Search, Sparkles, Upload, Users,
 } from 'lucide-react';
 import type { Resource } from '@/types';
 import { useApp } from '@/lib/context/AppContext';
 import { MockStorageManager } from '@/lib/storage/mock-store';
+import { getRelevantCourses, readAcademicContext } from '@/lib/academic-context';
 
-const categories = [
-  { name: 'Notes', label: 'Lecture & unit notes', icon: BookOpen, accent: 'from-violet-400/25 to-violet-400/0' },
-  { name: 'Programming', label: 'Code & practice', icon: Braces, accent: 'from-cyan-400/20 to-cyan-400/0' },
-  { name: 'Lab Records', label: 'Experiments & records', icon: FlaskConical, accent: 'from-emerald-400/20 to-emerald-400/0' },
-  { name: 'Assignments', label: 'Solved references', icon: FileText, accent: 'from-amber-400/20 to-amber-400/0' },
-  { name: 'DTIE Projects', label: 'Ideas & prototypes', icon: Lightbulb, accent: 'from-fuchsia-400/20 to-fuchsia-400/0' },
-  { name: 'Mini Projects', label: 'Student builds', icon: Sparkles, accent: 'from-rose-400/20 to-rose-400/0' },
-];
+const categoryStyle = {
+  Notes: { label: 'Lecture & unit notes', icon: BookOpen, accent: 'from-violet-400/25 to-violet-400/0' },
+  Programming: { label: 'Code & practice', icon: Braces, accent: 'from-cyan-400/20 to-cyan-400/0' },
+  Assignments: { label: 'Solved references', icon: FileText, accent: 'from-amber-400/20 to-amber-400/0' },
+  Presentations: { label: 'Slides & presentations', icon: Sparkles, accent: 'from-rose-400/20 to-rose-400/0' },
+} as const;
 
 export default function HomePage() {
   const router = useRouter();
@@ -33,8 +32,17 @@ export default function HomePage() {
     return () => window.removeEventListener('klu_resources_change', refresh);
   }, []);
 
-  const recent = [...resources].sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at)).slice(0, 5);
-  const totalDownloads = resources.reduce((sum, item) => sum + item.downloads_count, 0);
+  const academic = currentUser ? readAcademicContext(currentUser) : null;
+  const enrolledCodes = useMemo(() => new Set(
+    academic ? getRelevantCourses(currentUser, academic.semester).map((course) => course.code.toUpperCase()) : [],
+  ), [academic?.semester, currentUser]);
+  const relevantResources = currentUser
+    ? resources.filter((resource) => enrolledCodes.has(resource.course_code.toUpperCase()))
+    : resources;
+  const recent = [...relevantResources].sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at)).slice(0, 5);
+  const totalDownloads = relevantResources.reduce((sum, item) => sum + item.downloads_count, 0);
+  const availableCategories = [...new Set(relevantResources.map((resource) => resource.category))]
+    .map((name) => ({ name, ...(categoryStyle[name as keyof typeof categoryStyle] || { label: 'Student-shared material', icon: FileText, accent: 'from-violet-400/20 to-violet-400/0' }) }));
 
   function search(event: React.FormEvent) {
     event.preventDefault();
@@ -54,7 +62,7 @@ export default function HomePage() {
             Your semester,<br /><span className="text-violet-300">in one place.</span>
           </h1>
           <p className="mt-5 max-w-xl text-sm leading-6 text-white/52 sm:text-base">
-            Useful notes, lab records, code, and project references—shared by students who have already been there.
+            Notes, code, assignments, and references for the courses you are actually enrolled in.
           </p>
 
           <form onSubmit={search} className="mt-8 flex max-w-xl items-center rounded-2xl border border-white/10 bg-black/35 p-1.5 backdrop-blur-sm">
@@ -67,15 +75,15 @@ export default function HomePage() {
       </section>
 
       <section className="mt-7 grid grid-cols-3 gap-3">
-        <Metric value={`${resources.length}`} label="Resources" icon={FileText} />
+        <Metric value={`${relevantResources.length}`} label="Resources" icon={FileText} />
         <Metric value={totalDownloads > 999 ? `${(totalDownloads / 1000).toFixed(1)}k` : `${totalDownloads}`} label="Downloads" icon={Download} />
-        <Metric value={`${new Set(resources.map((item) => item.course_code)).size}`} label="Courses" icon={Users} />
+        <Metric value={`${new Set(relevantResources.map((item) => item.course_code)).size}`} label="Courses" icon={Users} />
       </section>
 
       <section className="mt-12">
         <SectionTitle eyebrow="Browse by type" title="Find what you need" href="/explore" />
-        <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-          {categories.map((item) => {
+        {availableCategories.length ? <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+          {availableCategories.map((item) => {
             const Icon = item.icon;
             return (
               <Link key={item.name} href={`/explore?category=${encodeURIComponent(item.name)}`} className="vss-card vss-card-hover relative min-h-40 overflow-hidden p-4">
@@ -90,7 +98,7 @@ export default function HomePage() {
               </Link>
             );
           })}
-        </div>
+        </div> : <div className="vss-card mt-5 p-7 text-center"><p className="text-sm font-bold">No material for your current courses yet.</p><p className="mt-1 text-xs text-white/35">Categories appear here only after a matching resource is shared.</p></div>}
       </section>
 
       <section className="mt-12 grid gap-5 lg:grid-cols-[1.55fr_.75fr]">
@@ -115,7 +123,7 @@ export default function HomePage() {
           <div className="vss-card overflow-hidden p-6">
             <div className="grid h-11 w-11 place-items-center rounded-2xl bg-violet-400 text-black"><Upload className="h-5 w-5" /></div>
             <h2 className="mt-7 text-xl font-extrabold tracking-tight">Help the next student.</h2>
-            <p className="mt-2 text-xs leading-5 text-white/42">Upload clean notes, a lab reference, or code you wish you had earlier.</p>
+            <p className="mt-2 text-xs leading-5 text-white/42">Upload clean notes, an assignment reference, or code you wish you had earlier.</p>
             <Link href="/upload" className="vss-button mt-6 w-full">Share a resource <ArrowRight className="h-4 w-4" /></Link>
           </div>
           <Link href="/requests" className="vss-card vss-card-hover flex items-center gap-4 p-5">

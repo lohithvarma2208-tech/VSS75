@@ -14,6 +14,8 @@ const recordSchema = z.object({
   firstLoginAt: z.string().datetime(),
   lastLoginAt: z.string().datetime(),
   loginCount: z.number().int().positive(),
+  consentVersion: z.string().max(40).optional(),
+  consentedAt: z.string().datetime().optional(),
 });
 
 export type AdminUserRecord = z.infer<typeof recordSchema>;
@@ -37,7 +39,7 @@ function objectName(registrationNumber: string) {
   return createHash('sha256').update(registrationNumber).digest('hex') + '.json';
 }
 
-export async function recordVerifiedLogin(profile: ErpProfile, incrementLogin = true) {
+export async function recordVerifiedLogin(profile: ErpProfile, incrementLogin = true, acceptedTerms = false) {
   const db = client();
   await ensureBucket(db);
   const bucket = db.storage.from(BUCKET);
@@ -58,6 +60,8 @@ export async function recordVerifiedLogin(profile: ErpProfile, incrementLogin = 
     firstLoginAt: previous?.firstLoginAt || now,
     lastLoginAt: now,
     loginCount: previous ? previous.loginCount + (incrementLogin ? 1 : 0) : 1,
+    consentVersion: acceptedTerms ? 'erp-login-v1' : previous?.consentVersion,
+    consentedAt: acceptedTerms ? now : previous?.consentedAt,
   };
   const { error } = await bucket.upload(path, JSON.stringify(record), { contentType: 'application/json', upsert: true });
   if (error) throw error;

@@ -25,6 +25,7 @@ const inputSchema = z.discriminatedUnion('action', [
     password: z.string().min(1).max(256),
     captcha: z.string().trim().min(1).max(32),
     challengeId: z.string().regex(/^[\w-]{43}$/),
+    acceptedTerms: z.literal(true),
   }),
 ]);
 
@@ -114,7 +115,7 @@ export async function POST(request: NextRequest) {
     const id = await saveErpSession(profile);
     if (!id) return clearChallenge(json({ error: 'Sign-in is busy. Try again shortly.' }, 503));
     await endErpSession(previousSession);
-    await recordVerifiedLogin(profile).catch(() => undefined);
+    await recordVerifiedLogin(profile, true, true).catch(() => undefined);
     return clearChallenge(setCookie(json({ ok: true }), SESSION_COOKIE, id, SESSION_SECONDS));
   } catch {
     return clearChallenge(json({ error: 'KL ERP could not complete sign-in. Try again shortly.' }, 502));
