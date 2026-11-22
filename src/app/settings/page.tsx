@@ -46,9 +46,10 @@ export default function SettingsPage() {
             const next = { ...academic, semester: event.target.value, source: 'manual' as const, userId: currentUser.id };
             setAcademic(next); saveAcademicContext(next); setCurrentUser({ ...currentUser, semester: next.semester, academic_context_source: 'manual' });
           }} className="profile-input mt-4 appearance-none">
+            {!academic.semester && <option value="" disabled className="bg-[#17171a]">Choose your current semester</option>}
             {TERM_OPTIONS.map((term) => <option key={term} value={term} className="bg-[#17171a]">{term}</option>)}
           </select>
-          <div className="mt-4 flex items-center gap-2 rounded-2xl bg-white/[0.035] px-3 py-3 text-[10px] text-white/40"><BookOpenCheck className="h-4 w-4 shrink-0 text-violet-300" /><span>{getRelevantCourses(currentUser, academic.semester).length} relevant courses available for {academic.semester}</span></div>
+          <div className="mt-4 flex items-center gap-2 rounded-2xl bg-white/[0.035] px-3 py-3 text-[10px] text-white/40"><BookOpenCheck className="h-4 w-4 shrink-0 text-violet-300" /><span>{academic.semester ? `${getRelevantCourses(currentUser, academic.semester).length} ERP-enrolled courses for ${academic.semester}` : 'ERP did not expose a current semester. Choose it once above.'}</span></div>
         </div>
       </section>}
 

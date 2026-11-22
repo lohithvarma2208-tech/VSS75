@@ -84,16 +84,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const erp = data?.profile;
         if (!erp?.rollNumber || !erp?.name) return;
         const existing = MockStorageManager.getCurrentUser();
+        const hasManualSemester = existing?.academic_context_source === 'manual' && Boolean(existing.semester);
         const user: UserProfile = {
           id: `erp-${erp.rollNumber}`,
           username: erp.rollNumber,
           full_name: erp.name,
           email: existing?.email || `${erp.rollNumber}@vss.local`,
           department: erp.department || existing?.department || 'KLU',
-          semester: erp.semester || (erp.rollNumber.startsWith('26') ? 'Tri-Sem 1 (T1)' : erp.rollNumber.startsWith('25') ? 'Sem 3' : erp.rollNumber.startsWith('24') ? 'Sem 5' : 'Sem 1'),
+          semester: hasManualSemester ? existing!.semester : (erp.semester || ''),
           academic_year: erp.academicYear,
           registered_courses: Array.isArray(erp.courses) ? erp.courses : [],
-          academic_context_source: 'erp',
+          academic_context_source: hasManualSemester ? 'manual' : 'erp',
           role: 'student',
           student_id: erp.rollNumber,
           is_verified_student: true,

@@ -110,21 +110,53 @@ export async function startErpChallenge() {
   };
 }
 
+function cleanText(value: string) {
+  return value.replace(/\s+/g, ' ').trim();
+}
+
+function normalizeLabel(value: string) {
+  return cleanText(value).replace(/\s*:\s*$/, '').toLowerCase();
+}
+
+function normalizeSemester(value: string) {
+  const text = cleanText(value);
+  if (!text) return '';
+  const tri = text.match(/(?:tri[\s-]*sem(?:ester)?|trimester|term|\bT)\s*[-:#]?\s*(\d{1,2})/i);
+  if (tri) return `Tri-Sem ${Number(tri[1])} (T${Number(tri[1])})`;
+  const regular = text.match(/(?:semester|sem)\s*[-:#]?\s*(\d{1,2})/i);
+  if (regular) return `Sem ${Number(regular[1])}`;
+  const bare = text.match(/^(\d{1,2})$/);
+  if (bare && Number(bare[1]) >= 1 && Number(bare[1]) <= 12) return `Sem ${Number(bare[1])}`;
+  return '';
+}
+
 function parseProfile(html: string, username: string): ErpProfile | null {
   const $ = load(html);
   if ($('#login-form').length) return null;
 
   function field(...labels: string[]) {
-    const heading = $('b').filter((_, element) =>
-      labels.includes($(element).text().trim().replace(/\s*:\s*$/, '').toLowerCase()),
-    ).first();
-    return heading.parent('div').next('div').text().replace(/\s+/g, ' ').trim();
+    const wanted = new Set(labels.map(normalizeLabel));
+    let result = '';
+
+    $('tr').each((_, row) => {
+      if (result) return;
+      const cells = $(row).find('th,td').map((__, cell) => cleanText($(cell).text())).get();
+      if (cells.length >= 2 && wanted.has(normalizeLabel(cells[0]))) result = cells[1];
+    });
+    if (result) return result;
+
+    $('b,strong,label').each((_, element) => {
+      if (result || !wanted.has(normalizeLabel($(element).text()))) return;
+      const parent = $(element).parent();
+      result = cleanText(parent.next().text()) || cleanText(parent.next('div').text());
+    });
+    return result;
   }
 
   const name = field('name');
   const rollNumber = field('roll no');
   const department = field('department');
-  const semester = field('semester', 'current semester', 'current sem', 'term');
+  const semester = normalizeSemester(field('semester', 'current semester', 'current sem', 'current term', 'term'));
   const academicYear = field('academic year', 'current academic year');
   if (
     !name || name.length > 200 ||
@@ -134,15 +166,41 @@ function parseProfile(html: string, username: string): ErpProfile | null {
 
   const courses: { code: string; name: string; semester?: string }[] = [];
   const seen = new Set<string>();
-  $('tr').each((_, row) => {
-    const cells = $(row).find('td').map((__, cell) => $(cell).text().replace(/\s+/g, ' ').trim()).get();
-    const joined = cells.join(' ');
-    const code = joined.match(/\b\d{2}[A-Z]{2,4}\d{3,4}[A-Z]?\b/i)?.[0]?.toUpperCase();
-    if (!code || seen.has(code)) return;
-    const nameCell = cells.find((cell) => cell !== code && cell.length >= 4 && cell.length <= 160 && /[A-Za-z]{3}/.test(cell) && !/^(L|T|P|S|LTPS|Section)$/i.test(cell));
-    if (!nameCell) return;
-    seen.add(code);
-    courses.push({ code, name: nameCell.replace(code, '').replace(/^[-–—:\s]+/, '').trim() || nameCell, semester: semester || undefined });
+  $('table').each((_, table) => {
+    const context = cleanText([
+      $(table).attr('id') || '',
+      $(table).attr('class') || '',
+      $(table).find('caption').first().text(),
+      $(table).prevAll('h1,h2,h3,h4,h5,.panel-title,.card-title').first().text(),
+    ].join(' ')).toLowerCase();
+    if (/grade|result|transcript|history|completed/.test(context)) return;
+
+    const rows = $(table).find('tr').toArray();
+    const headerIndex = rows.findIndex((row) => {
+      const headers = $(row).find('th,td').map((__, cell) => normalizeLabel($(cell).text())).get();
+      return headers.some((header) => /^(course|subject)\s*code$|^coursecode$/.test(header)) &&
+        headers.some((header) => /^(course|subject)\s*(name|description|desc|title)$|^coursedesc$/.test(header));
+    });
+    if (headerIndex < 0) return;
+
+    const headers = $(rows[headerIndex]).find('th,td').map((__, cell) => normalizeLabel($(cell).text())).get();
+    const isCurrentCourseTable = /registration|registered|current\s+course|attendance|timetable|course\s*wise/.test(context) ||
+      headers.some((header) => /^(ltps|section|faculty|instructor|teacher)$/.test(header));
+    if (!isCurrentCourseTable || headers.some((header) => /grade|credit|result/.test(header))) return;
+    const codeIndex = headers.findIndex((header) => /^(course|subject)\s*code$|^coursecode$/.test(header));
+    const nameIndex = headers.findIndex((header) => /^(course|subject)\s*(name|description|desc|title)$|^coursedesc$/.test(header));
+    const semesterIndex = headers.findIndex((header) => /^(current\s*)?(semester|sem|term)$/.test(header));
+
+    rows.slice(headerIndex + 1).forEach((row) => {
+      const cells = $(row).find('td').map((__, cell) => cleanText($(cell).text())).get();
+      const code = cells[codeIndex]?.match(/^\s*(\d{2}[A-Z]{2,4}\d{3,4}[A-Z]?)\s*$/i)?.[1]?.toUpperCase();
+      const courseName = cells[nameIndex]?.replace(/^[-–—:\s]+/, '').trim();
+      const rowSemester = semesterIndex >= 0 ? normalizeSemester(cells[semesterIndex] || '') : semester;
+      if (!code || seen.has(code) || !courseName || courseName.length > 160 || !/[A-Za-z]{3}/.test(courseName)) return;
+      if (semester && rowSemester && rowSemester !== semester) return;
+      seen.add(code);
+      courses.push({ code, name: courseName, semester: rowSemester || semester || undefined });
+    });
   });
 
   return { name, rollNumber, department, semester: semester || undefined, academicYear: academicYear || undefined, courses: courses.slice(0, 24) };
