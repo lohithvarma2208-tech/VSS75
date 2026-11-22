@@ -19,7 +19,6 @@ import {
 import { useApp } from '@/lib/context/AppContext';
 import { generateUserCodeName } from '@/lib/data/academic-heads';
 import { VerifiedBadge } from '@/components/common/VerifiedBadge';
-import BackgroundVideo from '@/components/common/BackgroundVideo';
 
 const PRESET_HANDLES = [
   'ShadowScholar_01',
@@ -104,9 +103,6 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-[85vh] flex items-center justify-center px-4 py-12 relative overflow-hidden">
-      {/* Background "The Vault of Knowledge" - Cinematic Master Loop */}
-      <BackgroundVideo src="/videos/vault-of-knowledge.mp4" opacity={0.85} overlayStyle="obsidian" />
-
       {/* Ambient atmospheric glows */}
       <div className="absolute top-1/4 -left-20 w-[450px] h-[450px] bg-blue-600/15 rounded-full blur-[140px] pointer-events-none" />
       <div className="absolute top-1/3 -right-20 w-[500px] h-[500px] bg-purple-600/20 rounded-full blur-[150px] pointer-events-none" />
