@@ -36,7 +36,7 @@ Virtual Student Space is designed specifically for peer academic reference, conc
 
 ## 🚀 Tech Stack
 
-- **Framework**: Next.js 14 with App Router
+- **Framework**: Next.js 16 with App Router
 - **Language**: TypeScript (Strict typing)
 - **Styling**: Tailwind CSS with custom university collegiate theme & `Plus Jakarta Sans` + `JetBrains Mono` fonts
 - **Background Video Engine**: Multi-theme ambient video background with "The Vault of Knowledge" 10s Full HD loop
@@ -116,8 +116,8 @@ Open **[http://localhost:3000](http://localhost:3000)** in your browser.
 
 ### ERP sign-in
 
-Run VSS on Node.js 24 as a single instance over HTTPS in production. Load the ERP session migration from `supabase/migrations/20261122000000_erp_sessions.sql` and set `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` (use a Supabase publishable key), `SUPABASE_SECRET_KEY`, and `ERP_SESSION_ENCRYPTION_KEY` in the server environment. See `.env.example`.
+Run VSS on Node.js 24 as a single instance over HTTPS in production. Create a private Supabase Storage bucket named vss-erp-sessions with application/json uploads enabled. Then set `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` (use a Supabase publishable key), `SUPABASE_SECRET_KEY`, and `ERP_SESSION_ENCRYPTION_KEY` in the server environment. See `.env.example`.
 
-CAPTCHA challenges expire after three minutes and live in process memory. Supabase stores a hash and expiry for each VSS session. The student profile is encrypted in the HTTP-only session cookie and lasts one hour. Local development uses in-memory sessions when the Supabase secret key is unset.
+CAPTCHA challenges expire after three minutes and live in process memory. The private Supabase bucket stores a marker named with the hash of each VSS session token. The student profile is encrypted in the HTTP-only session cookie and lasts one hour. Local development uses in-memory sessions when the Supabase secret key is unset.
 
 On `/auth/login`, load a CAPTCHA, enter your ERP username and password, and type the characters shown. VSS uses those credentials only for the verification request. After ERP confirms the account, VSS displays the name, roll number, and department returned by ERP on `/auth/erp/profile`.

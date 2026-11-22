@@ -8,6 +8,8 @@ const profileSchema = z.object({
   rollNumber: z.string().min(1).max(64),
   department: z.string().max(200),
 });
+const sessionSchema = z.object({ profile: profileSchema, expiresAt: z.number().int() });
+const BUCKET = 'vss-erp-sessions';
 const tokenPattern = /^[A-Za-z0-9_-]{43}\.[A-Za-z0-9_-]{38,3000}$/;
 
 function settings() {
@@ -22,62 +24,63 @@ function settings() {
     auth: { persistSession: false, autoRefreshToken: false },
     global: { fetch: (input, init) => fetch(input, { ...init, cache: 'no-store', signal: AbortSignal.timeout(8_000) }) },
   });
-  return { db, key };
+  return { bucket: db.storage.from(BUCKET), key };
 }
 
-function fingerprint(id: string) {
-  return createHash('sha256').update(id).digest('hex');
+function sessionObject(token: string) {
+  return createHash('sha256').update(token).digest('hex') + '.json';
 }
 
 export async function saveSupabaseSession(profile: ErpProfile, seconds: number) {
-  const { db, key } = settings();
+  const { bucket, key } = settings();
   const id = randomBytes(32).toString('base64url');
   const iv = randomBytes(12);
   const cipher = createCipheriv('aes-256-gcm', key, iv);
   cipher.setAAD(Buffer.from(id));
-  const encrypted = Buffer.concat([cipher.update(JSON.stringify(profile), 'utf8'), cipher.final()]);
+  const now = Date.now();
+  const expiresAt = now + seconds * 1_000;
+  const payload = JSON.stringify({ profile, expiresAt });
+  const encrypted = Buffer.concat([cipher.update(payload, 'utf8'), cipher.final()]);
   const token = id + '.' + Buffer.concat([iv, cipher.getAuthTag(), encrypted]).toString('base64url');
 
-  const now = new Date();
-  const { error: cleanupError } = await db.from('erp_sessions').delete().lte('expires_at', now.toISOString());
-  if (cleanupError) throw new Error('Could not clean up ERP sessions');
-
-  const { error } = await db.from('erp_sessions').insert({
-    token_hash: fingerprint(token),
-    expires_at: new Date(now.getTime() + seconds * 1_000).toISOString(),
+  const { data: previousSessions } = await bucket.list('', {
+    limit: 100,
+    sortBy: { column: 'created_at', order: 'asc' },
   });
+  const expired = previousSessions?.filter((item) =>
+    /^[0-9a-f]{64}\.json$/.test(item.name) && Date.parse(item.created_at) <= now - seconds * 1_000,
+  ).map((item) => item.name);
+  if (expired?.length) await bucket.remove(expired);
+
+  const { error } = await bucket.upload(sessionObject(token), '{}', { contentType: 'application/json' });
   if (error) throw new Error('Could not create ERP session');
   return token;
 }
 
 export async function getSupabaseSession(token: string) {
   if (!tokenPattern.test(token)) return null;
-  const { db, key } = settings();
+  const { bucket, key } = settings();
   const [id, payload] = token.split('.');
-  let profile: ErpProfile;
+  let session: z.infer<typeof sessionSchema>;
   try {
     const bytes = Buffer.from(payload, 'base64url');
     const decipher = createDecipheriv('aes-256-gcm', key, bytes.subarray(0, 12));
     decipher.setAAD(Buffer.from(id));
     decipher.setAuthTag(bytes.subarray(12, 28));
     const plain = Buffer.concat([decipher.update(bytes.subarray(28)), decipher.final()]);
-    profile = profileSchema.parse(JSON.parse(plain.toString('utf8')));
+    session = sessionSchema.parse(JSON.parse(plain.toString('utf8')));
   } catch {
     return null;
   }
 
-  const { data, error } = await db.from('erp_sessions')
-    .select('expires_at')
-    .eq('token_hash', fingerprint(token))
-    .gt('expires_at', new Date().toISOString())
-    .maybeSingle();
-  if (error) throw new Error('Could not read ERP session');
-  return data ? profile : null;
+  if (session.expiresAt <= Date.now()) return null;
+  const { data: active } = await bucket.exists(sessionObject(token));
+  return active ? session.profile : null;
 }
 
 export async function endSupabaseSession(token: string) {
   if (!tokenPattern.test(token)) return;
-  const { db } = settings();
-  const { error } = await db.from('erp_sessions').delete().eq('token_hash', fingerprint(token));
+  const { bucket } = settings();
+  const { error } = await bucket.remove([sessionObject(token)]);
   if (error) throw new Error('Could not revoke ERP session');
 }

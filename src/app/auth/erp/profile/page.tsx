@@ -4,7 +4,7 @@ import { getErpSession, SESSION_COOKIE } from '@/lib/erp/session';
 import SignOutButton from './SignOutButton';
 
 export default async function ErpProfilePage() {
-  const id = cookies().get(SESSION_COOKIE)?.value;
+  const id = (await cookies()).get(SESSION_COOKIE)?.value;
   const profile = id ? await getErpSession(id) : null;
   if (!profile) redirect('/auth/login');
 
