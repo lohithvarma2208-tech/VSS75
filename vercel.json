@@ -1,0 +1,18 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "nextjs",
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://vss75-erp.onrender.com/api/:path*"
+    },
+    {
+      "source": "/auth/erp/:path*",
+      "destination": "https://vss75-erp.onrender.com/auth/erp/:path*"
+    },
+    {
+      "source": "/admin/:path*",
+      "destination": "https://vss75-erp.onrender.com/admin/:path*"
+    }
+  ]
+}
