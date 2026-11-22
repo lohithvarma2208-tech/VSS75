@@ -122,7 +122,12 @@ export async function POST(request: NextRequest) {
     await recordVerifiedLogin(profile, true, true).catch(() => undefined);
     return clearChallenge(setCookie(json({ ok: true }), SESSION_COOKIE, id, SESSION_SECONDS));
   } catch (error) {
-    console.error('[ERP sign-in]', stage, error instanceof Error ? error.message : 'Unknown error');
-    return clearChallenge(json({ error: 'KL ERP could not complete sign-in. Try again shortly.' }, 502));
+    const reason = error instanceof Error ? error.message : 'Unknown error';
+    console.error('[ERP sign-in]', stage, reason);
+    return clearChallenge(json({
+      error: 'KL ERP could not complete sign-in. Try again shortly.',
+      failureStage: stage,
+      failureReason: reason.replace(/https?:\/\/\S+/g, '[url]').slice(0, 120),
+    }, 502));
   }
 }
