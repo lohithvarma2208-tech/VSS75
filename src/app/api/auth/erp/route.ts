@@ -127,7 +127,6 @@ export async function POST(request: NextRequest) {
     return clearChallenge(json({
       error: 'KL ERP could not complete sign-in. Try again shortly.',
       failureStage: stage,
-      failureReason: reason.replace(/https?:\/\/\S+/g, '[url]').slice(0, 120),
     }, 502));
   }
 }
