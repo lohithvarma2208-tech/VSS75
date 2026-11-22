@@ -75,6 +75,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
+    MockStorageManager.removeLegacyDemoData();
     refreshState();
 
     fetch('/api/auth/erp', { cache: 'no-store' })

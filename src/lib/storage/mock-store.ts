@@ -335,6 +335,33 @@ export class MockStorageManager {
     return typeof window !== 'undefined';
   }
 
+  static removeLegacyDemoData(): void {
+    if (!this.isBrowser() || localStorage.getItem('vss_demo_cleanup_v1') === 'done') return;
+    Array.from({ length: localStorage.length }, (_, index) => localStorage.key(index))
+      .filter((key): key is string => Boolean(key?.startsWith('vss_') && key.endsWith('_v2')))
+      .forEach((key) => localStorage.removeItem(key));
+
+    const prune = (key: string, prefixes: string[]) => {
+      try {
+        const value = JSON.parse(localStorage.getItem(key) || '[]');
+        if (Array.isArray(value)) {
+          localStorage.setItem(key, JSON.stringify(value.filter((item) => {
+            const id = typeof item === 'string' ? item : String(item?.id || '');
+            return !prefixes.some((prefix) => id.startsWith(prefix));
+          })));
+        }
+      } catch { localStorage.removeItem(key); }
+    };
+
+    prune(STORAGE_KEYS.RESOURCES, ['res-klu']);
+    prune(STORAGE_KEYS.PROJECTS, ['proj-klu']);
+    prune(STORAGE_KEYS.REQUESTS, ['req-klu']);
+    prune(STORAGE_KEYS.BOOKMARKS, ['res-klu']);
+    prune(STORAGE_KEYS.LIKED_RESOURCES, ['res-klu']);
+    prune(STORAGE_KEYS.SAVED_REQUESTS, ['req-klu']);
+    localStorage.setItem('vss_demo_cleanup_v1', 'done');
+  }
+
   // --- Current User ---
   static getCurrentUser(): UserProfile | null {
     if (!this.isBrowser()) return null;
@@ -581,14 +608,14 @@ export class MockStorageManager {
 
   // --- Likes ---
   static getLikedResourceIds(): string[] {
-    if (!this.isBrowser()) return ['res-klu-001'];
+    if (!this.isBrowser()) return [];
     try {
       const data = localStorage.getItem(STORAGE_KEYS.LIKED_RESOURCES);
       if (data) return JSON.parse(data);
     } catch (e) {
       console.warn('Failed reading likes', e);
     }
-    return ['res-klu-001'];
+    return [];
   }
 
   static toggleLike(resourceId: string): boolean {

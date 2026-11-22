@@ -42,7 +42,7 @@ export default function HomePage() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl px-5 py-8 sm:px-7 sm:py-12">
+    <div className="mx-auto w-full min-w-0 max-w-6xl overflow-x-clip px-4 py-8 sm:px-7 sm:py-12">
       <section className="relative overflow-hidden rounded-[2rem] border border-white/[0.08] bg-[#121214] px-6 py-9 sm:px-10 sm:py-12 lg:px-14 lg:py-14">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_82%_18%,rgba(168,85,247,.28),transparent_31%),radial-gradient(circle_at_65%_90%,rgba(59,130,246,.12),transparent_35%)]" />
         <div className="absolute -right-16 -top-24 h-72 w-72 rounded-full border border-violet-300/15" />
@@ -63,18 +63,13 @@ export default function HomePage() {
             <button className="rounded-xl bg-white px-4 py-3 text-xs font-extrabold text-black">Search</button>
           </form>
 
-          <div className="mt-5 flex flex-wrap gap-2">
-            {['26SC1101', 'Java', 'DTIE', 'Maths'].map((tag) => (
-              <button key={tag} onClick={() => router.push(`/explore?q=${encodeURIComponent(tag)}`)} className="rounded-full border border-white/[0.08] bg-white/[0.04] px-3 py-1.5 text-[10px] font-bold text-white/48 hover:text-white">{tag}</button>
-            ))}
-          </div>
         </div>
       </section>
 
       <section className="mt-7 grid grid-cols-3 gap-3">
-        <Metric value={`${resources.length || 12}+`} label="Resources" icon={FileText} />
-        <Metric value={totalDownloads > 999 ? `${(totalDownloads / 1000).toFixed(1)}k` : `${totalDownloads || 920}`} label="Downloads" icon={Download} />
-        <Metric value="8" label="Study hubs" icon={Users} />
+        <Metric value={`${resources.length}`} label="Resources" icon={FileText} />
+        <Metric value={totalDownloads > 999 ? `${(totalDownloads / 1000).toFixed(1)}k` : `${totalDownloads}`} label="Downloads" icon={Download} />
+        <Metric value={`${new Set(resources.map((item) => item.course_code)).size}`} label="Courses" icon={Users} />
       </section>
 
       <section className="mt-12">
@@ -99,18 +94,18 @@ export default function HomePage() {
       </section>
 
       <section className="mt-12 grid gap-5 lg:grid-cols-[1.55fr_.75fr]">
-        <div>
+        <div className="min-w-0 max-w-full overflow-hidden">
           <SectionTitle eyebrow="Fresh on VSS" title="Recently shared" href="/explore?sort=recent" />
-          <div className="vss-card mt-5 overflow-hidden p-2">
+          <div className="vss-card mt-5 w-full min-w-0 max-w-full overflow-hidden p-2">
             {recent.length > 0 ? recent.map((resource, index) => (
-              <Link key={resource.id} href={`/resource/${resource.id}`} className={`group flex items-center gap-4 rounded-2xl p-3.5 transition hover:bg-white/[0.045] ${index !== recent.length - 1 ? 'border-b border-white/[0.06]' : ''}`}>
+              <Link key={resource.id} href={`/resource/${resource.id}`} className={`group flex w-full min-w-0 max-w-full items-center gap-3 overflow-hidden rounded-2xl p-3 transition hover:bg-white/[0.045] sm:gap-4 sm:p-3.5 ${index !== recent.length - 1 ? 'border-b border-white/[0.06]' : ''}`}>
                 <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-white/[0.055] text-[10px] font-black uppercase text-violet-300">{resource.file_type}</span>
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-bold text-white/88 group-hover:text-white">{resource.title}</span>
-                  <span className="mt-1 flex items-center gap-2 text-[10px] text-white/35"><b className="font-mono text-white/50">{resource.course_code}</b><i className="h-1 w-1 rounded-full bg-white/20" />{resource.resource_type}</span>
+                <span className="min-w-0 flex-1 overflow-hidden">
+                  <span className="safe-truncate text-sm font-bold text-white/88 group-hover:text-white">{resource.title}</span>
+                  <span className="mt-1 flex min-w-0 items-center gap-2 overflow-hidden text-[10px] text-white/35"><b className="shrink-0 font-mono text-white/50">{resource.course_code}</b><i className="h-1 w-1 shrink-0 rounded-full bg-white/20" /><span className="safe-truncate">{resource.resource_type}</span></span>
                 </span>
                 <span className="hidden items-center gap-1 text-[10px] text-white/35 sm:flex"><Download className="h-3 w-3" /> {resource.downloads_count}</span>
-                <ArrowRight className="h-4 w-4 text-white/20 transition group-hover:translate-x-0.5 group-hover:text-white" />
+                <ArrowRight className="h-4 w-4 shrink-0 text-white/20 transition group-hover:translate-x-0.5 group-hover:text-white" />
               </Link>
             )) : <div className="p-8 text-center"><p className="text-sm font-bold">The shelf is ready.</p><p className="mt-1 text-xs text-white/35">Be the first to share something useful.</p></div>}
           </div>
