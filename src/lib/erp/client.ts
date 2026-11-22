@@ -63,6 +63,23 @@ async function requestErp(jar: CookieJar, url: URL, init?: RequestInit) {
   return response;
 }
 
+async function requestErpFollowingRedirects(jar: CookieJar, initialUrl: URL, initialInit?: RequestInit) {
+  let url = initialUrl;
+  let init = initialInit;
+  for (let redirects = 0; redirects <= 5; redirects++) {
+    const response = await requestErp(jar, url, init);
+    const location = response.headers.get('location');
+    if (response.status >= 300 && response.status < 400 && location) {
+      await response.body?.cancel();
+      url = erpUrl(location, url);
+      init = { method: 'GET', headers: { Referer: url.href } };
+      continue;
+    }
+    return response;
+  }
+  throw new Error('ERP redirected too many times');
+}
+
 async function getLoginPage(jar: CookieJar) {
   let pageUrl = HOME_URL;
   for (let redirects = 0; redirects <= 3; redirects++) {
@@ -162,9 +179,31 @@ function selectedOption($: ReturnType<typeof load>, selector: string) {
   return value ? { value, label: cleanText(option.text()) } : null;
 }
 
+function currentAcademicSelection(now = new Date()) {
+  const start = now.getMonth() >= 5 ? now.getFullYear() : now.getFullYear() - 1;
+  const value = start === 2026 ? '29' : String(16 + (start - 2024) * 3);
+  return { value, label: `${start}-${String(start + 1).slice(-2)}` };
+}
+
+function parseAttendanceCourses(html: string, semester: string) {
+  const coursePage = load(html);
+  const courses: NonNullable<ErpProfile['courses']> = [];
+  const seen = new Set<string>();
+  coursePage('table tr').each((_, row) => {
+    const cells = coursePage(row).find('td').map((__, cell) => cleanText(coursePage(cell).text())).get();
+    if (cells.length < 7) return;
+    const code = cells[1]?.replace(/\s+/g, '').toUpperCase();
+    const name = cells[2];
+    if (!/^\d{2}[A-Z0-9]{2,8}$/.test(code) || seen.has(code) || !name || name.length > 200 || !/[A-Za-z]{3}/.test(name)) return;
+    seen.add(code);
+    courses.push({ code, name, semester: semester || undefined });
+  });
+  return courses;
+}
+
 async function fetchCurrentCourses(jar: CookieJar, profile: ErpProfile) {
   try {
-    const landing = await requestErp(jar, ATTENDANCE_URL, { headers: { Referer: PROFILE_URL.href } });
+    const landing = await requestErpFollowingRedirects(jar, ATTENDANCE_URL, { headers: { Referer: PROFILE_URL.href } });
     if (!landing.ok) {
       await landing.body?.cancel();
       return profile;
@@ -172,50 +211,55 @@ async function fetchCurrentCourses(jar: CookieJar, profile: ErpProfile) {
     const html = await landing.text();
     const $ = load(html);
     const csrf = $('input[name="_csrf"]').attr('value') || $('meta[name="csrf-token"]').attr('content') || '';
-    const year = selectedOption($, 'select[name*="academicyear" i]');
-    const period = selectedOption($, 'select[name*="semesterid" i]');
-    if (!csrf || !year || !period) return profile;
+    const selectedYear = selectedOption($, 'select[name*="academicyear" i],select[id*="academicyear" i]');
+    const selectedPeriod = selectedOption($, 'select[name*="semesterid" i],select[id*="semesterid" i]');
+    if (!csrf) return profile;
 
-    const body = new URLSearchParams({
-      _csrf: csrf,
-      'DynamicModel[academicyear]': year.value,
-      'DynamicModel[semesterid]': period.value,
-    });
-    const response = await requestErp(jar, ATTENDANCE_COURSES_URL, {
-      method: 'POST',
-      headers: {
-        Referer: ATTENDANCE_URL.href,
-        Origin: ERP_ORIGIN,
-        'X-CSRF-Token': csrf,
-        'X-Requested-With': 'XMLHttpRequest',
-      },
-      body,
-    });
-    if (!response.ok) {
-      await response.body?.cancel();
-      return profile;
-    }
-
-    const coursePage = load(await response.text());
+    const currentYear = currentAcademicSelection();
+    const currentPeriod = { value: new Date().getMonth() >= 5 ? '1' : '2', label: new Date().getMonth() >= 5 ? 'Odd' : 'Even' };
+    const years = [currentYear, selectedYear].filter((item, index, list): item is { value: string; label: string } =>
+      Boolean(item) && list.findIndex((candidate) => candidate?.value === item?.value) === index,
+    );
+    const periods = [currentPeriod, selectedPeriod].filter((item, index, list): item is { value: string; label: string } =>
+      Boolean(item) && list.findIndex((candidate) => candidate?.value === item?.value) === index,
+    );
     const semester = profile.semester || inferCurrentSemester(profile.rollNumber);
-    const courses: NonNullable<ErpProfile['courses']> = [];
-    const seen = new Set<string>();
-    coursePage('table tbody tr').each((_, row) => {
-      const cells = coursePage(row).find('td').map((__, cell) => cleanText(coursePage(cell).text())).get();
-      // ERP attendance rows are: index, code, description, LTPS, section,
-      // academic year, semester, ... The same course appears once per LTPS component.
-      if (cells.length < 7) return;
-      const code = cells[1]?.match(/^(\d{2}[A-Z]{2,4}\d{3,4}[A-Z]?)$/i)?.[1]?.toUpperCase();
-      const name = cells[2];
-      if (!code || seen.has(code) || !name || name.length > 200 || !/[A-Za-z]{3}/.test(name)) return;
-      seen.add(code);
-      courses.push({ code, name, semester: semester || undefined });
-    });
+    let courses: NonNullable<ErpProfile['courses']> = [];
+    let academicYear = currentYear.label;
+    for (const year of years) {
+      for (const period of periods) {
+        const body = new URLSearchParams({
+          _csrf: csrf,
+          'DynamicModel[academicyear]': year.value,
+          'DynamicModel[semesterid]': period.value,
+        });
+        const response = await requestErpFollowingRedirects(jar, ATTENDANCE_COURSES_URL, {
+          method: 'POST',
+          headers: {
+            Referer: ATTENDANCE_URL.href,
+            Origin: ERP_ORIGIN,
+            'X-CSRF-Token': csrf,
+            'X-Requested-With': 'XMLHttpRequest',
+          },
+          body,
+        });
+        if (!response.ok) {
+          await response.body?.cancel();
+          continue;
+        }
+        courses = parseAttendanceCourses(await response.text(), semester);
+        if (courses.length) {
+          academicYear = year.label;
+          break;
+        }
+      }
+      if (courses.length) break;
+    }
 
     return {
       ...profile,
       semester: semester || undefined,
-      academicYear: year.label || profile.academicYear,
+      academicYear: academicYear || profile.academicYear,
       courses,
     };
   } catch {
