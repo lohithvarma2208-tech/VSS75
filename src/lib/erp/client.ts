@@ -372,7 +372,10 @@ export async function verifyErpLogin(challenge: ErpChallenge, input: LoginInput)
   body.set('LoginForm[username]', input.username);
   body.set('LoginForm[password]', input.password);
   body.set('LoginForm[captcha]', input.captcha);
+  body.set('LoginForm[rememberMe]', '0');
+  body.set('LoginForm[qr_code]', '');
   body.set('login-button', '');
+  body.set('yt0', 'Login');
 
   const response = await requestErp(jar, formUrl, {
     method: 'POST',
