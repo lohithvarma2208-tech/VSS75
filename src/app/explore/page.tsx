@@ -178,7 +178,7 @@ function ExploreContent() {
     selectedSemester !== 'All';
 
   return (
-    <div className="px-6 sm:px-12 lg:px-16 py-10 space-y-8">
+    <div className="mx-auto max-w-7xl space-y-7 px-4 py-7 sm:px-8 sm:py-10 lg:px-12">
       {/* Page Header */}
       <div>
         <span className="text-[11px] font-bold uppercase tracking-wider text-[#C084FC] font-mono">
@@ -214,7 +214,7 @@ function ExploreContent() {
 
       {/* Main Search & Control Bar */}
       <div className="flex flex-col md:flex-row gap-3">
-        <div className="relative flex-1 min-w-[200px]">
+        <div className="relative min-w-0 flex-1">
           <Search className="absolute left-4 top-3.5 h-4 w-4 text-white/50" />
           <input
             type="text"
@@ -233,12 +233,12 @@ function ExploreContent() {
           )}
         </div>
 
-        <div className="flex flex-wrap sm:flex-nowrap items-center gap-2.5 shrink-0">
+        <div className="grid w-full grid-cols-2 items-center gap-2.5 sm:flex sm:w-auto sm:flex-nowrap sm:shrink-0">
           {/* Course Filter Dropdown */}
           <select
             value={selectedCourse}
             onChange={(e) => setSelectedCourse(e.target.value)}
-            className="h-11 rounded-full border border-white/15 bg-[#131B2E] px-4 text-xs sm:text-sm text-white font-medium focus:border-purple-500 focus:outline-none shadow-card max-w-[180px] sm:max-w-[220px] truncate"
+            className="h-11 min-w-0 rounded-full border border-white/15 bg-[#131B2E] px-3 text-xs text-white font-medium focus:border-purple-500 focus:outline-none shadow-card sm:max-w-[220px] sm:px-4 sm:text-sm truncate"
           >
             <option value="All" className="bg-[#131B2E] text-white">All Courses</option>
             {SAMPLE_COURSES.map((c) => (
@@ -252,7 +252,7 @@ function ExploreContent() {
           <select
             value={selectedSemester}
             onChange={(e) => setSelectedSemester(e.target.value)}
-            className="h-11 rounded-full border border-white/15 bg-[#131B2E] px-4 text-xs sm:text-sm text-white font-medium focus:border-purple-500 focus:outline-none shadow-card max-w-[150px] sm:max-w-[170px] truncate"
+            className="h-11 min-w-0 rounded-full border border-white/15 bg-[#131B2E] px-3 text-xs text-white font-medium focus:border-purple-500 focus:outline-none shadow-card sm:max-w-[170px] sm:px-4 sm:text-sm truncate"
           >
             {ALL_TERMS.map((s) => (
               <option key={s} value={s} className="bg-[#131B2E] text-white">
@@ -265,7 +265,7 @@ function ExploreContent() {
           <select
             value={selectedSort}
             onChange={(e) => setSelectedSort(e.target.value)}
-            className="h-11 rounded-full border border-white/15 bg-[#131B2E] px-4 text-xs sm:text-sm text-white font-medium focus:border-purple-500 focus:outline-none shadow-card max-w-[130px] sm:max-w-[150px]"
+            className="h-11 min-w-0 rounded-full border border-white/15 bg-[#131B2E] px-3 text-xs text-white font-medium focus:border-purple-500 focus:outline-none shadow-card sm:max-w-[150px] sm:px-4 sm:text-sm"
           >
             <option value="newest" className="bg-[#131B2E] text-white">Newest</option>
             <option value="downloads" className="bg-[#131B2E] text-white">Downloads</option>

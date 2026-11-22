@@ -30,7 +30,8 @@ import { formatBytes, formatDate } from '@/lib/utils';
 import ResourceCard from '@/components/resources/ResourceCard';
 import { VerifiedBadge } from '@/components/common/VerifiedBadge';
 import { RequestStatusBadge } from '@/components/requests/RequestStatusBadge';
-import BackgroundVideo from '@/components/common/BackgroundVideo';
+import BadgeShelf from '@/components/profile/BadgeShelf';
+import { getStudentBadges } from '@/lib/badges';
 
 export default function DashboardPage() {
   const { currentUser, showToast, openVerifyModal, savedRequestIds, openBenefitsAd } = useApp();
@@ -121,11 +122,11 @@ export default function DashboardPage() {
     .slice(0, 3);
 
   return (
-    <div className="px-6 sm:px-12 lg:px-16 py-10 space-y-10">
+    <div className="mx-auto max-w-7xl space-y-7 px-4 py-7 sm:px-8 sm:py-10 lg:px-12">
       {/* Welcome Banner */}
-      <div className="rounded-[2.5rem] border border-purple-500/30 bg-gradient-to-r from-purple-950/40 via-[#131B2E] to-indigo-950/40 p-8 sm:p-10 text-white flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 shadow-2xl backdrop-blur-md relative overflow-hidden">
+      <div className="relative flex flex-col items-start justify-between gap-6 overflow-hidden rounded-[1.8rem] border border-white/[0.08] bg-[#121214] p-5 text-white sm:p-8 lg:flex-row lg:items-center">
         {/* Ambient "The Vault of Knowledge" - Cinematic Master Loop */}
-        <BackgroundVideo src="/videos/vault-of-knowledge.mp4" opacity={0.85} overlayStyle="obsidian" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_85%_20%,rgba(167,139,250,.18),transparent_35%)]" />
         <div className="space-y-2 flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <span className="px-3 py-1 rounded-full bg-purple-500/15 text-[#D8B4FE] text-[10px] font-bold tracking-wider font-mono border border-purple-500/30">
@@ -141,7 +142,7 @@ export default function DashboardPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5 flex-wrap shrink-0">
+        <div className="relative grid w-full grid-cols-1 gap-2 sm:flex sm:w-auto sm:flex-wrap sm:items-center sm:shrink-0">
           <Link
             href="/leaderboard"
             className="px-5 py-3.5 rounded-full border border-purple-500/40 bg-purple-500/10 hover:bg-purple-500/20 text-[#D8B4FE] text-xs sm:text-sm font-extrabold shadow-md transition active:scale-95 flex items-center gap-2"
@@ -264,6 +265,8 @@ export default function DashboardPage() {
           <p className="text-[11px] text-white/40 mt-1">VSS Peer Contributor</p>
         </div>
       </div>
+
+      {currentUser && <BadgeShelf badges={getStudentBadges({ profile: currentUser, resources: userUploads })} compact />}
 
       {/* VSS Pro PDF Studio Unlock Progress Card */}
       <div className="p-6 sm:p-7 rounded-[2rem] border border-purple-500/30 bg-gradient-to-r from-[#131B2E] via-[#1A243B] to-[#131B2E] shadow-xl">

@@ -30,7 +30,7 @@ export default function LeaderboardPage() {
   const top3 = CAMPUS_ACADEMIC_HEADS.slice(0, 3);
 
   return (
-    <div className="px-6 sm:px-12 lg:px-16 py-10 space-y-10 max-w-7xl mx-auto">
+    <div className="mx-auto max-w-7xl space-y-7 px-4 py-7 sm:px-8 sm:py-10 lg:px-12">
       {/* Header Banner */}
       <div className="rounded-[2.5rem] border border-purple-500/30 bg-gradient-to-r from-purple-950/40 via-[#131B2E] to-indigo-950/40 p-8 sm:p-10 text-white shadow-2xl backdrop-blur-md relative overflow-hidden">
         {/* Background "The Vault of Knowledge" - Cinematic Master Loop */}

@@ -216,7 +216,7 @@ export default function CreateRequestPage() {
   };
 
   return (
-    <div className="px-6 sm:px-12 lg:px-16 py-10 max-w-4xl mx-auto space-y-8">
+    <div className="mx-auto max-w-4xl space-y-7 px-4 py-7 sm:px-8 sm:py-10 lg:px-12">
       {/* Back button */}
       <div>
         <Link

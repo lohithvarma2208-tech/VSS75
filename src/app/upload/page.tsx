@@ -321,7 +321,7 @@ export default function UploadPage() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto px-6 sm:px-10 lg:px-12 py-12 space-y-8">
+    <div className="mx-auto max-w-4xl space-y-7 px-4 py-7 sm:px-8 sm:py-10 lg:px-12">
       <div>
         <span className="text-[11px] font-bold uppercase tracking-wider text-[#C084FC] font-mono">
           Contribute to Campus

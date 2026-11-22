@@ -72,7 +72,7 @@ export default function NotesPage() {
   };
 
   return (
-    <div className="px-6 sm:px-12 lg:px-16 py-10 space-y-8">
+    <div className="mx-auto max-w-7xl space-y-7 px-4 py-7 sm:px-8 sm:py-10 lg:px-12">
       {/* Header */}
       <div>
         <span className="text-[11px] font-bold uppercase tracking-wider text-[#C084FC] font-mono">

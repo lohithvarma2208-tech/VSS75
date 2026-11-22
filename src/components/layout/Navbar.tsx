@@ -49,7 +49,7 @@ export default function Navbar() {
         <div className="mx-auto flex h-[68px] max-w-6xl items-center justify-between px-5 sm:px-7">
           <Link href="/" className="flex items-center gap-2.5" aria-label="VSS home">
             <span className="grid h-9 w-9 place-items-center rounded-xl bg-white text-[13px] font-black tracking-[-0.08em] text-black">VS</span>
-            <span className="text-[15px] font-extrabold tracking-[-0.03em]">Virtual Student Space</span>
+            <span className="hidden text-[15px] font-extrabold tracking-[-0.03em] min-[390px]:inline">Virtual Student Space</span>
           </Link>
 
           <nav className="hidden items-center gap-1 rounded-full border border-white/[0.07] bg-white/[0.035] p-1 md:flex">
@@ -124,7 +124,7 @@ export default function Navbar() {
       <nav className="fixed bottom-4 left-1/2 z-50 flex w-[calc(100%-2rem)] max-w-[25rem] -translate-x-1/2 items-center justify-around rounded-[1.8rem] border border-white/10 bg-[#18181b]/92 px-2 py-2 shadow-[0_20px_70px_rgba(0,0,0,.65)] backdrop-blur-2xl md:hidden" aria-label="Mobile navigation">
         {mobileLinks.map((item) => {
           const Icon = item.icon;
-          return <Link key={item.href} href={item.href} className={`flex min-w-14 flex-col items-center gap-1 rounded-2xl px-2 py-1.5 text-[9px] font-bold transition ${item.primary ? '-mt-7' : active(item.href) ? 'text-white' : 'text-white/40'}`}>
+          return <Link key={item.href} href={item.href} className={`flex min-w-0 flex-1 flex-col items-center gap-1 rounded-2xl px-1 py-1.5 text-[9px] font-bold transition ${item.primary ? '-mt-7' : active(item.href) ? 'text-white' : 'text-white/40'}`}>
             <span className={`grid place-items-center ${item.primary ? 'h-12 w-12 rounded-full bg-violet-400 text-black shadow-[0_8px_30px_rgba(167,139,250,.35)]' : 'h-6 w-6'}`}><Icon className={item.primary ? 'h-5 w-5' : 'h-[18px] w-[18px]'} /></span>
             {item.label}
           </Link>;

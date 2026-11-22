@@ -23,6 +23,7 @@
   *:focus-visible {
     @apply outline-none ring-2 ring-violet-400/80 ring-offset-2 ring-offset-[#09090b];
   }
+  img, video, canvas, svg { max-width: 100%; }
 }
 
 @layer components {
@@ -31,6 +32,7 @@
   .vss-kicker { @apply text-[11px] font-bold uppercase tracking-[0.16em] text-white/40; }
   .vss-button { @apply inline-flex items-center justify-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-extrabold text-black transition hover:bg-white/90 active:scale-[0.98]; }
   .vss-button-secondary { @apply inline-flex items-center justify-center gap-2 rounded-full border border-white/10 bg-white/[0.06] px-5 py-3 text-sm font-bold text-white transition hover:bg-white/[0.1] active:scale-[0.98]; }
+  .profile-input { @apply w-full rounded-2xl border border-white/[0.09] bg-white/[0.045] px-4 py-3 text-sm text-white placeholder:text-white/25 focus:border-violet-400/60 focus:outline-none; }
 }
 
 ::-webkit-scrollbar { width: 6px; height: 6px; }
@@ -38,3 +40,8 @@
 ::-webkit-scrollbar-thumb { background: #2b2b30; border-radius: 999px; }
 ::-webkit-scrollbar-thumb:hover { background: #52525b; }
 ::selection { background: rgba(167, 139, 250, 0.35); color: white; }
+
+@media (max-width: 639px) {
+  html, body { max-width: 100%; overflow-x: hidden; }
+  button, a { -webkit-tap-highlight-color: transparent; }
+}

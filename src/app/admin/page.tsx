@@ -86,7 +86,7 @@ export default function AdminModerationPage() {
   }
 
   return (
-    <div className="px-6 sm:px-12 lg:px-16 py-10 space-y-8">
+    <div className="mx-auto max-w-7xl space-y-7 px-4 py-7 sm:px-8 sm:py-10 lg:px-12">
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
