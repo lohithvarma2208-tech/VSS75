@@ -3,12 +3,10 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { UserProfile, NotificationItem } from '@/types';
 import { MockStorageManager } from '@/lib/storage/mock-store';
-import { DEMO_USERS } from '@/lib/data/sample-data';
 
 interface AppContextType {
   currentUser: UserProfile | null;
   setCurrentUser: (user: UserProfile) => void;
-  switchDemoUser: (role: 'student' | 'moderator' | 'admin') => void;
   logout: () => void;
   likedIds: string[];
   toggleLike: (resourceId: string) => void;
@@ -132,13 +130,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     showToast(`Signed in as ${user.full_name}`, 'success');
   };
 
-  const switchDemoUser = (role: 'student' | 'moderator' | 'admin') => {
-    const target = DEMO_USERS.find((u) => u.role === role) || DEMO_USERS[0];
-    MockStorageManager.setCurrentUser(target);
-    setCurrentUserState(target);
-    showToast(`Switched active profile to ${target.full_name} (${target.role.toUpperCase()})`, 'info');
-  };
-
   const logout = () => {
     MockStorageManager.logout();
     setCurrentUserState(null);
@@ -188,7 +179,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       value={{
         currentUser,
         setCurrentUser,
-        switchDemoUser,
         logout,
         likedIds,
         toggleLike,

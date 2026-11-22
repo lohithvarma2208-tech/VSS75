@@ -9,7 +9,6 @@ import {
 } from 'lucide-react';
 import type { ProjectItem, Resource, UserProfile } from '@/types';
 import { MockStorageManager } from '@/lib/storage/mock-store';
-import { DEMO_USERS } from '@/lib/data/sample-data';
 import { useApp } from '@/lib/context/AppContext';
 import ResourceCard from '@/components/resources/ResourceCard';
 import BadgeShelf from '@/components/profile/BadgeShelf';
@@ -30,7 +29,8 @@ export default function ProfilePage() {
   const [semester, setSemester] = useState('');
 
   useEffect(() => {
-    const target = (currentUser?.username === username ? currentUser : null) || DEMO_USERS.find((item) => item.username === username) || currentUser || DEMO_USERS[0];
+    const target = currentUser?.username === username ? currentUser : null;
+    if (!target) { setProfile(null); setResources([]); setProjects([]); return; }
     setProfile(target);
     setBio(target.bio || ''); setDepartment(target.department); setSemester(target.semester);
     const allResources = MockStorageManager.getResources();

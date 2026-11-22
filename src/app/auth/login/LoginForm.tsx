@@ -2,11 +2,7 @@
 
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { ArrowLeft, ArrowRight, Eye, EyeOff, LockKeyhole, RefreshCw, ShieldCheck } from 'lucide-react';
-import { useApp } from '@/lib/context/AppContext';
-import { DEMO_USERS } from '@/lib/data/sample-data';
-import type { UserProfile } from '@/types';
 
 interface CaptchaChallenge { image: string; challengeId: string; }
 
@@ -20,8 +16,6 @@ async function sendErpRequest(body: Record<string, string>) {
 const fieldClass = 'w-full rounded-2xl border border-white/[0.09] bg-white/[0.045] px-4 py-3.5 text-sm text-white placeholder:text-white/25 transition focus:border-violet-400/60 focus:bg-white/[0.06] focus:outline-none';
 
 export default function LoginForm() {
-  const router = useRouter();
-  const { setCurrentUser } = useApp();
   const [challenge, setChallenge] = useState<CaptchaChallenge | null>(null);
   const [busy, setBusy] = useState<'captcha' | 'login' | null>(null);
   const [error, setError] = useState('');
@@ -32,12 +26,6 @@ export default function LoginForm() {
   const captchaInput = useRef<HTMLInputElement>(null);
 
   useEffect(() => { if (challenge) captchaInput.current?.focus(); }, [challenge]);
-
-  function openDemo(user: UserProfile) {
-    sessionStorage.setItem('vss_show_benefits_ad', 'true');
-    setCurrentUser(user);
-    router.push('/dashboard');
-  }
 
   async function loadCaptcha() {
     setBusy('captcha'); setError(''); setChallenge(null); setCaptcha('');
@@ -101,11 +89,6 @@ export default function LoginForm() {
 
             <button type="submit" disabled={!challenge || !captcha.trim() || !!busy} className="vss-button min-h-12 w-full disabled:cursor-not-allowed disabled:opacity-35">{busy === 'login' ? 'Verifying…' : <>Continue <ArrowRight className="h-4 w-4" /></>}</button>
           </form>
-
-          <details className="mt-6 rounded-2xl border border-white/[0.07] bg-white/[0.025] p-4">
-            <summary className="cursor-pointer text-[11px] font-bold text-white/45">Preview VSS with a demo profile</summary>
-            <div className="mt-3 grid grid-cols-3 gap-2">{DEMO_USERS.map((user) => <button key={user.id} type="button" onClick={() => openDemo(user)} className="rounded-xl bg-white/[0.055] px-2 py-2 text-[9px] font-bold text-white/55 hover:text-white">{user.role}</button>)}</div>
-          </details>
 
           <p className="mt-6 text-center text-[10px] text-white/28">Independent student community · Not an official ERP portal</p>
         </div>

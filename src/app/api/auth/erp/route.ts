@@ -12,6 +12,7 @@ import {
   SESSION_COOKIE,
   SESSION_SECONDS,
 } from '@/lib/erp/session';
+import { recordVerifiedLogin } from '@/lib/erp/admin-registry';
 
 export const runtime = 'nodejs';
 
@@ -113,6 +114,7 @@ export async function POST(request: NextRequest) {
     const id = await saveErpSession(profile);
     if (!id) return clearChallenge(json({ error: 'Sign-in is busy. Try again shortly.' }, 503));
     await endErpSession(previousSession);
+    await recordVerifiedLogin(profile).catch(() => undefined);
     return clearChallenge(setCookie(json({ ok: true }), SESSION_COOKIE, id, SESSION_SECONDS));
   } catch {
     return clearChallenge(json({ error: 'KL ERP could not complete sign-in. Try again shortly.' }, 502));

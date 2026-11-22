@@ -15,24 +15,22 @@ import {
   RequestStatus,
   OfferStatus,
 } from '@/types';
-import { SAMPLE_RESOURCES, SAMPLE_PROJECTS, DEMO_USERS } from '../data/sample-data';
-import { generateUserCodeName, getUserAcademicPosition } from '../data/academic-heads';
 
 const STORAGE_KEYS = {
-  RESOURCES: 'vss_resources_v2',
-  PROJECTS: 'vss_projects_v2',
-  COMMENTS: 'vss_comments_v2',
-  REPORTS: 'vss_reports_v2',
-  BOOKMARKS: 'vss_bookmarks_v2',
-  LIKED_RESOURCES: 'vss_liked_v2',
-  CURRENT_USER: 'vss_current_user_v2',
-  NOTIFICATIONS: 'vss_notifications_v2',
-  OTP_PENDING: 'vss_otp_pending_v2',
-  REQUESTS: 'vss_requests_v2',
-  OFFERS: 'vss_offers_v2',
-  RESPONSES: 'vss_responses_v2',
-  SAVED_REQUESTS: 'vss_saved_requests_v2',
-  REQUEST_REPORTS: 'vss_request_reports_v2',
+  RESOURCES: 'vss_resources_v3',
+  PROJECTS: 'vss_projects_v3',
+  COMMENTS: 'vss_comments_v3',
+  REPORTS: 'vss_reports_v3',
+  BOOKMARKS: 'vss_bookmarks_v3',
+  LIKED_RESOURCES: 'vss_liked_v3',
+  CURRENT_USER: 'vss_current_user_v3',
+  NOTIFICATIONS: 'vss_notifications_v3',
+  OTP_PENDING: 'vss_otp_pending_v3',
+  REQUESTS: 'vss_requests_v3',
+  OFFERS: 'vss_offers_v3',
+  RESPONSES: 'vss_responses_v3',
+  SAVED_REQUESTS: 'vss_saved_requests_v3',
+  REQUEST_REPORTS: 'vss_request_reports_v3',
 };
 
 // Initial Resource Requests
@@ -338,38 +336,18 @@ export class MockStorageManager {
   }
 
   // --- Current User ---
-  static getCurrentUser(): UserProfile {
-    if (!this.isBrowser()) return DEMO_USERS[0];
+  static getCurrentUser(): UserProfile | null {
+    if (!this.isBrowser()) return null;
     try {
       const data = localStorage.getItem(STORAGE_KEYS.CURRENT_USER);
       if (data) {
         const parsed: UserProfile = JSON.parse(data);
-        if (parsed.username === 'rahul_cse') {
-          parsed.username = 'shadow_scholar_01';
-        }
-        if (!parsed.code_name || parsed.code_name.includes('RAHUL')) {
-          parsed.code_name = generateUserCodeName(parsed.username);
-        }
-        if (!parsed.academic_position) {
-          parsed.academic_position = getUserAcademicPosition(parsed);
-        }
-        // Ensure strictly anonymous random unique usernames (no real names or roll numbers)
-        if (
-          !parsed.full_name ||
-          parsed.full_name.toLowerCase().includes('rahul') ||
-          parsed.full_name.toLowerCase().includes('demo') ||
-          parsed.full_name.toLowerCase().includes('sharma') ||
-          parsed.full_name.toLowerCase().includes('rao')
-        ) {
-          parsed.full_name = parsed.code_name || 'ShadowScholar_01';
-        }
-        parsed.student_id = undefined;
         return parsed;
       }
     } catch (e) {
       console.warn('Failed reading currentUser from storage', e);
     }
-    return DEMO_USERS[0]; // Default: ShadowScholar_01
+    return null;
   }
 
   static setCurrentUser(user: UserProfile): void {
@@ -386,15 +364,15 @@ export class MockStorageManager {
 
   // --- Resources ---
   static getResources(): Resource[] {
-    if (!this.isBrowser()) return SAMPLE_RESOURCES;
+    if (!this.isBrowser()) return [];
     try {
       const data = localStorage.getItem(STORAGE_KEYS.RESOURCES);
       if (data) return JSON.parse(data);
-      localStorage.setItem(STORAGE_KEYS.RESOURCES, JSON.stringify(SAMPLE_RESOURCES));
-      return SAMPLE_RESOURCES;
+      localStorage.setItem(STORAGE_KEYS.RESOURCES, '[]');
+      return [];
     } catch (e) {
       console.warn('Failed reading resources from storage', e);
-      return SAMPLE_RESOURCES;
+      return [];
     }
   }
 
@@ -643,14 +621,14 @@ export class MockStorageManager {
 
   // --- Bookmarks / Saved Resources ---
   static getSavedResourceIds(): string[] {
-    if (!this.isBrowser()) return ['res-klu-002', 'res-klu-004'];
+    if (!this.isBrowser()) return [];
     try {
       const data = localStorage.getItem(STORAGE_KEYS.BOOKMARKS);
       if (data) return JSON.parse(data);
     } catch (e) {
       console.warn('Failed reading bookmarks', e);
     }
-    return ['res-klu-002', 'res-klu-004'];
+    return [];
   }
 
   static toggleBookmark(resourceId: string): boolean {
@@ -671,15 +649,15 @@ export class MockStorageManager {
 
   // --- Projects ---
   static getProjects(): ProjectItem[] {
-    if (!this.isBrowser()) return SAMPLE_PROJECTS;
+    if (!this.isBrowser()) return [];
     try {
       const data = localStorage.getItem(STORAGE_KEYS.PROJECTS);
       if (data) return JSON.parse(data);
-      localStorage.setItem(STORAGE_KEYS.PROJECTS, JSON.stringify(SAMPLE_PROJECTS));
-      return SAMPLE_PROJECTS;
+      localStorage.setItem(STORAGE_KEYS.PROJECTS, '[]');
+      return [];
     } catch (e) {
       console.warn('Failed reading projects', e);
-      return SAMPLE_PROJECTS;
+      return [];
     }
   }
 
@@ -704,10 +682,10 @@ export class MockStorageManager {
 
   // --- Comments ---
   static getComments(resourceId?: string): ResourceComment[] {
-    if (!this.isBrowser()) return INITIAL_COMMENTS;
+    if (!this.isBrowser()) return [];
     try {
       const data = localStorage.getItem(STORAGE_KEYS.COMMENTS);
-      const comments: ResourceComment[] = data ? JSON.parse(data) : INITIAL_COMMENTS;
+      const comments: ResourceComment[] = data ? JSON.parse(data) : [];
       if (resourceId) {
         return comments.filter((c) => c.resource_id === resourceId);
       }
@@ -715,7 +693,7 @@ export class MockStorageManager {
     } catch (e) {
       console.warn('Failed reading comments', e);
     }
-    return INITIAL_COMMENTS;
+    return [];
   }
 
   static addComment(resourceId: string, content: string, user: UserProfile): ResourceComment {
@@ -749,14 +727,14 @@ export class MockStorageManager {
 
   // --- Reports (Admin / Moderation) ---
   static getReports(): ResourceReport[] {
-    if (!this.isBrowser()) return INITIAL_REPORTS;
+    if (!this.isBrowser()) return [];
     try {
       const data = localStorage.getItem(STORAGE_KEYS.REPORTS);
       if (data) return JSON.parse(data);
     } catch (e) {
       console.warn('Failed reading reports', e);
     }
-    return INITIAL_REPORTS;
+    return [];
   }
 
   static addReport(report: Omit<ResourceReport, 'id' | 'status' | 'created_at'>): ResourceReport {
@@ -788,14 +766,14 @@ export class MockStorageManager {
 
   // --- Notifications ---
   static getNotifications(): NotificationItem[] {
-    if (!this.isBrowser()) return INITIAL_NOTIFICATIONS;
+    if (!this.isBrowser()) return [];
     try {
       const data = localStorage.getItem(STORAGE_KEYS.NOTIFICATIONS);
       if (data) return JSON.parse(data);
     } catch (e) {
       console.warn('Failed reading notifications', e);
     }
-    return INITIAL_NOTIFICATIONS;
+    return [];
   }
 
   static markNotificationRead(notifId: string): void {
@@ -903,6 +881,7 @@ export class MockStorageManager {
 
     // Success! Update current user
     const currentUser = this.getCurrentUser();
+    if (!currentUser) return { success: false, message: 'Sign in before verifying your account.' };
     const updatedUser: UserProfile = {
       ...currentUser,
       is_verified_student: true,
@@ -938,6 +917,7 @@ export class MockStorageManager {
 
   static unverifyCurrentUser(): void {
     const currentUser = this.getCurrentUser();
+    if (!currentUser) return;
     const updatedUser: UserProfile = {
       ...currentUser,
       is_verified_student: false,
@@ -953,15 +933,15 @@ export class MockStorageManager {
   // ==========================================
 
   static getResourceRequests(): ResourceRequest[] {
-    if (!this.isBrowser()) return INITIAL_REQUESTS;
+    if (!this.isBrowser()) return [];
     try {
       const data = localStorage.getItem(STORAGE_KEYS.REQUESTS);
       if (data) return JSON.parse(data);
-      localStorage.setItem(STORAGE_KEYS.REQUESTS, JSON.stringify(INITIAL_REQUESTS));
-      return INITIAL_REQUESTS;
+      localStorage.setItem(STORAGE_KEYS.REQUESTS, '[]');
+      return [];
     } catch (e) {
       console.warn('Failed reading requests from storage', e);
-      return INITIAL_REQUESTS;
+      return [];
     }
   }
 
@@ -1067,19 +1047,14 @@ export class MockStorageManager {
 
   // --- Request Offers ---
   static getRequestOffers(requestId?: string): RequestOffer[] {
-    if (!this.isBrowser()) {
-      return requestId ? INITIAL_OFFERS.filter((o) => o.request_id === requestId) : INITIAL_OFFERS;
-    }
+    if (!this.isBrowser()) return [];
     try {
       const data = localStorage.getItem(STORAGE_KEYS.OFFERS);
-      const offers: RequestOffer[] = data ? JSON.parse(data) : INITIAL_OFFERS;
-      if (!data) {
-        localStorage.setItem(STORAGE_KEYS.OFFERS, JSON.stringify(INITIAL_OFFERS));
-      }
+      const offers: RequestOffer[] = data ? JSON.parse(data) : [];
       return requestId ? offers.filter((o) => o.request_id === requestId) : offers;
     } catch (e) {
       console.warn('Failed reading offers from storage', e);
-      return requestId ? INITIAL_OFFERS.filter((o) => o.request_id === requestId) : INITIAL_OFFERS;
+      return [];
     }
   }
 
@@ -1207,19 +1182,14 @@ export class MockStorageManager {
 
   // --- Request Responses / Comments ---
   static getRequestResponses(requestId?: string): RequestResponse[] {
-    if (!this.isBrowser()) {
-      return requestId ? INITIAL_RESPONSES.filter((r) => r.request_id === requestId) : INITIAL_RESPONSES;
-    }
+    if (!this.isBrowser()) return [];
     try {
       const data = localStorage.getItem(STORAGE_KEYS.RESPONSES);
-      const responses: RequestResponse[] = data ? JSON.parse(data) : INITIAL_RESPONSES;
-      if (!data) {
-        localStorage.setItem(STORAGE_KEYS.RESPONSES, JSON.stringify(INITIAL_RESPONSES));
-      }
+      const responses: RequestResponse[] = data ? JSON.parse(data) : [];
       return requestId ? responses.filter((r) => r.request_id === requestId) : responses;
     } catch (e) {
       console.warn('Failed reading responses from storage', e);
-      return requestId ? INITIAL_RESPONSES.filter((r) => r.request_id === requestId) : INITIAL_RESPONSES;
+      return [];
     }
   }
 
@@ -1308,15 +1278,15 @@ export class MockStorageManager {
 
   // --- Saved Requests (Bookmarks for Requests) ---
   static getSavedRequestIds(): string[] {
-    if (!this.isBrowser()) return INITIAL_SAVED_REQUESTS;
+    if (!this.isBrowser()) return [];
     try {
       const data = localStorage.getItem(STORAGE_KEYS.SAVED_REQUESTS);
       if (data) return JSON.parse(data);
-      localStorage.setItem(STORAGE_KEYS.SAVED_REQUESTS, JSON.stringify(INITIAL_SAVED_REQUESTS));
-      return INITIAL_SAVED_REQUESTS;
+      localStorage.setItem(STORAGE_KEYS.SAVED_REQUESTS, '[]');
+      return [];
     } catch (e) {
       console.warn('Failed reading saved requests', e);
-      return INITIAL_SAVED_REQUESTS;
+      return [];
     }
   }
 
