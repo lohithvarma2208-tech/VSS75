@@ -6,6 +6,10 @@
   "outputDirectory": "public",
   "rewrites": [
     {
+      "source": "/",
+      "destination": "https://vss75-erp.onrender.com/"
+    },
+    {
       "source": "/:path*",
       "destination": "https://vss75-erp.onrender.com/:path*"
     }
