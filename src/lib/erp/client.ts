@@ -179,10 +179,32 @@ function selectedOption($: ReturnType<typeof load>, selector: string) {
   return value ? { value, label: cleanText(option.text()) } : null;
 }
 
-function currentAcademicSelection(now = new Date()) {
-  const start = now.getMonth() >= 5 ? now.getFullYear() : now.getFullYear() - 1;
+function academicYearSelection(start: number) {
   const value = start === 2026 ? '29' : String(16 + (start - 2024) * 3);
   return { value, label: `${start}-${String(start + 1).slice(-2)}` };
+}
+
+function currentErpSelection(rollNumber: string, semester: string, now = new Date()) {
+  const batchStart = 2000 + Number(rollNumber.slice(0, 2));
+  const tri = semester.match(/Tri-Sem\s+(\d+)/i)?.[1];
+  if (Number.isInteger(batchStart) && tri) {
+    const term = Number(tri);
+    const start = batchStart + Math.floor((term - 1) / 3);
+    const phase = ((term - 1) % 3) + 1;
+    return { year: academicYearSelection(start), period: { value: phase === 3 ? '4' : String(phase), label: `Tri-Sem ${term}` } };
+  }
+  const regular = semester.match(/^Sem\s+(\d+)/i)?.[1];
+  if (Number.isInteger(batchStart) && regular) {
+    const term = Number(regular);
+    const start = batchStart + Math.floor((term - 1) / 2);
+    const phase = ((term - 1) % 2) + 1;
+    return { year: academicYearSelection(start), period: { value: String(phase), label: phase === 1 ? 'Odd' : 'Even' } };
+  }
+  const start = now.getMonth() >= 5 ? now.getFullYear() : now.getFullYear() - 1;
+  return {
+    year: academicYearSelection(start),
+    period: { value: now.getMonth() >= 5 ? '1' : '2', label: now.getMonth() >= 5 ? 'Odd' : 'Even' },
+  };
 }
 
 function parseAttendanceCourses(html: string, semester: string) {
@@ -193,7 +215,7 @@ function parseAttendanceCourses(html: string, semester: string) {
     const cells = coursePage(row).find('td').map((__, cell) => cleanText(coursePage(cell).text())).get();
     if (cells.length < 7) return;
     const code = cells[1]?.replace(/\s+/g, '').toUpperCase();
-    const name = cells[2];
+    const name = cells[2]?.replace(/\uFFFD/g, '–');
     if (!/^\d{2}[A-Z0-9]{2,8}$/.test(code) || seen.has(code) || !name || name.length > 200 || !/[A-Za-z]{3}/.test(name)) return;
     seen.add(code);
     courses.push({ code, name, semester: semester || undefined });
@@ -215,15 +237,16 @@ async function fetchCurrentCourses(jar: CookieJar, profile: ErpProfile) {
     const selectedPeriod = selectedOption($, 'select[name*="semesterid" i],select[id*="semesterid" i]');
     if (!csrf) return profile;
 
-    const currentYear = currentAcademicSelection();
-    const currentPeriod = { value: new Date().getMonth() >= 5 ? '1' : '2', label: new Date().getMonth() >= 5 ? 'Odd' : 'Even' };
+    const semester = profile.semester || inferCurrentSemester(profile.rollNumber);
+    const current = currentErpSelection(profile.rollNumber, semester);
+    const currentYear = current.year;
+    const currentPeriod = current.period;
     const years = [currentYear, selectedYear].filter((item, index, list): item is { value: string; label: string } =>
       Boolean(item) && list.findIndex((candidate) => candidate?.value === item?.value) === index,
     );
     const periods = [currentPeriod, selectedPeriod].filter((item, index, list): item is { value: string; label: string } =>
       Boolean(item) && list.findIndex((candidate) => candidate?.value === item?.value) === index,
     );
-    const semester = profile.semester || inferCurrentSemester(profile.rollNumber);
     let courses: NonNullable<ErpProfile['courses']> = [];
     let academicYear = currentYear.label;
     for (const year of years) {
