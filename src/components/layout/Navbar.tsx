@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   Bell, Bookmark, ChevronDown, Compass, Home, LayoutDashboard,
-  LogIn, LogOut, Plus, Settings, Upload, UserRound,
+  LogIn, LogOut, Plus, Settings, Upload, UserRound, ShieldCheck,
 } from 'lucide-react';
 import { useApp } from '@/lib/context/AppContext';
 
@@ -111,6 +111,7 @@ export default function Navbar() {
                   <MenuLink href={`/profile/${currentUser.username}`} icon={UserRound} label="Profile" close={() => setPanel(null)} />
                   <MenuLink href="/saved" icon={Bookmark} label="Saved resources" close={() => setPanel(null)} />
                   <MenuLink href="/settings" icon={Settings} label="Settings" close={() => setPanel(null)} />
+                  <MenuLink href="/admin" icon={ShieldCheck} label="Admin Portal" close={() => setPanel(null)} />
                 </div>
                 <button onClick={() => { logout(); setPanel(null); }} className="mt-1 flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-xs font-bold text-rose-300 hover:bg-rose-400/10">
                   <LogOut className="h-4 w-4" /> Sign out

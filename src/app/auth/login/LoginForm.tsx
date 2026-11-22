@@ -18,6 +18,7 @@ import {
   ChevronDown,
   ChevronUp,
   Terminal,
+  Gift,
 } from 'lucide-react';
 import ManualCourseSyncModal from '@/components/auth/ManualCourseSyncModal';
 import { MockStorageManager } from '@/lib/storage/mock-store';
@@ -53,6 +54,10 @@ export default function LoginForm() {
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const captchaInput = useRef<HTMLInputElement>(null);
 
+  // --- Referral Invite Tracking ---
+  const [referralCode, setReferralCode] = useState('');
+  const [referralStatus, setReferralStatus] = useState<{ valid: boolean; label?: string } | null>(null);
+
   // --- Larger High-Contrast CAPTCHA Display with Zoom ---
   const [captchaZoom, setCaptchaZoom] = useState<number>(1.25); // 125% default
   const [captchaFilter, setCaptchaFilter] = useState<'normal' | 'invert' | 'bw' | 'amber'>('normal');
@@ -72,6 +77,16 @@ export default function LoginForm() {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       setAuditLogs(MockStorageManager.getSecurityAuditLogs());
+
+      // Read referral query param (?ref=... or ?referral=...)
+      const params = new URLSearchParams(window.location.search);
+      const ref = params.get('ref') || params.get('referral') || params.get('code');
+      if (ref) {
+        const clean = ref.trim().toUpperCase();
+        setReferralCode(clean);
+        const check = MockStorageManager.validateReferralCode(clean);
+        setReferralStatus(check.valid ? { valid: true, label: check.label } : { valid: false });
+      }
     }
   }, []);
 
@@ -177,6 +192,22 @@ export default function LoginForm() {
         status: 'SUCCESS',
         details: `KL ERP verified successfully. Session established.`,
       });
+
+      // Apply referral code if entered
+      if (referralCode.trim()) {
+        const cleanRef = referralCode.trim().toUpperCase();
+        const refResult = MockStorageManager.applyReferralCode(cleanRef, cleanUsername, cleanUsername);
+        if (refResult.success) {
+          MockStorageManager.recordSecurityAuditLog({
+            event: 'REFERRAL_CODE_APPLIED',
+            masked_erp_id: `${cleanUsername.slice(0, 2)}****${cleanUsername.slice(-4)}`,
+            ip_address: '127.0.0.1 (Vercel Client)',
+            user_agent: typeof navigator !== 'undefined' ? navigator.userAgent : 'Browser Client',
+            status: 'SUCCESS',
+            details: `Applied referral code [${cleanRef}]: ${refResult.referral?.label || ''}`,
+          });
+        }
+      }
 
       setPassword('');
       setCaptcha('');
@@ -332,6 +363,44 @@ export default function LoginForm() {
                 </button>
               </span>
             </label>
+
+            {/* Referral / Invite Code Input (Optional) */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold text-white/55 flex items-center gap-1.5">
+                  <Gift className="h-3.5 w-3.5 text-purple-400" />
+                  <span>Referral / Invite Code (Optional)</span>
+                </span>
+                {referralStatus?.valid && (
+                  <span className="text-[10px] font-mono text-emerald-300 font-bold">
+                    ✓ Valid: {referralStatus.label}
+                  </span>
+                )}
+                {referralStatus && !referralStatus.valid && referralCode.length > 2 && (
+                  <span className="text-[10px] font-mono text-rose-300">
+                    ✕ Code not recognized
+                  </span>
+                )}
+              </div>
+              <input
+                className={`${fieldClass} font-mono`}
+                type="text"
+                maxLength={32}
+                value={referralCode}
+                disabled={isLocked}
+                onChange={(e) => {
+                  const val = e.target.value.toUpperCase().replace(/[^A-Z0-9_-]/g, '');
+                  setReferralCode(val);
+                  if (val.length > 2) {
+                    const check = MockStorageManager.validateReferralCode(val);
+                    setReferralStatus(check.valid ? { valid: true, label: check.label } : { valid: false });
+                  } else {
+                    setReferralStatus(null);
+                  }
+                }}
+                placeholder="e.g. KLU-ELITE-2026 or DEEPTHANUSH-VIP"
+              />
+            </div>
 
             {/* --- LARGER, HIGH-CONTRAST CAPTCHA DISPLAY WITH ZOOM --- */}
             <div className="rounded-3xl border border-white/[0.08] bg-white/[0.025] p-3.5 space-y-3">
@@ -547,6 +616,22 @@ export default function LoginForm() {
                 )}
               </div>
             )}
+          </div>
+
+          {/* Quick Nav Links */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-2 pt-2 text-xs text-white/50 border-t border-white/5">
+            <Link
+              href="/auth/register"
+              className="text-purple-400 hover:text-purple-300 hover:underline"
+            >
+              Don&apos;t have ERP credentials? Register ➔
+            </Link>
+            <Link
+              href="/admin"
+              className="text-white/40 hover:text-white/70 hover:underline font-mono text-[11px]"
+            >
+              Admin Portal
+            </Link>
           </div>
 
           <p className="mt-4 text-center text-[10px] text-white/28">

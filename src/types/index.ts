@@ -77,6 +77,7 @@ export interface Resource {
   file_type: ResourceFileType;
   file_content_preview?: string; // Text/code snippet for instant preview
   file_data_url?: string; // Direct Data URL for authentic PDF & binary rendering
+  department?: string;
   author_id?: string;
   author_name: string;
   author_username?: string;
@@ -294,11 +295,27 @@ export interface SecurityAuditLog {
     | 'LOGIN_FAILED_CAPTCHA'
     | 'RATE_LIMIT_TRIGGERED'
     | 'ACCOUNT_COOLDOWN'
-    | 'MANUAL_COURSE_SYNC';
+    | 'MANUAL_COURSE_SYNC'
+    | 'REFERRAL_CODE_APPLIED'
+    | 'RESOURCE_MODERATED';
   masked_erp_id: string;
   ip_address: string;
   user_agent: string;
   status: 'SUCCESS' | 'FAILURE' | 'BLOCKED';
   details: string;
+}
+
+export interface ReferralUsage {
+  student_id: string;
+  username: string;
+  timestamp: string;
+}
+
+export interface ReferralCode {
+  code: string;
+  label: string;
+  created_at: string;
+  uses_count: number;
+  referrals: ReferralUsage[];
 }
 

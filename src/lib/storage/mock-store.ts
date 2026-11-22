@@ -15,6 +15,8 @@ import {
   RequestStatus,
   OfferStatus,
   SecurityAuditLog,
+  ReferralCode,
+  ReferralUsage,
 } from '@/types';
 
 const STORAGE_KEYS = {
@@ -34,6 +36,9 @@ const STORAGE_KEYS = {
   REQUEST_REPORTS: 'vss_request_reports_v3',
   SECURITY_AUDIT_LOGS: 'vss_security_audit_logs_v3',
   RATE_LIMIT: 'vss_rate_limits_v3',
+  REFERRAL_CODES: 'vss_referral_codes_v3',
+  REGISTERED_USERS: 'vss_registered_users_v3',
+  ANNOUNCEMENT: 'vss_platform_announcement_v3',
 };
 
 // Initial Resource Requests
@@ -1520,5 +1525,254 @@ export class MockStorageManager {
     });
     window.dispatchEvent(new Event('klu_courses_synced'));
     return true;
+  }
+
+  // --- Referral Codes & Growth Tracking ---
+  static getReferralCodes(): ReferralCode[] {
+    if (!this.isBrowser()) return [];
+    try {
+      const data = localStorage.getItem(STORAGE_KEYS.REFERRAL_CODES);
+      if (data) return JSON.parse(data);
+    } catch (e) {
+      console.warn('Failed reading referral codes', e);
+    }
+    const initialCodes: ReferralCode[] = [
+      {
+        code: 'KLU-ELITE-2026',
+        label: 'Campus VIP Pioneer Pass',
+        created_at: new Date(Date.now() - 3600000 * 24 * 2).toISOString(),
+        uses_count: 8,
+        referrals: [
+          { student_id: '2300030042', username: 'shadow_scholar_01', timestamp: new Date(Date.now() - 3600000 * 5).toISOString() },
+          { student_id: '2400030018', username: 'neural_viper_x', timestamp: new Date(Date.now() - 3600000 * 2).toISOString() },
+        ],
+      },
+      {
+        code: 'CAMPUS-VIP-75',
+        label: 'Core Inner Circle Access',
+        created_at: new Date(Date.now() - 3600000 * 24).toISOString(),
+        uses_count: 5,
+        referrals: [
+          { student_id: '2200030099', username: 'provost_zero', timestamp: new Date(Date.now() - 3600000 * 8).toISOString() },
+        ],
+      },
+      {
+        code: 'DEEPTHANUSH-VIP',
+        label: 'Founder Direct Referral',
+        created_at: new Date(Date.now() - 3600000 * 12).toISOString(),
+        uses_count: 12,
+        referrals: [
+          { student_id: '2300030099', username: 'circuit_titan_77', timestamp: new Date(Date.now() - 3600000 * 4).toISOString() },
+        ],
+      },
+      {
+        code: 'PIONEER-SCHOLAR',
+        label: 'Academic Honours Referral',
+        created_at: new Date().toISOString(),
+        uses_count: 3,
+        referrals: [],
+      },
+      {
+        code: 'VSS-FRIENDS',
+        label: 'Study Circle Peer Invite',
+        created_at: new Date().toISOString(),
+        uses_count: 6,
+        referrals: [],
+      },
+    ];
+    if (this.isBrowser()) {
+      localStorage.setItem(STORAGE_KEYS.REFERRAL_CODES, JSON.stringify(initialCodes));
+    }
+    return initialCodes;
+  }
+
+  static createReferralCode(code: string, label: string): ReferralCode {
+    const list = this.getReferralCodes();
+    const cleanCode = code.trim().toUpperCase().replace(/[^A-Z0-9_-]/g, '');
+    const existing = list.find((r) => r.code === cleanCode);
+    if (existing) return existing;
+
+    const newCode: ReferralCode = {
+      code: cleanCode,
+      label: label.trim() || 'Custom Referral Invite',
+      created_at: new Date().toISOString(),
+      uses_count: 0,
+      referrals: [],
+    };
+    const updated = [newCode, ...list];
+    if (this.isBrowser()) {
+      localStorage.setItem(STORAGE_KEYS.REFERRAL_CODES, JSON.stringify(updated));
+      window.dispatchEvent(new Event('klu_referrals_change'));
+    }
+    return newCode;
+  }
+
+  static applyReferralCode(
+    code: string,
+    studentId: string,
+    username: string
+  ): { success: boolean; message: string; referral?: ReferralCode } {
+    if (!code || !this.isBrowser()) return { success: false, message: 'Invalid referral code.' };
+    const list = this.getReferralCodes();
+    const cleanCode = code.trim().toUpperCase();
+    const match = list.find((r) => r.code === cleanCode);
+
+    if (!match) {
+      return { success: false, message: 'Referral code not found.' };
+    }
+
+    match.uses_count += 1;
+    match.referrals.unshift({
+      student_id: studentId,
+      username: username,
+      timestamp: new Date().toISOString(),
+    });
+
+    localStorage.setItem(STORAGE_KEYS.REFERRAL_CODES, JSON.stringify(list));
+    window.dispatchEvent(new Event('klu_referrals_change'));
+
+    return {
+      success: true,
+      message: `Referral code [${cleanCode}] applied! Welcome from ${match.label}.`,
+      referral: match,
+    };
+  }
+
+  static deleteReferralCode(code: string): boolean {
+    if (!this.isBrowser()) return false;
+    const list = this.getReferralCodes();
+    const updated = list.filter((r) => r.code !== code);
+    localStorage.setItem(STORAGE_KEYS.REFERRAL_CODES, JSON.stringify(updated));
+    window.dispatchEvent(new Event('klu_referrals_change'));
+    return true;
+  }
+
+  static validateReferralCode(code: string): { valid: boolean; label?: string } {
+    if (!code || !this.isBrowser()) return { valid: false };
+    const list = this.getReferralCodes();
+    const cleanCode = code.trim().toUpperCase();
+    const match = list.find((r) => r.code === cleanCode);
+    return match ? { valid: true, label: match.label } : { valid: false };
+  }
+
+  // --- Registered Users Registry for Admin ---
+  static getRegisteredUsers(): UserProfile[] {
+    if (!this.isBrowser()) return [];
+    try {
+      const data = localStorage.getItem(STORAGE_KEYS.REGISTERED_USERS);
+      if (data) return JSON.parse(data);
+    } catch (e) {
+      console.warn('Failed reading registered users', e);
+    }
+    const initialUsers: UserProfile[] = [
+      {
+        id: 'usr-deepthanush',
+        username: 'deepthanush',
+        full_name: 'Deepthanush (Founder & Platform Lead)',
+        code_name: 'Alpha_Architect',
+        email: '2300030001@kluniversity.in',
+        department: 'CSE',
+        semester: 'Sem 6',
+        role: 'admin',
+        is_verified_student: true,
+        university_email: '2300030001@kluniversity.in',
+        verified_at: '2026-01-10T10:00:00.000Z',
+        created_at: '2026-01-10T10:00:00.000Z',
+        enrolled_courses: ['23CS2104', '23CS2105', '23CS2106'],
+      },
+      {
+        id: 'usr-student-01',
+        username: 'shadow_scholar_01',
+        full_name: 'K. Lohith Varma',
+        code_name: 'ShadowScholar_01',
+        email: '2300030042@kluniversity.in',
+        department: 'CSE',
+        semester: 'Sem 4',
+        role: 'student',
+        is_verified_student: true,
+        university_email: '2300030042@kluniversity.in',
+        verified_at: '2026-02-14T08:30:00.000Z',
+        created_at: '2026-02-14T08:30:00.000Z',
+        enrolled_courses: ['23CS2104', '23CS2105', '23CS2106', '23MT2001'],
+      },
+      {
+        id: 'usr-student-02',
+        username: 'circuit_titan_77',
+        full_name: 'Circuit Titan',
+        code_name: 'CircuitTitan_77',
+        email: '2300030099@kluniversity.in',
+        department: 'ECE',
+        semester: 'Sem 4',
+        role: 'student',
+        is_verified_student: true,
+        university_email: '2300030099@kluniversity.in',
+        verified_at: '2026-02-18T14:15:00.000Z',
+        created_at: '2026-02-18T14:15:00.000Z',
+        enrolled_courses: ['23EC2101', '23EC2102'],
+      },
+      {
+        id: 'usr-student-03',
+        username: 'neural_viper_x',
+        full_name: 'Neural Viper',
+        code_name: 'NeuralViper_X',
+        email: '2400030018@kluniversity.in',
+        department: 'AI&DS',
+        semester: 'Sem 2',
+        role: 'student',
+        is_verified_student: true,
+        university_email: '2400030018@kluniversity.in',
+        verified_at: '2026-02-20T11:20:00.000Z',
+        created_at: '2026-02-20T11:20:00.000Z',
+        enrolled_courses: ['23AI1101', '23AI1102'],
+      },
+    ];
+    if (this.isBrowser()) {
+      localStorage.setItem(STORAGE_KEYS.REGISTERED_USERS, JSON.stringify(initialUsers));
+    }
+    return initialUsers;
+  }
+
+  static saveRegisteredUser(user: UserProfile): void {
+    if (!this.isBrowser()) return;
+    const users = this.getRegisteredUsers();
+    const index = users.findIndex((u) => u.id === user.id || u.username === user.username || u.email === user.email);
+    if (index >= 0) {
+      users[index] = { ...users[index], ...user };
+    } else {
+      users.unshift(user);
+    }
+    localStorage.setItem(STORAGE_KEYS.REGISTERED_USERS, JSON.stringify(users));
+    window.dispatchEvent(new Event('klu_users_change'));
+  }
+
+  static updateUserRole(userId: string, role: 'student' | 'admin' | 'moderator'): void {
+    if (!this.isBrowser()) return;
+    const users = this.getRegisteredUsers();
+    const updated = users.map((u) => (u.id === userId ? { ...u, role } : u));
+    localStorage.setItem(STORAGE_KEYS.REGISTERED_USERS, JSON.stringify(updated));
+    window.dispatchEvent(new Event('klu_users_change'));
+  }
+
+  // --- Platform Controls & Global Announcement ---
+  static getPlatformAnnouncement(): { active: boolean; title: string; message: string; type: 'info' | 'warning' | 'alert' } {
+    if (!this.isBrowser()) return { active: false, title: '', message: '', type: 'info' };
+    try {
+      const data = localStorage.getItem(STORAGE_KEYS.ANNOUNCEMENT);
+      if (data) return JSON.parse(data);
+    } catch (e) {
+      console.warn('Failed reading announcement', e);
+    }
+    return {
+      active: true,
+      title: 'End-Semester 2026 Study Vault & Exam Material Hub Live',
+      message: 'Verified KL University scholars can access high-yield question banks, lab manuals, and peer notes.',
+      type: 'info',
+    };
+  }
+
+  static setPlatformAnnouncement(announcement: { active: boolean; title: string; message: string; type: 'info' | 'warning' | 'alert' }): void {
+    if (!this.isBrowser()) return;
+    localStorage.setItem(STORAGE_KEYS.ANNOUNCEMENT, JSON.stringify(announcement));
+    window.dispatchEvent(new Event('klu_announcement_change'));
   }
 }

@@ -15,10 +15,12 @@ import {
   CheckCircle2,
   AlertCircle,
   HelpCircle,
+  Gift,
 } from 'lucide-react';
 import { useApp } from '@/lib/context/AppContext';
 import { generateUserCodeName } from '@/lib/data/academic-heads';
 import { VerifiedBadge } from '@/components/common/VerifiedBadge';
+import { MockStorageManager } from '@/lib/storage/mock-store';
 
 const PRESET_HANDLES = [
   'ShadowScholar_01',
@@ -39,8 +41,23 @@ export default function RegisterPage() {
   const [department, setDepartment] = useState('CSE');
   const [semester, setSemester] = useState('Sem 4');
   const [password, setPassword] = useState('Scholar@Pass2026!');
+  const [referralCode, setReferralCode] = useState('');
+  const [referralStatus, setReferralStatus] = useState<{ valid: boolean; label?: string } | null>(null);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const ref = params.get('ref') || params.get('referral') || params.get('code');
+      if (ref) {
+        const clean = ref.trim().toUpperCase();
+        setReferralCode(clean);
+        const check = MockStorageManager.validateReferralCode(clean);
+        setReferralStatus(check.valid ? { valid: true, label: check.label } : { valid: false });
+      }
+    }
+  }, []);
 
   const allowedDomain = process.env.NEXT_PUBLIC_ALLOWED_EMAIL_DOMAIN || 'kluniversity.in';
 
@@ -89,6 +106,32 @@ export default function RegisterPage() {
       };
 
       setCurrentUser(newUser);
+      MockStorageManager.saveRegisteredUser(newUser);
+
+      // Apply referral code if provided
+      if (referralCode.trim()) {
+        const cleanRef = referralCode.trim().toUpperCase();
+        const refResult = MockStorageManager.applyReferralCode(cleanRef, cleanEmail, cleanUsername);
+        if (refResult.success) {
+          MockStorageManager.recordSecurityAuditLog({
+            event: 'REFERRAL_CODE_APPLIED',
+            masked_erp_id: cleanEmail,
+            ip_address: '127.0.0.1 (Vercel Client)',
+            user_agent: typeof navigator !== 'undefined' ? navigator.userAgent : 'Browser Client',
+            status: 'SUCCESS',
+            details: `Scholar registration applied referral code [${cleanRef}]: ${refResult.referral?.label || ''}`,
+          });
+        }
+      }
+
+      MockStorageManager.recordSecurityAuditLog({
+        event: 'LOGIN_SUCCESS',
+        masked_erp_id: cleanEmail,
+        ip_address: '127.0.0.1 (Vercel Client)',
+        user_agent: typeof navigator !== 'undefined' ? navigator.userAgent : 'Browser Client',
+        status: 'SUCCESS',
+        details: `Scholar registered and session created for @${cleanUsername}.`,
+      });
 
       // Flag to display the Benefits Announcement modal strictly AFTER landing on dashboard
       if (typeof window !== 'undefined') {
@@ -286,6 +329,44 @@ export default function RegisterPage() {
               </div>
             </div>
 
+            {/* Referral / Invite Code Field */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-bold text-white/90 flex items-center gap-1.5">
+                  <Gift className="h-3.5 w-3.5 text-purple-400" />
+                  <span>Referral / Invite Code (Optional)</span>
+                </label>
+                {referralStatus?.valid && (
+                  <span className="text-[10px] font-mono text-emerald-300 font-bold">
+                    ✓ Valid: {referralStatus.label}
+                  </span>
+                )}
+                {referralStatus && !referralStatus.valid && referralCode.length > 2 && (
+                  <span className="text-[10px] font-mono text-rose-300">
+                    ✕ Code not recognized
+                  </span>
+                )}
+              </div>
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="e.g. KLU-ELITE-2026 or DEEPTHANUSH-VIP"
+                  value={referralCode}
+                  onChange={(e) => {
+                    const clean = e.target.value.toUpperCase().replace(/[^A-Z0-9_-]/g, '');
+                    setReferralCode(clean);
+                    if (clean.length > 2) {
+                      const check = MockStorageManager.validateReferralCode(clean);
+                      setReferralStatus(check.valid ? { valid: true, label: check.label } : { valid: false });
+                    } else {
+                      setReferralStatus(null);
+                    }
+                  }}
+                  className="w-full h-11 rounded-2xl border border-white/15 bg-[#0B0F19] px-3.5 text-xs sm:text-sm text-white placeholder-white/40 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/30 font-mono transition"
+                />
+              </div>
+            </div>
+
             {/* Password Field */}
             <div className="space-y-1.5">
               <label className="block text-xs font-bold text-white/90">
@@ -325,14 +406,22 @@ export default function RegisterPage() {
             </button>
           </form>
 
-          {/* Switch to Login */}
-          <div className="text-center pt-2 border-t border-white/10 text-xs text-white/60">
-            Already have a scholar persona?{' '}
+          {/* Switch to Login / Admin */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-2 pt-2 border-t border-white/10 text-xs text-white/60">
+            <div>
+              Already have a scholar persona?{' '}
+              <Link
+                href="/auth/login"
+                className="font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#D8B4FE] to-[#38BDF8] hover:underline ml-1"
+              >
+                Sign In to VSS ➔
+              </Link>
+            </div>
             <Link
-              href="/auth/login"
-              className="font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#D8B4FE] to-[#38BDF8] hover:underline ml-1"
+              href="/admin"
+              className="font-mono text-[11px] text-white/40 hover:text-white/70 hover:underline"
             >
-              Sign In to VSS ➔
+              Admin Access
             </Link>
           </div>
         </div>
