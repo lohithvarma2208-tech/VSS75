@@ -69,7 +69,7 @@ export default function CampusBenefitsAdModal() {
             </div>
             <div className="flex-1 flex items-center justify-between gap-2 min-w-0">
               <span className="font-bold text-white truncate">
-                ⚡ <strong className="text-purple-200">PDF Studio Pro:</strong> Merge, sign & watermark
+                <strong className="text-purple-200">PDF Studio Pro:</strong> Merge, sign & watermark
               </span>
               <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 shrink-0">
                 5 Posts/Wk
@@ -84,10 +84,10 @@ export default function CampusBenefitsAdModal() {
             </div>
             <div className="flex-1 flex items-center justify-between gap-2 min-w-0">
               <span className="font-bold text-white truncate">
-                👑 <strong className="text-amber-200">Academic Head Titles:</strong> Top Hall of Fame
+                <strong className="text-amber-200">Academic Head Titles:</strong> Top Hall of Fame
               </span>
               <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30 shrink-0">
-                🥇 🥈 🥉
+                Top 3
               </span>
             </div>
           </div>
@@ -99,7 +99,7 @@ export default function CampusBenefitsAdModal() {
             </div>
             <div className="flex-1 flex items-center justify-between gap-2 min-w-0">
               <span className="font-bold text-white truncate">
-                🛡️ <strong className="text-cyan-200">Pioneer Shield:</strong> Duplicates eliminated
+                <strong className="text-cyan-200">Pioneer Shield:</strong> Duplicates eliminated
               </span>
               <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-cyan-500/15 text-[#38BDF8] border border-cyan-500/30 shrink-0">
                 Protected
@@ -114,7 +114,7 @@ export default function CampusBenefitsAdModal() {
             </div>
             <div className="flex-1 flex items-center justify-between gap-2 min-w-0">
               <span className="font-bold text-white truncate">
-                🎭 <strong className="text-indigo-200">100% Privacy:</strong> Anonymous unique code names
+                <strong className="text-indigo-200">Privacy:</strong> Anonymous sharing
               </span>
               <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-purple-500/15 text-[#D8B4FE] border border-purple-500/30 shrink-0">
                 Zero Roll Nos
@@ -129,7 +129,7 @@ export default function CampusBenefitsAdModal() {
             </div>
             <div className="flex-1 flex items-center justify-between gap-2 min-w-0">
               <span className="font-bold text-white truncate">
-                🔥 <strong className="text-rose-200">Exam Survival Packs:</strong> PYQs & WhatsApp sharing
+                <strong className="text-rose-200">Exam Packs:</strong> PYQs & quick sharing
               </span>
               <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 shrink-0">
                 Instant

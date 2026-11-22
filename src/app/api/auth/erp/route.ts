@@ -6,6 +6,7 @@ import {
   CHALLENGE_SECONDS,
   consumeChallenge,
   endErpSession,
+  getErpSession,
   saveChallenge,
   saveErpSession,
   SESSION_COOKIE,
@@ -39,6 +40,17 @@ function setCookie(response: NextResponse, name: string, value: string, maxAge: 
     maxAge,
   });
   return response;
+}
+
+export async function GET(request: NextRequest) {
+  const token = request.cookies.get(SESSION_COOKIE)?.value ?? '';
+  if (!token) return json({ authenticated: false }, 401);
+  try {
+    const profile = await getErpSession(token);
+    return profile ? json({ authenticated: true, profile }) : json({ authenticated: false }, 401);
+  } catch {
+    return json({ error: 'Could not read the ERP session.' }, 503);
+  }
 }
 
 export async function POST(request: NextRequest) {

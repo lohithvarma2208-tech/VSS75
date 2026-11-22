@@ -7,6 +7,13 @@ const profileSchema = z.object({
   name: z.string().min(1).max(200),
   rollNumber: z.string().min(1).max(64),
   department: z.string().max(200),
+  semester: z.string().max(80).optional(),
+  academicYear: z.string().max(40).optional(),
+  courses: z.array(z.object({
+    code: z.string().min(2).max(32),
+    name: z.string().min(1).max(200),
+    semester: z.string().max(80).optional(),
+  })).max(40).optional(),
 });
 const sessionSchema = z.object({ profile: profileSchema, expiresAt: z.number().int() });
 const BUCKET = 'vss-erp-sessions';

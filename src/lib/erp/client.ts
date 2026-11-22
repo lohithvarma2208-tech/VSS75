@@ -9,6 +9,9 @@ export interface ErpProfile {
   name: string;
   rollNumber: string;
   department: string;
+  semester?: string;
+  academicYear?: string;
+  courses?: { code: string; name: string; semester?: string }[];
 }
 
 export interface ErpChallenge {
@@ -111,9 +114,9 @@ function parseProfile(html: string, username: string): ErpProfile | null {
   const $ = load(html);
   if ($('#login-form').length) return null;
 
-  function field(label: string) {
+  function field(...labels: string[]) {
     const heading = $('b').filter((_, element) =>
-      $(element).text().trim().replace(/\s*:\s*$/, '').toLowerCase() === label,
+      labels.includes($(element).text().trim().replace(/\s*:\s*$/, '').toLowerCase()),
     ).first();
     return heading.parent('div').next('div').text().replace(/\s+/g, ' ').trim();
   }
@@ -121,13 +124,28 @@ function parseProfile(html: string, username: string): ErpProfile | null {
   const name = field('name');
   const rollNumber = field('roll no');
   const department = field('department');
+  const semester = field('semester', 'current semester', 'current sem', 'term');
+  const academicYear = field('academic year', 'current academic year');
   if (
     !name || name.length > 200 ||
     rollNumber.toLowerCase() !== username.toLowerCase() ||
     department.length > 200
   ) return null;
 
-  return { name, rollNumber, department };
+  const courses: { code: string; name: string; semester?: string }[] = [];
+  const seen = new Set<string>();
+  $('tr').each((_, row) => {
+    const cells = $(row).find('td').map((__, cell) => $(cell).text().replace(/\s+/g, ' ').trim()).get();
+    const joined = cells.join(' ');
+    const code = joined.match(/\b\d{2}[A-Z]{2,4}\d{3,4}[A-Z]?\b/i)?.[0]?.toUpperCase();
+    if (!code || seen.has(code)) return;
+    const nameCell = cells.find((cell) => cell !== code && cell.length >= 4 && cell.length <= 160 && /[A-Za-z]{3}/.test(cell) && !/^(L|T|P|S|LTPS|Section)$/i.test(cell));
+    if (!nameCell) return;
+    seen.add(code);
+    courses.push({ code, name: nameCell.replace(code, '').replace(/^[-–—:\s]+/, '').trim() || nameCell, semester: semester || undefined });
+  });
+
+  return { name, rollNumber, department, semester: semester || undefined, academicYear: academicYear || undefined, courses: courses.slice(0, 24) };
 }
 
 export async function verifyErpLogin(challenge: ErpChallenge, input: LoginInput) {

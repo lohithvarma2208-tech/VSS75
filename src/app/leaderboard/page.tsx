@@ -98,7 +98,7 @@ export default function LeaderboardPage() {
                   : 'text-white/60 hover:text-white'
               }`}
             >
-              {dept === 'ALL' ? '🌐 All Branches' : dept}
+              {dept === 'ALL' ? 'All Branches' : dept}
             </button>
           ))}
         </div>
@@ -120,7 +120,6 @@ export default function LeaderboardPage() {
             : isSilver
             ? 'bg-slate-400/20 text-slate-200 border-slate-400/30'
             : 'bg-amber-700/20 text-amber-200 border-amber-700/30';
-          const iconMedal = isGold ? '🥇' : isSilver ? '🥈' : '🥉';
 
           return (
             <div
@@ -129,7 +128,7 @@ export default function LeaderboardPage() {
             >
               <div className="flex items-center justify-between gap-2 mb-4">
                 <span className={`px-2.5 py-0.5 rounded-full border font-mono text-[10px] font-bold ${badgeBg}`}>
-                  {leader.rank === 1 ? '👑 RANK #1' : leader.rank === 2 ? '🥈 RANK #2' : '🥉 RANK #3'}
+                  RANK #{leader.rank}
                 </span>
                 <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-cyan-500/15 border border-cyan-500/30 text-[#38BDF8] tracking-wider">
                   [{leader.code_name}]
@@ -137,15 +136,15 @@ export default function LeaderboardPage() {
               </div>
 
               <div className="flex items-start gap-3">
-                <div className="h-12 w-12 rounded-2xl bg-black/40 border border-white/10 text-2xl flex items-center justify-center shadow-lg shrink-0">
-                  {iconMedal}
+                <div className="h-12 w-12 rounded-2xl bg-black/40 border border-white/10 flex items-center justify-center shadow-lg shrink-0">
+                  <Award className={`h-5 w-5 ${isGold ? 'text-amber-300' : isSilver ? 'text-slate-200' : 'text-amber-600'}`} />
                 </div>
                 <div>
                   <h3 className="font-extrabold text-base text-white font-mono tracking-wide">
                     @{leader.username}
                   </h3>
                   <p className="text-[11px] text-[#D8B4FE] font-mono font-bold mt-0.5">
-                    {leader.academic_position}
+                    {leader.academic_position.replace(/^[^A-Za-z0-9]+/, '')}
                   </p>
                   <p className="text-[10px] text-white/50 font-mono mt-1">
                     {leader.department} ({leader.semester}) • Verified Scholar
@@ -170,7 +169,7 @@ export default function LeaderboardPage() {
 
               <div className="mt-3 flex items-center justify-between text-[11px] font-mono text-emerald-400 bg-emerald-500/10 px-3 py-1.5 rounded-xl border border-emerald-500/20">
                 <span>Status:</span>
-                <span className="font-bold">✓ PDF Studio Unlocked</span>
+                <span className="inline-flex items-center gap-1 font-bold"><CheckCircle2 className="h-3.5 w-3.5" /> PDF Studio Unlocked</span>
               </div>
             </div>
           );

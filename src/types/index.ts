@@ -17,6 +17,15 @@ export interface UserProfile {
   academic_position?: string; // Campus Academic Head title
   verified_at?: string;
   created_at: string;
+  registered_courses?: StudentCourse[];
+  academic_year?: string;
+  academic_context_source?: 'erp' | 'manual' | 'catalog';
+}
+
+export interface StudentCourse {
+  code: string;
+  name: string;
+  semester?: string;
 }
 
 export type ResourceCategory =

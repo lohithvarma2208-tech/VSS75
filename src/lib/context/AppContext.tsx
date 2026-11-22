@@ -79,6 +79,32 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     refreshState();
 
+    fetch('/api/auth/erp', { cache: 'no-store' })
+      .then((response) => response.ok ? response.json() : null)
+      .then((data) => {
+        const erp = data?.profile;
+        if (!erp?.rollNumber || !erp?.name) return;
+        const existing = MockStorageManager.getCurrentUser();
+        const user: UserProfile = {
+          id: `erp-${erp.rollNumber}`,
+          username: erp.rollNumber,
+          full_name: erp.name,
+          email: existing?.email || `${erp.rollNumber}@vss.local`,
+          department: erp.department || existing?.department || 'KLU',
+          semester: erp.semester || (erp.rollNumber.startsWith('26') ? 'Tri-Sem 1 (T1)' : erp.rollNumber.startsWith('25') ? 'Sem 3' : erp.rollNumber.startsWith('24') ? 'Sem 5' : 'Sem 1'),
+          academic_year: erp.academicYear,
+          registered_courses: Array.isArray(erp.courses) ? erp.courses : [],
+          academic_context_source: 'erp',
+          role: 'student',
+          student_id: erp.rollNumber,
+          is_verified_student: true,
+          created_at: existing?.created_at || new Date().toISOString(),
+        };
+        MockStorageManager.setCurrentUser(user);
+        setCurrentUserState(user);
+      })
+      .catch(() => undefined);
+
     const handleAuthChange = () => refreshState();
     const handleLikesChange = () => setLikedIds(MockStorageManager.getLikedResourceIds());
     const handleBookmarksChange = () => setSavedIds(MockStorageManager.getSavedResourceIds());

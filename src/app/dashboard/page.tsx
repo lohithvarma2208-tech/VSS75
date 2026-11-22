@@ -148,7 +148,7 @@ export default function DashboardPage() {
             className="px-5 py-3.5 rounded-full border border-purple-500/40 bg-purple-500/10 hover:bg-purple-500/20 text-[#D8B4FE] text-xs sm:text-sm font-extrabold shadow-md transition active:scale-95 flex items-center gap-2"
           >
             <Trophy className="h-4 w-4 text-amber-400" />
-            <span>Leaderboard 🏆</span>
+            <span>Leaderboard</span>
           </Link>
           <button
             onClick={openBenefitsAd}
@@ -286,7 +286,7 @@ export default function DashboardPage() {
                 </h3>
                 {userUploads.length >= 5 ? (
                   <span className="text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full bg-gradient-to-r from-[#8B5CF6] to-[#3B82F6] text-white">
-                    ✓ UNLOCKED (Tier 1 Contributor Privilege)
+                    UNLOCKED · Tier 1 Contributor
                   </span>
                 ) : (
                   <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-[#f59e0b] border border-amber-500/30">

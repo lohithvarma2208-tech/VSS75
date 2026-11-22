@@ -34,7 +34,7 @@ export function VerifiedBadge({
         className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-gradient-to-r from-purple-500/15 to-sky-500/15 border border-purple-500/40 text-[#D8B4FE] text-[10px] font-mono font-bold tracking-tight shadow-[0_0_10px_rgba(168,85,247,0.2)] ${className}`}
       >
         <ShieldCheck className="h-3 w-3 text-[#38BDF8] shrink-0" />
-        {showLabel && <span>✓ Verified Scholar</span>}
+        {showLabel && <span>Verified Scholar</span>}
       </span>
     );
   }
@@ -66,7 +66,7 @@ export function VerifiedBadge({
       className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gradient-to-r from-purple-500/20 to-sky-500/20 border border-purple-500/50 text-[#D8B4FE] text-xs font-mono font-bold tracking-tight shadow-[0_0_12px_rgba(168,85,247,0.2)] ${className}`}
     >
       <ShieldCheck className="h-3.5 w-3.5 text-[#38BDF8] shrink-0" />
-      {showLabel && <span>✓ Verified Campus Scholar</span>}
+      {showLabel && <span>Verified Campus Scholar</span>}
     </span>
   );
 }

@@ -9,64 +9,16 @@ import {
   BookOpen,
   X,
   RotateCcw,
-  Sparkles,
 } from 'lucide-react';
 import { Resource, ResourceCategory } from '@/types';
 import { MockStorageManager } from '@/lib/storage/mock-store';
 import ResourceCard from '@/components/resources/ResourceCard';
-import { SAMPLE_COURSES } from '@/lib/data/sample-data';
-
-const ALL_CATEGORIES: (ResourceCategory | 'All')[] = [
-  'All',
-  'Assignments',
-  'Programming',
-  'Lab Records',
-  'Lab Experiments',
-  'DTIE Projects',
-  'Notes',
-  'Mini Projects',
-  'Major Projects',
-  'Mathematics',
-  'Presentations',
-  'Reports',
-  'Study Resources',
-  'Other Academic Resources',
-];
-
-const ALL_TERMS = [
-  'All',
-  'Tri-Sem 1 (T1)',
-  'Tri-Sem 2 (T2)',
-  'Tri-Sem 3 (T3)',
-  'Tri-Sem 4 (T4)',
-  'Tri-Sem 5 (T5)',
-  'Tri-Sem 6 (T6)',
-  'Tri-Sem 7 (T7)',
-  'Tri-Sem 8 (T8)',
-  'Tri-Sem 9 (T9)',
-  'Tri-Sem 10 (T10)',
-  'Tri-Sem 11 (T11)',
-  'Tri-Sem 12 (T12)',
-  'Sem 1',
-  'Sem 2',
-  'Sem 3',
-  'Sem 4',
-  'Sem 5',
-  'Sem 6',
-  'Sem 7',
-  'Sem 8',
-];
-
-const BATCH_TRACK_FILTERS = [
-  { id: 'All', label: 'All Batches (290+ Courses)' },
-  { id: 'Y26-PBL', label: 'Y26 Honours PBL (Tri-Sem)' },
-  { id: 'Y26-REG', label: 'Y26 Regular (Tri-Sem)' },
-  { id: 'Y25-REG', label: 'Y25 Regular (Bi-Sem)' },
-  { id: 'Y25-PBL', label: 'Y25 Honours PBL (Tri-Sem)' },
-  { id: 'Y24-REG', label: 'Y24/Y23 Regular (Bi-Sem)' },
-];
+import Link from 'next/link';
+import { useApp } from '@/lib/context/AppContext';
+import { ACADEMIC_CONTEXT_EVENT, getRelevantCourses, readAcademicContext, type AcademicContext } from '@/lib/academic-context';
 
 function ExploreContent() {
+  const { currentUser } = useApp();
   const searchParams = useSearchParams();
   const initialQuery = searchParams.get('q') || '';
   const initialCategory = searchParams.get('category') || 'All';
@@ -74,10 +26,9 @@ function ExploreContent() {
 
   const [resources, setResources] = useState<Resource[]>([]);
   const [searchQuery, setSearchQuery] = useState(initialQuery);
-  const [selectedBatch, setSelectedBatch] = useState<string>('All');
   const [selectedCategory, setSelectedCategory] = useState<string>(initialCategory);
   const [selectedCourse, setSelectedCourse] = useState<string>('All');
-  const [selectedSemester, setSelectedSemester] = useState<string>('All');
+  const [academic, setAcademic] = useState<AcademicContext | null>(null);
   const [selectedSort, setSelectedSort] = useState<string>(initialSort);
   const [viewLayout, setViewLayout] = useState<'grid' | 'list'>('grid');
 
@@ -87,6 +38,22 @@ function ExploreContent() {
     window.addEventListener('klu_resources_change', handleUpdate);
     return () => window.removeEventListener('klu_resources_change', handleUpdate);
   }, []);
+
+  useEffect(() => {
+    const sync = () => setAcademic(readAcademicContext(currentUser));
+    sync(); window.addEventListener(ACADEMIC_CONTEXT_EVENT, sync);
+    return () => window.removeEventListener(ACADEMIC_CONTEXT_EVENT, sync);
+  }, [currentUser]);
+
+  const relevantCourses = useMemo(() => academic ? getRelevantCourses(currentUser, academic.semester) : [], [academic, currentUser]);
+  const relevantCourseCodes = useMemo(() => new Set(relevantCourses.map((course) => course.code)), [relevantCourses]);
+  const visibleCategories = useMemo(() => {
+    const found = new Set<ResourceCategory>();
+    resources.forEach((resource) => {
+      if (academic && resource.semester === academic.semester && (!relevantCourseCodes.size || relevantCourseCodes.has(resource.course_code))) found.add(resource.category);
+    });
+    return ['All', ...Array.from(found)] as (ResourceCategory | 'All')[];
+  }, [resources, academic, relevantCourseCodes]);
 
   useEffect(() => {
     if (searchParams.get('q')) setSearchQuery(searchParams.get('q') || '');
@@ -109,34 +76,8 @@ function ExploreContent() {
       );
     }
 
-    if (selectedBatch === 'Y26-PBL') {
-      result = result.filter(
-        (res) =>
-          (res.course_code || '').startsWith('26') &&
-          ((res.tags || []).includes('PBL') || (res.semester || '').startsWith('Tri') || (res.resource_type || '').includes('PBL') || (res.tags || []).includes('Honours PBL'))
-      );
-    } else if (selectedBatch === 'Y26-REG') {
-      result = result.filter((res) => (res.course_code || '').startsWith('26'));
-    } else if (selectedBatch === 'Y25-REG') {
-      result = result.filter(
-        (res) =>
-          ((res.course_code || '').startsWith('25') || (res.academic_year || '').includes('2025')) &&
-          (res.semester || '').startsWith('Sem')
-      );
-    } else if (selectedBatch === 'Y25-PBL') {
-      result = result.filter(
-        (res) =>
-          ((res.course_code || '').startsWith('25') || (res.academic_year || '').includes('2025')) &&
-          ((res.tags || []).includes('PBL') || (res.semester || '').startsWith('Tri'))
-      );
-    } else if (selectedBatch === 'Y24-REG') {
-      result = result.filter(
-        (res) =>
-          (res.course_code || '').startsWith('23') ||
-          (res.course_code || '').startsWith('24') ||
-          (res.academic_year || '').includes('2024')
-      );
-    }
+    if (academic?.semester) result = result.filter((res) => res.semester === academic.semester);
+    if (relevantCourseCodes.size) result = result.filter((res) => relevantCourseCodes.has(res.course_code));
 
     if (selectedCategory !== 'All') {
       result = result.filter((res) => res.category === selectedCategory);
@@ -144,10 +85,6 @@ function ExploreContent() {
 
     if (selectedCourse !== 'All') {
       result = result.filter((res) => res.course_code === selectedCourse);
-    }
-
-    if (selectedSemester !== 'All') {
-      result = result.filter((res) => res.semester === selectedSemester);
     }
 
     if (selectedSort === 'downloads') {
@@ -159,23 +96,19 @@ function ExploreContent() {
     }
 
     return result;
-  }, [resources, searchQuery, selectedBatch, selectedCategory, selectedCourse, selectedSemester, selectedSort]);
+  }, [resources, searchQuery, selectedCategory, selectedCourse, selectedSort, academic, relevantCourseCodes]);
 
   const resetFilters = () => {
     setSearchQuery('');
-    setSelectedBatch('All');
     setSelectedCategory('All');
     setSelectedCourse('All');
-    setSelectedSemester('All');
     setSelectedSort('newest');
   };
 
   const hasActiveFilters =
     searchQuery.trim() !== '' ||
-    selectedBatch !== 'All' ||
     selectedCategory !== 'All' ||
-    selectedCourse !== 'All' ||
-    selectedSemester !== 'All';
+    selectedCourse !== 'All';
 
   return (
     <div className="mx-auto max-w-7xl space-y-7 px-4 py-7 sm:px-8 sm:py-10 lg:px-12">
@@ -192,25 +125,7 @@ function ExploreContent() {
         </p>
       </div>
 
-      {/* Curriculum Batch Filter Chips */}
-      <div className="flex flex-wrap items-center gap-2 pb-1">
-        <span className="text-[11px] font-bold text-white/50 uppercase tracking-wider font-mono mr-1">
-          Academic Track:
-        </span>
-        {BATCH_TRACK_FILTERS.map((b) => (
-          <button
-            key={b.id}
-            onClick={() => setSelectedBatch(b.id)}
-            className={`text-xs font-bold px-3.5 py-1.5 rounded-full border transition-all ${
-              selectedBatch === b.id
-                ? 'bg-gradient-to-r from-[#8B5CF6] to-[#3B82F6] text-white border-transparent shadow-md shadow-indigo-500/25'
-                : 'bg-[#131B2E]/80 text-white/70 border-white/10 hover:border-purple-500/30 hover:text-white'
-            }`}
-          >
-            {b.label}
-          </button>
-        ))}
-      </div>
+      {academic && <div className="flex items-center gap-3 rounded-2xl border border-white/[0.07] bg-white/[0.025] px-4 py-3"><BookOpen className="h-4 w-4 shrink-0 text-violet-300" /><span className="min-w-0 flex-1"><b className="block text-[11px]">{academic.semester}</b><small className="block truncate text-[9px] text-white/30">Showing your {relevantCourses.length} relevant courses only</small></span><Link href="/settings" className="text-[10px] font-bold text-violet-300">Change</Link></div>}
 
       {/* Main Search & Control Bar */}
       <div className="flex flex-col md:flex-row gap-3">
@@ -233,7 +148,7 @@ function ExploreContent() {
           )}
         </div>
 
-        <div className="grid w-full grid-cols-2 items-center gap-2.5 sm:flex sm:w-auto sm:flex-nowrap sm:shrink-0">
+        <div className="grid w-full grid-cols-[1fr_auto] items-center gap-2.5 sm:flex sm:w-auto sm:flex-nowrap sm:shrink-0">
           {/* Course Filter Dropdown */}
           <select
             value={selectedCourse}
@@ -241,22 +156,9 @@ function ExploreContent() {
             className="h-11 min-w-0 rounded-full border border-white/15 bg-[#131B2E] px-3 text-xs text-white font-medium focus:border-purple-500 focus:outline-none shadow-card sm:max-w-[220px] sm:px-4 sm:text-sm truncate"
           >
             <option value="All" className="bg-[#131B2E] text-white">All Courses</option>
-            {SAMPLE_COURSES.map((c) => (
+            {relevantCourses.map((c) => (
               <option key={c.code} value={c.code} className="bg-[#131B2E] text-white">
                 {c.code} — {c.name}
-              </option>
-            ))}
-          </select>
-
-          {/* Semester Filter Dropdown */}
-          <select
-            value={selectedSemester}
-            onChange={(e) => setSelectedSemester(e.target.value)}
-            className="h-11 min-w-0 rounded-full border border-white/15 bg-[#131B2E] px-3 text-xs text-white font-medium focus:border-purple-500 focus:outline-none shadow-card sm:max-w-[170px] sm:px-4 sm:text-sm truncate"
-          >
-            {ALL_TERMS.map((s) => (
-              <option key={s} value={s} className="bg-[#131B2E] text-white">
-                {s === 'All' ? 'All Terms' : s}
               </option>
             ))}
           </select>
@@ -298,7 +200,7 @@ function ExploreContent() {
 
       {/* Category Filter Pills */}
       <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
-        {ALL_CATEGORIES.map((cat) => {
+        {visibleCategories.map((cat) => {
           const isSelected = selectedCategory === cat;
           return (
             <button

@@ -1,16 +1,21 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
   Bell, Bookmark, ChevronRight, CircleHelp, FileText, LogIn,
-  LogOut, Moon, ShieldCheck, Sparkles, Upload, UserRound,
+  LogOut, Moon, ShieldCheck, Sparkles, Upload, UserRound, CalendarRange, BookOpenCheck,
 } from 'lucide-react';
 import { useApp } from '@/lib/context/AppContext';
+import { getRelevantCourses, readAcademicContext, saveAcademicContext, TERM_OPTIONS, type AcademicContext } from '@/lib/academic-context';
 
 export default function SettingsPage() {
   const router = useRouter();
-  const { currentUser, logout, openVerifyModal } = useApp();
+  const { currentUser, setCurrentUser, logout, openVerifyModal } = useApp();
+  const [academic, setAcademic] = useState<AcademicContext | null>(null);
+
+  useEffect(() => { setAcademic(readAcademicContext(currentUser)); }, [currentUser]);
 
   if (!currentUser) {
     return <main className="mx-auto max-w-xl px-5 py-16 text-center"><div className="vss-card p-8"><LogIn className="mx-auto h-7 w-7 text-violet-300" /><h1 className="mt-4 text-xl font-extrabold">Sign in to open settings</h1><p className="mt-2 text-xs text-white/40">Your profile and preferences will appear here.</p><Link href="/auth/login" className="vss-button mt-6">Sign in</Link></div></main>;
@@ -32,6 +37,20 @@ export default function SettingsPage() {
         <SettingsRow icon={ShieldCheck} title="Campus verification" subtitle={currentUser.is_verified_student ? 'Verified student' : 'Verify your student access'} action={openVerifyModal} accent />
         <SettingsRow icon={Bell} title="Notifications" subtitle="Activity and community updates" href="/dashboard" />
       </SettingsGroup>
+
+      {academic && <section className="mt-8">
+        <h2 className="mb-2 px-2 text-[10px] font-bold uppercase tracking-[0.16em] text-white/28">Academic context</h2>
+        <div className="vss-card p-4">
+          <div className="flex items-start gap-3"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-violet-400 text-black"><CalendarRange className="h-4 w-4" /></span><span><b className="block text-xs">Current semester</b><small className="mt-0.5 block text-[10px] leading-4 text-white/35">ERP is used when available. You can override it here.</small></span></div>
+          <select value={academic.semester} onChange={(event) => {
+            const next = { ...academic, semester: event.target.value, source: 'manual' as const, userId: currentUser.id };
+            setAcademic(next); saveAcademicContext(next); setCurrentUser({ ...currentUser, semester: next.semester, academic_context_source: 'manual' });
+          }} className="profile-input mt-4 appearance-none">
+            {TERM_OPTIONS.map((term) => <option key={term} value={term} className="bg-[#17171a]">{term}</option>)}
+          </select>
+          <div className="mt-4 flex items-center gap-2 rounded-2xl bg-white/[0.035] px-3 py-3 text-[10px] text-white/40"><BookOpenCheck className="h-4 w-4 shrink-0 text-violet-300" /><span>{getRelevantCourses(currentUser, academic.semester).length} relevant courses available for {academic.semester}</span></div>
+        </div>
+      </section>}
 
       <SettingsGroup title="Student tools">
         <SettingsRow icon={Bookmark} title="Saved resources" subtitle="Your reading list" href="/saved" />
