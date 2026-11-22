@@ -105,6 +105,7 @@ export async function POST(request: NextRequest) {
 
   if (!challenge) return clearChallenge(json({ error: 'This CAPTCHA expired. Load a new one.' }, 410));
 
+  let stage = 'verify-erp';
   try {
     const profile = await verifyErpLogin(challenge, input);
     if (!profile) {
@@ -112,12 +113,16 @@ export async function POST(request: NextRequest) {
         error: 'ERP could not verify this sign-in. Check your credentials and try with a new CAPTCHA.',
       }, 401));
     }
+    stage = 'save-session';
     const id = await saveErpSession(profile);
     if (!id) return clearChallenge(json({ error: 'Sign-in is busy. Try again shortly.' }, 503));
+    stage = 'replace-session';
     await endErpSession(previousSession);
+    stage = 'record-login';
     await recordVerifiedLogin(profile, true, true).catch(() => undefined);
     return clearChallenge(setCookie(json({ ok: true }), SESSION_COOKIE, id, SESSION_SECONDS));
-  } catch {
+  } catch (error) {
+    console.error('[ERP sign-in]', stage, error instanceof Error ? error.message : 'Unknown error');
     return clearChallenge(json({ error: 'KL ERP could not complete sign-in. Try again shortly.' }, 502));
   }
 }
