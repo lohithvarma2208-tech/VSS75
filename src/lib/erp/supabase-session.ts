@@ -48,7 +48,7 @@ export async function saveSupabaseSession(profile: ErpProfile, seconds: number) 
     sortBy: { column: 'created_at', order: 'asc' },
   });
   const expired = previousSessions?.filter((item) =>
-    /^[0-9a-f]{64}\.json$/.test(item.name) && Date.parse(item.created_at) <= now - seconds * 1_000,
+    /^[0-9a-f]{64}\.json$/.test(item.name) && Date.parse(item.created_at ?? '') <= now - seconds * 1_000,
   ).map((item) => item.name);
   if (expired?.length) await bucket.remove(expired);
 

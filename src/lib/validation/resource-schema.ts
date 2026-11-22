@@ -24,10 +24,10 @@ export const resourceUploadSchema = z.object({
   tags: z.string().optional(),
   is_anonymous: z.boolean().default(false),
   confirmed_permission: z.literal(true, {
-    errorMap: () => ({ message: 'You must confirm you have permission to share this resource.' }),
+    error: 'You must confirm you have permission to share this resource.',
   }),
   confirmed_educational: z.literal(true, {
-    errorMap: () => ({ message: 'You must acknowledge this is shared solely for peer study reference.' }),
+    error: 'You must acknowledge this is shared solely for peer study reference.',
   }),
 });
 
