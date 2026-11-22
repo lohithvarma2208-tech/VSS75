@@ -25,8 +25,45 @@ export function formatDate(dateString: string): string {
   }
 }
 
-export function triggerBrowserDownload(fileName: string, content: string, mimeType = 'text/plain') {
-  const blob = new Blob([content], { type: mimeType });
+export function triggerBrowserDownload(fileName: string, contentOrUrl: string, mimeType?: string) {
+  if (!contentOrUrl) return;
+
+  // 1. Direct Data URLs (Base64 binary files like PDFs, DOCX, ZIP) or Blob URLs
+  if (contentOrUrl.startsWith('data:') || contentOrUrl.startsWith('blob:')) {
+    const a = document.createElement('a');
+    a.href = contentOrUrl;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    return;
+  }
+
+  // 2. Relative sample files in public/ or absolute URLs
+  if (
+    contentOrUrl.startsWith('/samples/') ||
+    contentOrUrl.startsWith('http://') ||
+    contentOrUrl.startsWith('https://')
+  ) {
+    const a = document.createElement('a');
+    a.href = contentOrUrl;
+    a.download = fileName;
+    a.target = '_blank';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    return;
+  }
+
+  // 3. Fallback for text / code content strings
+  const ext = fileName.split('.').pop()?.toLowerCase();
+  let defaultMime = 'text/plain';
+  if (ext === 'pdf') defaultMime = 'application/pdf';
+  else if (ext === 'docx') defaultMime = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+  else if (ext === 'pptx') defaultMime = 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
+  else if (ext === 'zip') defaultMime = 'application/zip';
+
+  const blob = new Blob([contentOrUrl], { type: mimeType || defaultMime });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;

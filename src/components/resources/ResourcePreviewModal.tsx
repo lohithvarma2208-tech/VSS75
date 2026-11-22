@@ -1,7 +1,8 @@
 'use client';
 
 import React from 'react';
-import { X, Download, FileText, Code2, BookOpen } from 'lucide-react';
+import Link from 'next/link';
+import { X, Download, FileText, Code2, BookOpen, Presentation, Archive, Sparkles, ExternalLink } from 'lucide-react';
 import { Resource } from '@/types';
 import { formatBytes, triggerBrowserDownload } from '@/lib/utils';
 import { MockStorageManager } from '@/lib/storage/mock-store';
@@ -24,14 +25,12 @@ export default function ResourcePreviewModal({
 
   const handleDownload = () => {
     MockStorageManager.incrementDownload(resource.id);
-    const content =
-      resource.file_content_preview ||
-      `// Virtual Student Space Academic Resource\n// Title: ${resource.title}\n// Course: ${resource.course_code} - ${resource.course_name}\n\n[Full Resource Content: Downloaded from Virtual Student Space]`;
-    triggerBrowserDownload(resource.file_name, content);
+    const targetUrl = resource.file_data_url || resource.file_url;
+    triggerBrowserDownload(resource.file_name, targetUrl);
     showToast(`Downloaded ${resource.file_name}`, 'success');
   };
 
-  const isCode = ['java', 'py', 'c', 'cpp', 'v'].includes(resource.file_type);
+  const isCode = ['java', 'py', 'c', 'cpp', 'v', 'txt'].includes(resource.file_type);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-150">
@@ -81,7 +80,56 @@ export default function ResourcePreviewModal({
             </div>
           </div>
 
-          {resource.file_content_preview ? (
+          {resource.file_type === 'pdf' ? (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between p-2.5 rounded-xl bg-purple-500/10 border border-purple-500/20 text-xs">
+                <span className="text-purple-200/90 font-mono">PDF Document View</span>
+                <Link
+                  href={`/pdf-studio?doc=${encodeURIComponent(resource.file_name)}`}
+                  onClick={onClose}
+                  className="px-3 py-1 rounded-full bg-purple-600 hover:bg-purple-500 text-white font-bold flex items-center gap-1.5 transition"
+                >
+                  <Sparkles className="h-3 w-3 text-[#38BDF8]" />
+                  Open in PDF Studio
+                </Link>
+              </div>
+              <iframe
+                src={resource.file_data_url || resource.file_url || '/samples/23CS2101_Exp5_AVL_Trees_LabRecord.pdf'}
+                className="w-full h-80 rounded-2xl border border-white/10 bg-black/50"
+                title={resource.file_name}
+              />
+            </div>
+          ) : ['docx', 'doc'].includes(resource.file_type) ? (
+            <div className="text-center py-10 space-y-3 rounded-2xl bg-gradient-to-b from-blue-950/40 to-black/30 border border-blue-500/20 p-6">
+              <FileText className="h-12 w-12 text-blue-400 mx-auto" />
+              <h4 className="text-sm font-bold text-white">{resource.file_name}</h4>
+              <p className="text-xs text-white/60 max-w-sm mx-auto">
+                Microsoft Word Document ({formatBytes(resource.file_size)}). Download or open in PDF Studio.
+              </p>
+              <div className="pt-2 flex items-center justify-center gap-2">
+                <Link
+                  href={`/pdf-studio?doc=${encodeURIComponent(resource.file_name)}`}
+                  onClick={onClose}
+                  className="px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs font-bold border border-white/15 flex items-center gap-1.5"
+                >
+                  <Sparkles className="h-3.5 w-3.5 text-[#38BDF8]" />
+                  View in Studio
+                </Link>
+              </div>
+            </div>
+          ) : ['pptx', 'ppt'].includes(resource.file_type) ? (
+            <div className="text-center py-10 space-y-3 rounded-2xl bg-amber-950/20 border border-amber-500/20 p-6">
+              <Presentation className="h-12 w-12 text-amber-400 mx-auto" />
+              <h4 className="text-sm font-bold text-white">{resource.file_name}</h4>
+              <p className="text-xs text-white/60">PowerPoint Presentation ({formatBytes(resource.file_size)})</p>
+            </div>
+          ) : resource.file_type === 'zip' ? (
+            <div className="text-center py-10 space-y-3 rounded-2xl bg-purple-950/20 border border-purple-500/20 p-6">
+              <Archive className="h-12 w-12 text-purple-400 mx-auto" />
+              <h4 className="text-sm font-bold text-white">{resource.file_name}</h4>
+              <p className="text-xs text-white/60">Compressed Archive ({formatBytes(resource.file_size)})</p>
+            </div>
+          ) : resource.file_content_preview ? (
             <div className="rounded-2xl border border-white/10 bg-black/40 p-5 shadow-inner">
               <pre className="font-mono text-xs text-white/90 whitespace-pre-wrap leading-relaxed overflow-x-auto">
                 {resource.file_content_preview}
@@ -91,10 +139,10 @@ export default function ResourcePreviewModal({
             <div className="text-center py-12 space-y-3">
               <BookOpen className="h-10 w-10 text-white/30 mx-auto" />
               <p className="text-sm font-bold text-white">
-                Binary or Office Document Preview
+                Academic Document Ready
               </p>
               <p className="text-xs text-white/50 max-w-sm mx-auto">
-                This document ({resource.file_type.toUpperCase()}) can be downloaded directly to study with your local viewer.
+                File format: {resource.file_type.toUpperCase()} ({formatBytes(resource.file_size)}). Click download below.
               </p>
             </div>
           )}

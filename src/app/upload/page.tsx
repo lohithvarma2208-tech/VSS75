@@ -16,7 +16,7 @@ import {
   type AcademicContext,
 } from '@/lib/academic-context';
 
-const ALLOWED_EXTENSIONS = ['pdf', 'docx', 'pptx', 'zip', 'py', 'java', 'cpp', 'c', 'txt', 'png', 'jpg'];
+const ALLOWED_EXTENSIONS = ['pdf', 'docx', 'doc', 'pptx', 'ppt', 'xls', 'xlsx', 'zip', 'py', 'java', 'cpp', 'c', 'txt', 'png', 'jpg'];
 
 function inferResource(file: File, title: string, course: StudentCourse) {
   const text = `${file.name} ${title} ${course.name}`.toLowerCase();
@@ -35,6 +35,7 @@ export default function UploadPage() {
   const { currentUser, showToast } = useApp();
   const [academic, setAcademic] = useState<AcademicContext | null>(null);
   const [file, setFile] = useState<File | null>(null);
+  const [fileDataUrl, setFileDataUrl] = useState<string>('');
   const [title, setTitle] = useState('');
   const [note, setNote] = useState('');
   const [courseCode, setCourseCode] = useState('');
@@ -62,6 +63,12 @@ export default function UploadPage() {
     const extension = next.name.split('.').pop()?.toLowerCase() || '';
     if (!ALLOWED_EXTENSIONS.includes(extension)) { setError('That file type is not supported yet.'); return; }
     setError(''); setFile(next);
+
+    // Read authentic binary as Data URL for direct PDF & Office document previews/downloads
+    const reader = new FileReader();
+    reader.onload = (e) => setFileDataUrl(e.target?.result as string);
+    reader.readAsDataURL(next);
+
     if (!title) setTitle(next.name.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim());
   }
 
@@ -75,7 +82,7 @@ export default function UploadPage() {
 
     const inferred = inferResource(file, title, selectedCourse);
     const extension = file.name.split('.').pop()?.toLowerCase() || 'pdf';
-    let preview = `[${file.name}] (${formatBytes(file.size)})`;
+    let preview = '';
     if (file.type.startsWith('text/') || ['py', 'java', 'cpp', 'c', 'txt'].includes(extension)) {
       preview = (await file.text()).slice(0, 3000);
     }
@@ -90,10 +97,11 @@ export default function UploadPage() {
       academic_year: academic?.academicYear || currentUser.academic_year || '',
       resource_type: inferred.type,
       file_name: file.name,
-      file_url: `/samples/${file.name}`,
+      file_url: fileDataUrl || (extension === 'pdf' ? '/samples/23CS2101_Exp5_AVL_Trees_LabRecord.pdf' : `/samples/${file.name}`),
+      file_data_url: fileDataUrl || undefined,
       file_size: file.size,
       file_type: (ALLOWED_EXTENSIONS.includes(extension) ? extension : 'pdf') as ResourceFileType,
-      file_content_preview: preview,
+      file_content_preview: preview || undefined,
       author_id: currentUser.id,
       author_name: anonymous ? 'Anonymous' : currentUser.full_name,
       author_username: anonymous ? undefined : currentUser.username,

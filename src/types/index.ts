@@ -18,6 +18,7 @@ export interface UserProfile {
   verified_at?: string;
   created_at: string;
   registered_courses?: StudentCourse[];
+  enrolled_courses?: string[];
   academic_year?: string;
   academic_context_source?: 'erp' | 'manual' | 'catalog';
 }
@@ -46,7 +47,11 @@ export type ResourceCategory =
 export type ResourceFileType =
   | 'pdf'
   | 'docx'
+  | 'doc'
   | 'pptx'
+  | 'ppt'
+  | 'xls'
+  | 'xlsx'
   | 'zip'
   | 'py'
   | 'java'
@@ -71,6 +76,7 @@ export interface Resource {
   file_size: number; // in bytes
   file_type: ResourceFileType;
   file_content_preview?: string; // Text/code snippet for instant preview
+  file_data_url?: string; // Direct Data URL for authentic PDF & binary rendering
   author_id?: string;
   author_name: string;
   author_username?: string;
@@ -277,5 +283,22 @@ export interface RequestReport {
   status: 'pending' | 'resolved' | 'dismissed';
   resolution_notes?: string;
   created_at: string;
+}
+
+export interface SecurityAuditLog {
+  id: string;
+  timestamp: string;
+  event:
+    | 'LOGIN_SUCCESS'
+    | 'LOGIN_FAILED_CREDENTIALS'
+    | 'LOGIN_FAILED_CAPTCHA'
+    | 'RATE_LIMIT_TRIGGERED'
+    | 'ACCOUNT_COOLDOWN'
+    | 'MANUAL_COURSE_SYNC';
+  masked_erp_id: string;
+  ip_address: string;
+  user_agent: string;
+  status: 'SUCCESS' | 'FAILURE' | 'BLOCKED';
+  details: string;
 }
 

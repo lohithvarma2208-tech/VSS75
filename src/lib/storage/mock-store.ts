@@ -14,6 +14,7 @@ import {
   RequestReport,
   RequestStatus,
   OfferStatus,
+  SecurityAuditLog,
 } from '@/types';
 
 const STORAGE_KEYS = {
@@ -31,6 +32,8 @@ const STORAGE_KEYS = {
   RESPONSES: 'vss_responses_v3',
   SAVED_REQUESTS: 'vss_saved_requests_v3',
   REQUEST_REPORTS: 'vss_request_reports_v3',
+  SECURITY_AUDIT_LOGS: 'vss_security_audit_logs_v3',
+  RATE_LIMIT: 'vss_rate_limits_v3',
 };
 
 // Initial Resource Requests
@@ -1388,5 +1391,134 @@ export class MockStorageManager {
       : 0;
 
     return { total, open, fulfilled, myRequests };
+  }
+
+  // --- Security Audit Logs ---
+  static getSecurityAuditLogs(): SecurityAuditLog[] {
+    if (!this.isBrowser()) return [];
+    try {
+      const data = localStorage.getItem(STORAGE_KEYS.SECURITY_AUDIT_LOGS);
+      if (data) return JSON.parse(data);
+    } catch (e) {
+      console.warn('Failed reading security audit logs', e);
+    }
+    const initialLogs: SecurityAuditLog[] = [
+      {
+        id: 'sec-log-001',
+        timestamp: new Date(Date.now() - 3600000 * 2).toISOString(),
+        event: 'LOGIN_SUCCESS',
+        masked_erp_id: '23****0042',
+        ip_address: '10.12.4.88 (Campus Subnet)',
+        user_agent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+        status: 'SUCCESS',
+        details: 'ERP ID authenticated successfully with student session token issued.',
+      },
+    ];
+    if (this.isBrowser()) {
+      localStorage.setItem(STORAGE_KEYS.SECURITY_AUDIT_LOGS, JSON.stringify(initialLogs));
+    }
+    return initialLogs;
+  }
+
+  static recordSecurityAuditLog(data: Omit<SecurityAuditLog, 'id' | 'timestamp'>): SecurityAuditLog {
+    const logs = this.getSecurityAuditLogs();
+    const newLog: SecurityAuditLog = {
+      ...data,
+      id: `sec-log-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      timestamp: new Date().toISOString(),
+    };
+    const updated = [newLog, ...logs].slice(0, 100);
+    if (this.isBrowser()) {
+      localStorage.setItem(STORAGE_KEYS.SECURITY_AUDIT_LOGS, JSON.stringify(updated));
+      window.dispatchEvent(new Event('klu_audit_logs_change'));
+    }
+    return newLog;
+  }
+
+  static clearSecurityAuditLogs(): void {
+    if (!this.isBrowser()) return;
+    localStorage.removeItem(STORAGE_KEYS.SECURITY_AUDIT_LOGS);
+    window.dispatchEvent(new Event('klu_audit_logs_change'));
+  }
+
+  // --- Strict Rate Limiting (5 attempts max, 60s cooldown) ---
+  static checkRateLimit(identifier: string): { isLocked: boolean; remainingAttempts: number; lockTimeRemaining: number } {
+    if (!this.isBrowser()) return { isLocked: false, remainingAttempts: 5, lockTimeRemaining: 0 };
+    try {
+      const data = localStorage.getItem(STORAGE_KEYS.RATE_LIMIT);
+      if (!data) return { isLocked: false, remainingAttempts: 5, lockTimeRemaining: 0 };
+      const limits: Record<string, { attempts: number; lockedUntil?: number; lastAttempt: number }> = JSON.parse(data);
+      const entry = limits[identifier];
+      if (!entry) return { isLocked: false, remainingAttempts: 5, lockTimeRemaining: 0 };
+
+      const now = Date.now();
+      if (entry.lockedUntil && entry.lockedUntil > now) {
+        const remainingSecs = Math.ceil((entry.lockedUntil - now) / 1000);
+        return { isLocked: true, remainingAttempts: 0, lockTimeRemaining: remainingSecs };
+      }
+
+      if (now - entry.lastAttempt > 600000) {
+        return { isLocked: false, remainingAttempts: 5, lockTimeRemaining: 0 };
+      }
+
+      const remaining = Math.max(0, 5 - entry.attempts);
+      return { isLocked: remaining === 0, remainingAttempts: remaining, lockTimeRemaining: 0 };
+    } catch {
+      return { isLocked: false, remainingAttempts: 5, lockTimeRemaining: 0 };
+    }
+  }
+
+  static recordLoginAttempt(
+    identifier: string,
+    success: boolean
+  ): { isLocked: boolean; remainingAttempts: number; lockTimeRemaining: number } {
+    if (!this.isBrowser()) return { isLocked: false, remainingAttempts: 5, lockTimeRemaining: 0 };
+    try {
+      const data = localStorage.getItem(STORAGE_KEYS.RATE_LIMIT);
+      const limits: Record<string, { attempts: number; lockedUntil?: number; lastAttempt: number }> = data ? JSON.parse(data) : {};
+      const now = Date.now();
+
+      if (success) {
+        delete limits[identifier];
+        localStorage.setItem(STORAGE_KEYS.RATE_LIMIT, JSON.stringify(limits));
+        return { isLocked: false, remainingAttempts: 5, lockTimeRemaining: 0 };
+      }
+
+      const entry = limits[identifier] || { attempts: 0, lastAttempt: now };
+      entry.attempts += 1;
+      entry.lastAttempt = now;
+
+      if (entry.attempts >= 5) {
+        entry.lockedUntil = now + 60000; // 60-second cooldown
+        limits[identifier] = entry;
+        localStorage.setItem(STORAGE_KEYS.RATE_LIMIT, JSON.stringify(limits));
+        return { isLocked: true, remainingAttempts: 0, lockTimeRemaining: 60 };
+      }
+
+      limits[identifier] = entry;
+      localStorage.setItem(STORAGE_KEYS.RATE_LIMIT, JSON.stringify(limits));
+      return { isLocked: false, remainingAttempts: 5 - entry.attempts, lockTimeRemaining: 0 };
+    } catch {
+      return { isLocked: false, remainingAttempts: 5, lockTimeRemaining: 0 };
+    }
+  }
+
+  // --- Manual Course Syncing when ERP is Unavailable ---
+  static updateUserEnrolledCourses(courseCodes: string[]): boolean {
+    if (!this.isBrowser()) return false;
+    const currentUser = this.getCurrentUser();
+    if (!currentUser) return false;
+    currentUser.enrolled_courses = courseCodes;
+    this.setCurrentUser(currentUser);
+    this.recordSecurityAuditLog({
+      event: 'MANUAL_COURSE_SYNC',
+      masked_erp_id: currentUser.student_id ? `${currentUser.student_id.slice(0, 2)}****${currentUser.student_id.slice(-4)}` : 'STUDENT_SYNC',
+      ip_address: '127.0.0.1 (Local Client)',
+      user_agent: typeof navigator !== 'undefined' ? navigator.userAgent : 'Browser Client',
+      status: 'SUCCESS',
+      details: `Manual course synchronization completed: ${courseCodes.length} course(s) mapped [${courseCodes.join(', ')}].`,
+    });
+    window.dispatchEvent(new Event('klu_courses_synced'));
+    return true;
   }
 }

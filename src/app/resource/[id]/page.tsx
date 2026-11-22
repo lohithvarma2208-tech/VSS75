@@ -13,6 +13,10 @@ import {
   ArrowLeft,
   Check,
   AlertCircle,
+  Presentation,
+  Archive,
+  Sparkles,
+  ExternalLink,
 } from 'lucide-react';
 import { Resource } from '@/types';
 import { MockStorageManager } from '@/lib/storage/mock-store';
@@ -74,10 +78,8 @@ export default function ResourceDetailPage() {
 
   const handleDownload = () => {
     MockStorageManager.incrementDownload(resource.id);
-    const content =
-      resource.file_content_preview ||
-      `// Virtual Student Space (VSS) Academic Resource\n// Title: ${resource.title}\n// Course: ${resource.course_code} - ${resource.course_name}\n\n[Full Resource Content: Downloaded from Virtual Student Space]`;
-    triggerBrowserDownload(resource.file_name, content);
+    const targetUrl = resource.file_data_url || resource.file_url;
+    triggerBrowserDownload(resource.file_name, targetUrl);
     showToast(`Downloaded ${resource.file_name}`, 'success');
   };
 
@@ -179,16 +181,120 @@ export default function ResourceDetailPage() {
                 <span className="text-xs font-bold text-white">
                   Document Preview ({resource.file_name})
                 </span>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-white/10 text-white/80 uppercase">
+                  {resource.file_type}
+                </span>
               </div>
               <span className="text-xs text-white/50 font-mono">{formatBytes(resource.file_size)}</span>
             </div>
 
-            <div className="p-5 max-h-96 overflow-y-auto bg-[#070A11] text-purple-200/90 font-mono text-xs leading-relaxed">
-              <pre className="whitespace-pre-wrap">
-                {resource.file_content_preview ||
-                  `[Preview unavailable for this binary format: ${resource.file_type.toUpperCase()}]\nPlease click "Download Resource" to inspect this file.`}
-              </pre>
-            </div>
+            {resource.file_type === 'pdf' ? (
+              <div className="relative">
+                <div className="p-3 bg-[#080C14] border-b border-white/10 flex items-center justify-between flex-wrap gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+                    <span className="text-xs text-purple-200/90 font-mono font-bold">
+                      Interactive PDF Canvas &bull; {resource.file_name}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <a
+                      href={resource.file_data_url || resource.file_url || '/samples/23CS2101_Exp5_AVL_Trees_LabRecord.pdf'}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3 py-1 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs font-bold flex items-center gap-1 transition"
+                    >
+                      <ExternalLink className="h-3 w-3" /> Full View
+                    </a>
+                    <Link
+                      href={`/pdf-studio?doc=${encodeURIComponent(resource.file_name)}`}
+                      className="px-3.5 py-1 rounded-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-bold shadow-md shadow-purple-500/30 flex items-center gap-1.5 transition"
+                    >
+                      <Sparkles className="h-3 w-3 text-[#38BDF8]" />
+                      Annotate in PDF Studio
+                    </Link>
+                  </div>
+                </div>
+                <iframe
+                  src={resource.file_data_url || resource.file_url || '/samples/23CS2101_Exp5_AVL_Trees_LabRecord.pdf'}
+                  className="w-full h-[550px] bg-[#070A11] border-none"
+                  title={resource.file_name}
+                />
+              </div>
+            ) : ['docx', 'doc'].includes(resource.file_type) ? (
+              <div className="p-8 sm:p-10 text-center space-y-4 bg-gradient-to-b from-[#0B1528] to-[#070A11]">
+                <div className="inline-flex p-4 rounded-3xl bg-blue-500/15 text-blue-400 border border-blue-500/30 shadow-[0_0_25px_rgba(59,130,246,0.25)]">
+                  <FileText className="h-10 w-10 text-blue-400" />
+                </div>
+                <div>
+                  <h4 className="text-base font-black text-white">{resource.file_name}</h4>
+                  <p className="text-xs text-white/60 mt-1 max-w-md mx-auto">
+                    Microsoft Word Document &bull; {formatBytes(resource.file_size)} &bull; Verified Academic Material
+                  </p>
+                </div>
+                <div className="flex items-center justify-center gap-3 pt-2 flex-wrap">
+                  <button
+                    onClick={handleDownload}
+                    className="px-5 py-2.5 rounded-full bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-lg shadow-blue-500/20 flex items-center gap-2 transition cursor-pointer"
+                  >
+                    <Download className="h-3.5 w-3.5" />
+                    Download Original Word Document
+                  </button>
+                  <Link
+                    href={`/pdf-studio?doc=${encodeURIComponent(resource.file_name)}`}
+                    className="px-5 py-2.5 rounded-full bg-white/10 hover:bg-white/20 text-white font-bold text-xs border border-white/15 flex items-center gap-2 transition"
+                  >
+                    <Sparkles className="h-3.5 w-3.5 text-[#38BDF8]" />
+                    Inspect in PDF Studio
+                  </Link>
+                </div>
+              </div>
+            ) : ['pptx', 'ppt'].includes(resource.file_type) ? (
+              <div className="p-8 sm:p-10 text-center space-y-4 bg-gradient-to-b from-[#181109] to-[#070A11]">
+                <div className="inline-flex p-4 rounded-3xl bg-amber-500/15 text-amber-400 border border-amber-500/30 shadow-[0_0_25px_rgba(245,158,11,0.2)]">
+                  <Presentation className="h-10 w-10 text-amber-400" />
+                </div>
+                <div>
+                  <h4 className="text-base font-black text-white">{resource.file_name}</h4>
+                  <p className="text-xs text-white/60 mt-1 max-w-md mx-auto">
+                    PowerPoint Presentation Slide Deck &bull; {formatBytes(resource.file_size)}
+                  </p>
+                </div>
+                <button
+                  onClick={handleDownload}
+                  className="px-6 py-2.5 rounded-full bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs shadow-lg shadow-amber-500/20 inline-flex items-center gap-2 transition cursor-pointer"
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  Download Presentation (.pptx)
+                </button>
+              </div>
+            ) : resource.file_type === 'zip' ? (
+              <div className="p-8 sm:p-10 text-center space-y-4 bg-gradient-to-b from-[#141226] to-[#070A11]">
+                <div className="inline-flex p-4 rounded-3xl bg-purple-500/15 text-purple-400 border border-purple-500/30 shadow-[0_0_25px_rgba(168,85,247,0.2)]">
+                  <Archive className="h-10 w-10 text-purple-400" />
+                </div>
+                <div>
+                  <h4 className="text-base font-black text-white">{resource.file_name}</h4>
+                  <p className="text-xs text-white/60 mt-1 max-w-md mx-auto">
+                    Compressed Academic Archive (.zip) &bull; {formatBytes(resource.file_size)}
+                  </p>
+                </div>
+                <button
+                  onClick={handleDownload}
+                  className="px-6 py-2.5 rounded-full bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs shadow-lg shadow-purple-500/20 inline-flex items-center gap-2 transition cursor-pointer"
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  Download ZIP Archive
+                </button>
+              </div>
+            ) : (
+              <div className="p-5 max-h-96 overflow-y-auto bg-[#070A11] text-purple-200/90 font-mono text-xs leading-relaxed">
+                <pre className="whitespace-pre-wrap">
+                  {resource.file_content_preview ||
+                    `// File: ${resource.file_name}\n// Format: ${resource.file_type.toUpperCase()}\n// Size: ${formatBytes(resource.file_size)}\n\n[Voluntarily published academic material on Virtual Student Space]\nClick "Download File" to access the full uncompressed resource.`}
+                </pre>
+              </div>
+            )}
           </div>
 
           {/* Discussion Thread */}

@@ -37,10 +37,8 @@ export default function ResourceCard({ resource, layout = 'grid' }: ResourceCard
     e.preventDefault();
     e.stopPropagation();
     MockStorageManager.incrementDownload(resource.id);
-    const content =
-      resource.file_content_preview ||
-      `// Virtual Student Space (VSS) Academic Resource\n// Title: ${resource.title}\n// Course: ${resource.course_code} - ${resource.course_name}\n// Author: ${resource.author_name}\n\n[Full Resource Content: Downloaded from Virtual Student Space]`;
-    triggerBrowserDownload(resource.file_name, content);
+    const targetUrl = resource.file_data_url || resource.file_url;
+    triggerBrowserDownload(resource.file_name, targetUrl);
     showToast(`Downloaded ${resource.file_name}`, 'success');
   };
 
@@ -92,7 +90,7 @@ export default function ResourceCard({ resource, layout = 'grid' }: ResourceCard
               <p className="text-xs text-white/60 line-clamp-1 leading-relaxed">
                 {resource.description}
               </p>
-              <div className="flex flex-wrap items-center gap-2 text-[11px] text-white/40 pt-0.5">
+              <div className="flex items-center gap-3 text-[11px] text-white/40 pt-0.5">
                 <span className="inline-flex items-center gap-1.5 font-mono text-[11px]">
                   By {resource.is_anonymous ? 'Anonymous' : (resource.author_name ? (resource.author_name.startsWith('@') ? resource.author_name : `@${resource.author_name}`) : (resource.author_username ? `@${resource.author_username}` : 'Anonymous'))}
                   {!resource.is_anonymous && (resource.author_is_verified || (resource.author_id === currentUser?.id && currentUser?.is_verified_student)) && (
@@ -107,7 +105,7 @@ export default function ResourceCard({ resource, layout = 'grid' }: ResourceCard
             </div>
           </div>
 
-          <div className="flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto sm:self-center sm:shrink-0">
+          <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
             <button
               onClick={() => setIsPreviewOpen(true)}
               className="p-2 text-white/60 hover:text-white hover:bg-white/10 rounded-full transition"
@@ -159,7 +157,7 @@ export default function ResourceCard({ resource, layout = 'grid' }: ResourceCard
   // Grid view (Default)
   return (
     <>
-      <div className="group relative flex min-w-0 flex-col justify-between rounded-3xl border border-white/10 bg-[#131B2E]/70 p-4 sm:p-6 hover:border-purple-500/50 hover:bg-[#1A243B] transition-all duration-200 shadow-card hover:-translate-y-1">
+      <div className="group relative flex flex-col justify-between rounded-3xl border border-white/10 bg-[#131B2E]/70 p-6 hover:border-purple-500/50 hover:bg-[#1A243B] transition-all duration-200 shadow-card hover:-translate-y-1">
         <div>
           {/* Card Top Pill Bar */}
           <div className="flex items-center justify-between gap-2 mb-3.5">
@@ -238,8 +236,8 @@ export default function ResourceCard({ resource, layout = 'grid' }: ResourceCard
             <span className="shrink-0 font-mono text-[10px] text-white/40">{formatBytes(resource.file_size)}</span>
           </div>
 
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="flex min-w-0 items-center gap-1">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-1.5">
               <button
                 onClick={() => toggleLike(resource.id)}
                 className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold transition ${
@@ -259,7 +257,7 @@ export default function ResourceCard({ resource, layout = 'grid' }: ResourceCard
                 title="Quick preview"
               >
                 <Eye className="h-3.5 w-3.5 text-white/50" />
-                <span className="hidden min-[370px]:inline">Preview</span>
+                <span>Preview</span>
               </button>
             </div>
 
