@@ -25,7 +25,7 @@ export default function SignOutButton() {
 
   return (
     <div className="space-y-2">
-      <button type="button" onClick={signOut} disabled={busy} className="rounded-xl border border-white/20 px-4 py-2 text-sm font-semibold hover:bg-white/10 disabled:opacity-50">
+      <button type="button" onClick={signOut} disabled={busy} className="w-full rounded-2xl border border-rose-400/15 bg-rose-400/[0.06] px-4 py-3.5 text-xs font-bold text-rose-300 hover:bg-rose-400/10 disabled:opacity-50">
         {busy ? 'Signing out…' : 'Sign out of ERP profile'}
       </button>
       {error && <p role="alert" className="text-sm text-rose-200">{error}</p>}
