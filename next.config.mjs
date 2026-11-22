@@ -8,6 +8,7 @@ const nextConfig = {
       beforeFiles: [
         { source: '/api/:path*', destination: `${renderOrigin}/api/:path*` },
         { source: '/auth/erp/:path*', destination: `${renderOrigin}/auth/erp/:path*` },
+        { source: '/admin', destination: `${renderOrigin}/admin` },
         { source: '/admin/:path*', destination: `${renderOrigin}/admin/:path*` },
       ],
       afterFiles: [],
