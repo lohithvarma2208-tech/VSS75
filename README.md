@@ -84,7 +84,7 @@ C:\Users\LOHITH\Documents\VSS75/
     │   ├── profile/[user]/   # Public student profile with editable bio
     │   ├── saved/            # Bookmarks & saved resources hub
     │   ├── admin/            # Protected moderation desk & report audit queue
-    │   └── auth/             # Login & Registration with ERP verification
+    │   └── auth/             # ERP sign-in, private profile, demo access and registration
     ├── components/
     │   ├── layout/           # Navbar, Footer
     │   ├── common/           # AmbientBackgroundLayer, BackgroundVideo, VideoThemeSwitcher
@@ -113,3 +113,11 @@ npm run dev
 ```
 
 Open **[http://localhost:3000](http://localhost:3000)** in your browser.
+
+### ERP sign-in
+
+Run VSS on Node.js 24 as a single instance over HTTPS in production. Load the ERP session migration from `supabase/migrations/20261122000000_erp_sessions.sql` and set `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` (use a Supabase publishable key), `SUPABASE_SECRET_KEY`, and `ERP_SESSION_ENCRYPTION_KEY` in the server environment. See `.env.example`.
+
+CAPTCHA challenges expire after three minutes and live in process memory. Supabase stores a hash and expiry for each VSS session. The student profile is encrypted in the HTTP-only session cookie and lasts one hour. Local development uses in-memory sessions when the Supabase secret key is unset.
+
+On `/auth/login`, load a CAPTCHA, enter your ERP username and password, and type the characters shown. VSS uses those credentials only for the verification request. After ERP confirms the account, VSS displays the name, roll number, and department returned by ERP on `/auth/erp/profile`.

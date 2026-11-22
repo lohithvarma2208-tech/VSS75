@@ -20,7 +20,6 @@ import {
   Layers,
 } from 'lucide-react';
 import { PDFDocument, rgb } from 'pdf-lib';
-import * as pdfjsLib from 'pdfjs-dist';
 import { useApp } from '@/lib/context/AppContext';
 import { MockStorageManager } from '@/lib/storage/mock-store';
 import { Resource } from '@/types';
@@ -43,11 +42,6 @@ import { exportFinalPdf } from '@/components/pdf-studio/pdf-exporter';
 import BackgroundVideo from '@/components/common/BackgroundVideo';
 
 const REQUIRED_SUBMISSIONS = 5;
-
-// Configure local offline PDF.js worker
-if (typeof window !== 'undefined') {
-  pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js';
-}
 
 export default function PDFStudioPage() {
   const { currentUser, showToast, openVerifyModal } = useApp();
@@ -139,7 +133,9 @@ export default function PDFStudioPage() {
       setSourcePdfBytes(bytes);
       setDocumentName(name);
 
-      const loadingTask = pdfjsLib.getDocument({ data: bytes.slice() });
+      const pdfjsLib = await import('pdfjs-dist');
+      pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js';
+      const loadingTask = pdfjsLib.getDocument({ data: bytes.slice(), isEvalSupported: false });
       const doc = await loadingTask.promise;
       setPdfJsDoc(doc);
 
