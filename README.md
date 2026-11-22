@@ -121,3 +121,8 @@ Run VSS on Node.js 24 as a single instance over HTTPS in production. Create a pr
 CAPTCHA challenges expire after three minutes and live in process memory. The private Supabase bucket stores a marker named with the hash of each VSS session token. The student profile is encrypted in the HTTP-only session cookie and lasts one hour. Local development uses in-memory sessions when the Supabase secret key is unset.
 
 On `/auth/login`, load a CAPTCHA, enter your ERP username and password, and type the characters shown. VSS uses those credentials only for the verification request. After ERP confirms the account, VSS displays the name, roll number, and department returned by ERP on `/auth/erp/profile`.
+
+
+### Public Vercel URL
+
+The Vercel project uses the deploy/vercel directory and proxies requests to the Render service. Set ERP_PUBLIC_ORIGIN on Render to the exact HTTPS Vercel production origin. The Next.js app, ERP sessions, and private Supabase credentials stay on Render.

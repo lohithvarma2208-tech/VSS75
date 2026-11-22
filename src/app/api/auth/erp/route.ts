@@ -44,7 +44,9 @@ function setCookie(response: NextResponse, name: string, value: string, maxAge: 
 export async function POST(request: NextRequest) {
   const origin = request.headers.get('origin');
   const host = request.headers.get('host');
-  if (!host || (origin !== 'https://' + host && origin !== 'http://' + host)) {
+  const sameOrigin = host && (origin === 'https://' + host || origin === 'http://' + host);
+  const publicOrigin = process.env.ERP_PUBLIC_ORIGIN;
+  if (!origin || (!sameOrigin && origin !== publicOrigin)) {
     return json({ error: 'Invalid request origin.' }, 403);
   }
   if (request.headers.get('content-type')?.split(';')[0] !== 'application/json') {
