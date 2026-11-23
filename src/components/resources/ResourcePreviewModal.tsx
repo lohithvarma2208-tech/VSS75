@@ -4,7 +4,8 @@ import React from 'react';
 import Link from 'next/link';
 import { X, Download, FileText, Code2, BookOpen, Presentation, Archive, Sparkles, ExternalLink } from 'lucide-react';
 import { Resource } from '@/types';
-import { formatBytes, triggerBrowserDownload } from '@/lib/utils';
+import { formatBytes, triggerBrowserDownload, dataUrlToBlob, triggerBlobDownload } from '@/lib/utils';
+import { getUploadedFile } from '@/lib/storage/file-storage';
 import { MockStorageManager } from '@/lib/storage/mock-store';
 import { useApp } from '@/lib/context/AppContext';
 
@@ -23,10 +24,43 @@ export default function ResourcePreviewModal({
 
   if (!isOpen) return null;
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     MockStorageManager.incrementDownload(resource.id);
+
+    // 1. Check IndexedDB/Memory store for authentic uploaded file
+    const stored = await getUploadedFile(resource.id);
+    if (stored) {
+      if (stored instanceof Blob) {
+        triggerBlobDownload(stored, resource.file_name);
+        showToast(`Downloaded ${resource.file_name}`, 'success');
+        return;
+      } else if (typeof stored === 'string' && stored.startsWith('data:')) {
+        triggerBlobDownload(dataUrlToBlob(stored), resource.file_name);
+        showToast(`Downloaded ${resource.file_name}`, 'success');
+        return;
+      }
+    }
+
+    // 2. Check stored data URL
+    const storedDataUrl = await getUploadedFile(`${resource.id}_data_url`);
+    if (typeof storedDataUrl === 'string' && storedDataUrl.startsWith('data:')) {
+      triggerBlobDownload(dataUrlToBlob(storedDataUrl), resource.file_name);
+      showToast(`Downloaded ${resource.file_name}`, 'success');
+      return;
+    }
+
     const targetUrl = resource.file_data_url || resource.file_url;
-    triggerBrowserDownload(resource.file_name, targetUrl, undefined, resource.file_content_preview);
+    await triggerBrowserDownload(
+      resource.file_name,
+      targetUrl,
+      undefined,
+      resource.file_content_preview,
+      {
+        title: resource.title,
+        course: `${resource.course_code} - ${resource.course_name}`,
+        description: resource.description,
+      }
+    );
     showToast(`Downloaded ${resource.file_name}`, 'success');
   };
 

@@ -21,7 +21,8 @@ import {
 import { Resource } from '@/types';
 import { MockStorageManager } from '@/lib/storage/mock-store';
 import { Badge } from '@/components/ui/Badge';
-import { formatBytes, formatDate, triggerBrowserDownload } from '@/lib/utils';
+import { formatBytes, formatDate, triggerBrowserDownload, dataUrlToBlob, triggerBlobDownload } from '@/lib/utils';
+import { getUploadedFile } from '@/lib/storage/file-storage';
 import { useApp } from '@/lib/context/AppContext';
 import ReportModal from '@/components/resources/ReportModal';
 import CommentsSection from '@/components/resources/CommentsSection';
@@ -38,6 +39,30 @@ export default function ResourceDetailPage() {
   const [relatedResources, setRelatedResources] = useState<Resource[]>([]);
   const [isReportOpen, setIsReportOpen] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
+  const [previewSrc, setPreviewSrc] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    if (id) {
+      getUploadedFile(id).then((val) => {
+        if (!active || !val) return;
+        if (val instanceof Blob) {
+          setPreviewSrc(URL.createObjectURL(val));
+        } else if (typeof val === 'string' && val.startsWith('data:')) {
+          setPreviewSrc(URL.createObjectURL(dataUrlToBlob(val)));
+        }
+      });
+      getUploadedFile(`${id}_data_url`).then((val) => {
+        if (!active || !val) return;
+        if (typeof val === 'string' && val.startsWith('data:')) {
+          setPreviewSrc(URL.createObjectURL(dataUrlToBlob(val)));
+        }
+      });
+    }
+    return () => {
+      active = false;
+    };
+  }, [id]);
 
   useEffect(() => {
     const found = MockStorageManager.getResourceById(id);
@@ -76,10 +101,44 @@ export default function ResourceDetailPage() {
   const isLiked = likedIds.includes(resource.id);
   const isSaved = savedIds.includes(resource.id);
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     MockStorageManager.incrementDownload(resource.id);
-    const targetUrl = resource.file_data_url || resource.file_url;
-    triggerBrowserDownload(resource.file_name, targetUrl, undefined, resource.file_content_preview);
+
+    // 1. Check IndexedDB/Memory store for authentic uploaded file
+    const stored = await getUploadedFile(resource.id);
+    if (stored) {
+      if (stored instanceof Blob) {
+        triggerBlobDownload(stored, resource.file_name);
+        showToast(`Downloaded ${resource.file_name}`, 'success');
+        return;
+      } else if (typeof stored === 'string' && stored.startsWith('data:')) {
+        triggerBlobDownload(dataUrlToBlob(stored), resource.file_name);
+        showToast(`Downloaded ${resource.file_name}`, 'success');
+        return;
+      }
+    }
+
+    // 2. Check stored data URL
+    const storedDataUrl = await getUploadedFile(`${resource.id}_data_url`);
+    if (typeof storedDataUrl === 'string' && storedDataUrl.startsWith('data:')) {
+      triggerBlobDownload(dataUrlToBlob(storedDataUrl), resource.file_name);
+      showToast(`Downloaded ${resource.file_name}`, 'success');
+      return;
+    }
+
+    // 3. Direct Data URL or remote fetch
+    const targetUrl = previewSrc || resource.file_data_url || resource.file_url;
+    await triggerBrowserDownload(
+      resource.file_name,
+      targetUrl,
+      undefined,
+      resource.file_content_preview,
+      {
+        title: resource.title,
+        course: `${resource.course_code} - ${resource.course_name}`,
+        description: resource.description,
+      }
+    );
     showToast(`Downloaded ${resource.file_name}`, 'success');
   };
 
@@ -199,7 +258,7 @@ export default function ResourceDetailPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <a
-                      href={resource.file_data_url || resource.file_url || '/samples/23CS2101_Exp5_AVL_Trees_LabRecord.pdf'}
+                      href={previewSrc || resource.file_data_url || resource.file_url || '/samples/23CS2101_Exp5_AVL_Trees_LabRecord.pdf'}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="px-3 py-1 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs font-bold flex items-center gap-1 transition"
@@ -216,7 +275,7 @@ export default function ResourceDetailPage() {
                   </div>
                 </div>
                 <iframe
-                  src={resource.file_data_url || resource.file_url || '/samples/23CS2101_Exp5_AVL_Trees_LabRecord.pdf'}
+                  src={previewSrc || resource.file_data_url || resource.file_url || '/samples/23CS2101_Exp5_AVL_Trees_LabRecord.pdf'}
                   className="w-full h-[550px] bg-[#070A11] border-none"
                   title={resource.file_name}
                 />

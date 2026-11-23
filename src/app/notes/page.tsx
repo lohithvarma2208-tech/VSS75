@@ -12,7 +12,8 @@ import {
 import { Resource } from '@/types';
 import { MockStorageManager } from '@/lib/storage/mock-store';
 import { SAMPLE_COURSES } from '@/lib/data/sample-data';
-import { formatBytes, formatDate, triggerBrowserDownload } from '@/lib/utils';
+import { formatBytes, formatDate, triggerBrowserDownload, dataUrlToBlob, triggerBlobDownload } from '@/lib/utils';
+import { getUploadedFile } from '@/lib/storage/file-storage';
 import { useApp } from '@/lib/context/AppContext';
 import ResourcePreviewModal from '@/components/resources/ResourcePreviewModal';
 
@@ -62,10 +63,43 @@ export default function NotesPage() {
     return result;
   }, [resources, searchQuery, selectedCourse, selectedSemester]);
 
-  const handleDownload = (res: Resource) => {
+  const handleDownload = async (res: Resource) => {
     MockStorageManager.incrementDownload(res.id);
+
+    // 1. Check IndexedDB/Memory store for authentic uploaded file
+    const stored = await getUploadedFile(res.id);
+    if (stored) {
+      if (stored instanceof Blob) {
+        triggerBlobDownload(stored, res.file_name);
+        showToast(`Downloaded ${res.file_name}`, 'success');
+        return;
+      } else if (typeof stored === 'string' && stored.startsWith('data:')) {
+        triggerBlobDownload(dataUrlToBlob(stored), res.file_name);
+        showToast(`Downloaded ${res.file_name}`, 'success');
+        return;
+      }
+    }
+
+    // 2. Check stored data URL
+    const storedDataUrl = await getUploadedFile(`${res.id}_data_url`);
+    if (typeof storedDataUrl === 'string' && storedDataUrl.startsWith('data:')) {
+      triggerBlobDownload(dataUrlToBlob(storedDataUrl), res.file_name);
+      showToast(`Downloaded ${res.file_name}`, 'success');
+      return;
+    }
+
     const targetUrl = res.file_data_url || res.file_url;
-    triggerBrowserDownload(res.file_name, targetUrl, undefined, res.file_content_preview);
+    await triggerBrowserDownload(
+      res.file_name,
+      targetUrl,
+      undefined,
+      res.file_content_preview,
+      {
+        title: res.title,
+        course: `${res.course_code} - ${res.course_name}`,
+        description: res.description,
+      }
+    );
     showToast(`Downloaded ${res.file_name}`, 'success');
   };
 

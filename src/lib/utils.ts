@@ -25,18 +25,52 @@ export function formatDate(dateString: string): string {
   }
 }
 
+export function dataUrlToBlob(dataUrl: string): Blob {
+  try {
+    const parts = dataUrl.split(',');
+    const mime = parts[0].match(/:(.*?);/)?.[1] || 'application/octet-stream';
+    const binary = atob(parts[1]);
+    const array = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+      array[i] = binary.charCodeAt(i);
+    }
+    return new Blob([array], { type: mime });
+  } catch {
+    return new Blob([dataUrl], { type: 'text/plain;charset=utf-8' });
+  }
+}
+
+export function triggerBlobDownload(blob: Blob, fileName: string) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
 export async function triggerBrowserDownload(
   fileName: string,
   contentOrUrl?: string,
   mimeType?: string,
-  fallbackContent?: string
+  fallbackContent?: string,
+  extraMeta?: { title?: string; course?: string; description?: string }
 ) {
   if (!contentOrUrl && !fallbackContent) return;
 
   const target = contentOrUrl || fallbackContent || '';
 
-  // 1. Direct Data URLs (Base64 binary files like PDFs, DOCX, ZIP) or Blob URLs
-  if (target.startsWith('data:') || target.startsWith('blob:')) {
+  // 1. Direct Data URLs (Base64 binary files like PDFs, DOCX, ZIP)
+  if (target.startsWith('data:')) {
+    const blob = dataUrlToBlob(target);
+    triggerBlobDownload(blob, fileName);
+    return;
+  }
+
+  // 1b. Direct Blob URLs
+  if (target.startsWith('blob:')) {
     const a = document.createElement('a');
     a.href = target;
     a.download = fileName;
@@ -56,14 +90,7 @@ export async function triggerBrowserDownload(
       const response = await fetch(target);
       if (response.ok) {
         const blob = await response.blob();
-        const blobUrl = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = blobUrl;
-        a.download = fileName;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+        triggerBlobDownload(blob, fileName);
         return;
       }
     } catch (e) {
@@ -72,7 +99,7 @@ export async function triggerBrowserDownload(
   }
 
   // 3. Fallback for text / code / PDF content generation
-  const textContent = fallbackContent || target;
+  const textContent = fallbackContent || (target.startsWith('/') || target.startsWith('http') ? '' : target);
   const ext = fileName.split('.').pop()?.toLowerCase() || '';
 
   if (ext === 'pdf') {
@@ -102,10 +129,21 @@ export async function triggerBrowserDownload(
         color: rgb(0.65, 0.75, 1.0),
       });
 
-      page.drawText(fileName.slice(0, 60), {
+      if (extraMeta?.course) {
+        page.drawText(`Course: ${extraMeta.course}`, {
+          x: 40,
+          y: height - 52,
+          size: 9,
+          font,
+          color: rgb(0.8, 0.85, 0.95),
+        });
+      }
+
+      const displayTitle = extraMeta?.title || fileName;
+      page.drawText(displayTitle.slice(0, 60), {
         x: 40,
         y: height - 95,
-        size: 14,
+        size: 13,
         font: fontBold,
         color: rgb(0.1, 0.1, 0.15),
       });
@@ -117,7 +155,8 @@ export async function triggerBrowserDownload(
         color: rgb(0.7, 0.75, 0.85),
       });
 
-      const lines = textContent.split('\n');
+      const bodyText = textContent || extraMeta?.description || 'Authentic student study resource archived on Virtual Student Space.';
+      const lines = bodyText.split('\n');
       let currentY = height - 130;
       for (const line of lines.slice(0, 45)) {
         if (currentY < 50) break;
@@ -147,14 +186,7 @@ export async function triggerBrowserDownload(
 
       const pdfBytes = await pdfDoc.save();
       const blob = new Blob([pdfBytes as unknown as BlobPart], { type: 'application/pdf' });
-      const blobUrl = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = blobUrl;
-      a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+      triggerBlobDownload(blob, fileName);
       return;
     } catch (e) {
       console.warn('[VSS Download] In-memory PDF synthesis failed, falling back to raw blob', e);
@@ -171,12 +203,5 @@ export async function triggerBrowserDownload(
   else if (ext === 'v') defaultMime = 'text/x-verilog;charset=utf-8';
 
   const blob = new Blob([textContent], { type: mimeType || defaultMime });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = fileName;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  triggerBlobDownload(blob, fileName);
 }

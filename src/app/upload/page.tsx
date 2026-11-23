@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import type { Resource, ResourceCategory, ResourceFileType, StudentCourse } from '@/types';
 import { MockStorageManager } from '@/lib/storage/mock-store';
+import { storeUploadedFile } from '@/lib/storage/file-storage';
 import { useApp } from '@/lib/context/AppContext';
 import { formatBytes } from '@/lib/utils';
 import {
@@ -95,6 +96,22 @@ export default function UploadPage() {
     let preview = '';
     if (file.type.startsWith('text/') || ['py', 'java', 'cpp', 'c', 'txt'].includes(extension)) {
       preview = (await file.text()).slice(0, 3000);
+    } else if (extension === 'pdf') {
+      try {
+        const pdfjsLib = await import('pdfjs-dist');
+        pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js';
+        const arrayBuf = await file.arrayBuffer();
+        const doc = await pdfjsLib.getDocument({ data: new Uint8Array(arrayBuf), isEvalSupported: false }).promise;
+        let extracted = '';
+        for (let i = 1; i <= Math.min(doc.numPages, 3); i++) {
+          const page = await doc.getPage(i);
+          const content = await page.getTextContent();
+          extracted += content.items.map((it: any) => it.str).join(' ') + '\n';
+        }
+        preview = extracted.trim().slice(0, 3000);
+      } catch (e) {
+        console.warn('PDF text extraction fallback', e);
+      }
     }
 
     const created = MockStorageManager.addResource({
@@ -120,6 +137,10 @@ export default function UploadPage() {
       tags: [selectedCourse.code, academic?.semester || currentUser.semester, inferred.category],
       status: 'approved',
     });
+
+    // Store complete authentic file in IndexedDB & Memory Cache
+    await storeUploadedFile(created.id, file);
+    if (dataUrl) await storeUploadedFile(`${created.id}_data_url`, dataUrl);
 
     setSubmitting(false);
     if (created.status === 'rejected') { setDuplicate(created); setError(created.rejection_reason || 'This file already exists.'); return; }
