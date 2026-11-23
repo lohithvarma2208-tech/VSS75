@@ -24,7 +24,7 @@ const inputSchema = z.discriminatedUnion('action', [
     username: z.string().trim().regex(/^[A-Za-z0-9._-]{1,64}$/),
     password: z.string().min(1).max(256),
     captcha: z.string().trim().min(1).max(32),
-    challengeId: z.string().regex(/^[\w-]{43}$/),
+    challengeId: z.string().min(1).max(4096),
     acceptedTerms: z.literal(true),
   }),
 ]);
@@ -120,7 +120,7 @@ export async function POST(request: NextRequest) {
     await endErpSession(previousSession);
     stage = 'record-login';
     await recordVerifiedLogin(profile, true, true).catch(() => undefined);
-    return clearChallenge(setCookie(json({ ok: true }), SESSION_COOKIE, id, SESSION_SECONDS));
+    return clearChallenge(setCookie(json({ ok: true, profile }), SESSION_COOKIE, id, SESSION_SECONDS));
   } catch (error) {
     const reason = error instanceof Error ? error.message : 'Unknown error';
     console.error('[ERP sign-in]', stage, reason);

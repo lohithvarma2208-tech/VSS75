@@ -80,6 +80,16 @@ export default function UploadPage() {
     if (title.trim().length < 3) { setError('Add a short title.'); return; }
     setSubmitting(true);
 
+    let dataUrl = fileDataUrl;
+    if (!dataUrl && file.size < 15 * 1024 * 1024) {
+      dataUrl = await new Promise<string>((resolve) => {
+        const r = new FileReader();
+        r.onload = () => resolve((r.result as string) || '');
+        r.onerror = () => resolve('');
+        r.readAsDataURL(file);
+      });
+    }
+
     const inferred = inferResource(file, title, selectedCourse);
     const extension = file.name.split('.').pop()?.toLowerCase() || 'pdf';
     let preview = '';
@@ -97,8 +107,8 @@ export default function UploadPage() {
       academic_year: academic?.academicYear || currentUser.academic_year || '',
       resource_type: inferred.type,
       file_name: file.name,
-      file_url: fileDataUrl || (extension === 'pdf' ? '/samples/23CS2101_Exp5_AVL_Trees_LabRecord.pdf' : `/samples/${file.name}`),
-      file_data_url: fileDataUrl || undefined,
+      file_url: dataUrl || (extension === 'pdf' ? '/samples/23CS2101_Exp5_AVL_Trees_LabRecord.pdf' : `/samples/${file.name}`),
+      file_data_url: dataUrl || undefined,
       file_size: file.size,
       file_type: (ALLOWED_EXTENSIONS.includes(extension) ? extension : 'pdf') as ResourceFileType,
       file_content_preview: preview || undefined,

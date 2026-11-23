@@ -38,7 +38,7 @@ export default function ResourceCard({ resource, layout = 'grid' }: ResourceCard
     e.stopPropagation();
     MockStorageManager.incrementDownload(resource.id);
     const targetUrl = resource.file_data_url || resource.file_url;
-    triggerBrowserDownload(resource.file_name, targetUrl);
+    triggerBrowserDownload(resource.file_name, targetUrl, undefined, resource.file_content_preview);
     showToast(`Downloaded ${resource.file_name}`, 'success');
   };
 

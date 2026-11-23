@@ -413,7 +413,17 @@ export class MockStorageManager {
 
   static saveResources(resources: Resource[]): void {
     if (!this.isBrowser()) return;
-    localStorage.setItem(STORAGE_KEYS.RESOURCES, JSON.stringify(resources));
+    try {
+      localStorage.setItem(STORAGE_KEYS.RESOURCES, JSON.stringify(resources));
+    } catch {
+      // If localStorage quota is exceeded due to binary Data URLs, keep metadata and text preview
+      try {
+        const lightweight = resources.map((r, i) => (i > 1 && r.file_data_url ? { ...r, file_data_url: undefined } : r));
+        localStorage.setItem(STORAGE_KEYS.RESOURCES, JSON.stringify(lightweight));
+      } catch (e) {
+        console.warn('Storage quota limit reached', e);
+      }
+    }
     window.dispatchEvent(new Event('klu_resources_change'));
   }
 

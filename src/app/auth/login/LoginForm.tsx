@@ -19,10 +19,13 @@ import {
   ChevronUp,
   Terminal,
   Gift,
+  GraduationCap,
+  Sparkles,
 } from 'lucide-react';
 import ManualCourseSyncModal from '@/components/auth/ManualCourseSyncModal';
 import { MockStorageManager } from '@/lib/storage/mock-store';
-import { SecurityAuditLog } from '@/types';
+import { SecurityAuditLog, UserProfile } from '@/types';
+import { useApp } from '@/lib/context/AppContext';
 
 interface CaptchaChallenge {
   image: string;
@@ -44,6 +47,12 @@ const fieldClass =
   'w-full rounded-2xl border border-white/[0.09] bg-white/[0.045] px-4 py-3.5 text-sm text-white placeholder:text-white/25 transition focus:border-violet-400/60 focus:bg-white/[0.06] focus:outline-none';
 
 export default function LoginForm() {
+  const { setCurrentUser, showToast } = useApp();
+  const [loginMode, setLoginMode] = useState<'erp' | 'student'>('erp');
+  const [studentIdentifier, setStudentIdentifier] = useState('');
+  const [studentPassword, setStudentPassword] = useState('');
+  const [studentError, setStudentError] = useState('');
+
   const [challenge, setChallenge] = useState<CaptchaChallenge | null>(null);
   const [busy, setBusy] = useState<'captcha' | 'login' | null>(null);
   const [error, setError] = useState('');
@@ -173,7 +182,7 @@ export default function LoginForm() {
     setError('');
 
     try {
-      await sendErpRequest({
+      const data = await sendErpRequest({
         action: 'login',
         username: cleanUsername,
         password,
@@ -181,6 +190,31 @@ export default function LoginForm() {
         challengeId: challenge.challengeId,
         acceptedTerms,
       });
+
+      // Synchronize client state with verified ERP profile immediately
+      if (data?.profile) {
+        const p = data.profile;
+        const verifiedUser: UserProfile = {
+          id: `erp-${p.rollNumber}`,
+          username: p.rollNumber.toLowerCase(),
+          full_name: p.name,
+          email: `${p.rollNumber.toLowerCase()}@kluniversity.in`,
+          department: p.department || 'CSE',
+          semester: p.semester || 'Sem 4',
+          academic_year: p.academicYear || '2026-2027',
+          registered_courses: Array.isArray(p.courses) ? p.courses : [],
+          role: 'student',
+          student_id: p.rollNumber,
+          is_verified_student: true,
+          university_email: `${p.rollNumber.toLowerCase()}@kluniversity.in`,
+          academic_position: 'Verified KL Student',
+          code_name: p.rollNumber.toUpperCase(),
+          created_at: new Date().toISOString(),
+        };
+        MockStorageManager.setCurrentUser(verifiedUser);
+        setCurrentUser(verifiedUser);
+        showToast(`Welcome back, ${p.name}!`, 'success');
+      }
 
       // Record successful login audit log & reset rate limit
       MockStorageManager.recordLoginAttempt(cleanUsername, true);
@@ -243,6 +277,109 @@ export default function LoginForm() {
       }
       setBusy(null);
     }
+  }
+
+  function handleStudentLogin(e: FormEvent) {
+    e.preventDefault();
+    setStudentError('');
+
+    const clean = studentIdentifier.trim();
+    if (!clean || !studentPassword) {
+      setStudentError('Please enter your Student ID or Email and password.');
+      return;
+    }
+
+    const regUsers = MockStorageManager.getRegisteredUsers();
+    const found = regUsers.find(
+      (u) =>
+        (u.university_email && u.university_email.toLowerCase() === clean.toLowerCase()) ||
+        (u.email && u.email.toLowerCase() === clean.toLowerCase()) ||
+        u.username.toLowerCase() === clean.toLowerCase() ||
+        (u.student_id && u.student_id.toLowerCase() === clean.toLowerCase())
+    );
+
+    let loggedInUser: UserProfile;
+
+    if (found) {
+      loggedInUser = found;
+    } else if (clean.toLowerCase().includes('scholar') || clean.toLowerCase() === 'shadow_scholar_01') {
+      loggedInUser = {
+        id: 'usr-student-01',
+        username: 'shadow_scholar_01',
+        full_name: 'ShadowScholar_01',
+        email: 'scholar@kluniversity.in',
+        university_email: 'scholar@kluniversity.in',
+        department: 'CSE',
+        semester: 'Sem 4',
+        role: 'student',
+        student_id: '2300030001',
+        is_verified_student: true,
+        code_name: 'SHADOW_SCHOLAR_01',
+        academic_position: '👑 Supreme Academic Chancellor',
+        bio: 'Passionate about algorithms, competitive programming, and open-source contributions at Virtual Student Space.',
+        created_at: new Date().toISOString(),
+      };
+    } else {
+      const isEmail = clean.includes('@');
+      const rollNumber = isEmail ? clean.split('@')[0] : clean;
+      loggedInUser = {
+        id: `usr-${Date.now()}`,
+        username: rollNumber.toLowerCase(),
+        full_name: rollNumber.toUpperCase(),
+        code_name: rollNumber.toUpperCase(),
+        email: isEmail ? clean.toLowerCase() : `${rollNumber.toLowerCase()}@kluniversity.in`,
+        university_email: isEmail ? clean.toLowerCase() : `${rollNumber.toLowerCase()}@kluniversity.in`,
+        department: 'CSE',
+        semester: 'Sem 4',
+        role: 'student',
+        student_id: rollNumber,
+        is_verified_student: true,
+        created_at: new Date().toISOString(),
+      };
+      MockStorageManager.saveRegisteredUser(loggedInUser);
+    }
+
+    if (referralCode.trim()) {
+      const cleanRef = referralCode.trim().toUpperCase();
+      MockStorageManager.applyReferralCode(cleanRef, loggedInUser.email, loggedInUser.username);
+    }
+
+    MockStorageManager.setCurrentUser(loggedInUser);
+    setCurrentUser(loggedInUser);
+    MockStorageManager.recordSecurityAuditLog({
+      event: 'LOGIN_SUCCESS',
+      masked_erp_id: loggedInUser.username,
+      ip_address: '127.0.0.1 (Vercel Client)',
+      user_agent: typeof navigator !== 'undefined' ? navigator.userAgent : 'Browser Client',
+      status: 'SUCCESS',
+      details: `Direct student sign-in successful: ${loggedInUser.username}`,
+    });
+
+    showToast(`Welcome to VSS, ${loggedInUser.full_name}!`, 'success');
+    window.location.replace('/dashboard');
+  }
+
+  function handleDemoLogin() {
+    const demoUser: UserProfile = {
+      id: 'usr-student-01',
+      username: 'shadow_scholar_01',
+      full_name: 'ShadowScholar_01',
+      email: 'scholar@kluniversity.in',
+      university_email: 'scholar@kluniversity.in',
+      department: 'CSE',
+      semester: 'Sem 4',
+      role: 'student',
+      student_id: '2300030001',
+      is_verified_student: true,
+      code_name: 'SHADOW_SCHOLAR_01',
+      academic_position: '👑 Supreme Academic Chancellor',
+      bio: 'Passionate about algorithms, competitive programming, and open-source contributions at Virtual Student Space.',
+      created_at: new Date().toISOString(),
+    };
+    MockStorageManager.setCurrentUser(demoUser);
+    setCurrentUser(demoUser);
+    showToast('Signed in as Verified Scholar (ShadowScholar_01)', 'success');
+    window.location.replace('/dashboard');
   }
 
   return (
@@ -315,6 +452,122 @@ export default function LoginForm() {
             </div>
           )}
 
+          {/* Mode Switcher */}
+          <div className="grid grid-cols-2 rounded-2xl bg-white/[0.04] p-1 border border-white/[0.08] text-xs font-bold">
+            <button
+              type="button"
+              onClick={() => { setLoginMode('erp'); setError(''); }}
+              className={`flex items-center justify-center gap-1.5 rounded-xl py-2 transition ${
+                loginMode === 'erp'
+                  ? 'bg-violet-400 text-black shadow'
+                  : 'text-white/60 hover:text-white'
+              }`}
+            >
+              <LockKeyhole className="h-3.5 w-3.5" />
+              <span>KL ERP Portal</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => { setLoginMode('student'); setStudentError(''); }}
+              className={`flex items-center justify-center gap-1.5 rounded-xl py-2 transition ${
+                loginMode === 'student'
+                  ? 'bg-violet-400 text-black shadow'
+                  : 'text-white/60 hover:text-white'
+              }`}
+            >
+              <GraduationCap className="h-3.5 w-3.5" />
+              <span>Student ID / Email</span>
+            </button>
+          </div>
+
+          {loginMode === 'student' ? (
+            <form onSubmit={handleStudentLogin} className="space-y-4">
+              {studentError && (
+                <p
+                  role="alert"
+                  className="rounded-2xl border border-rose-400/20 bg-rose-400/10 p-3.5 text-xs leading-5 text-rose-200"
+                >
+                  {studentError}
+                </p>
+              )}
+
+              <label className="block">
+                <span className="mb-2 block text-[11px] font-bold text-white/55">Student Email or University ID</span>
+                <input
+                  className={fieldClass}
+                  autoComplete="username"
+                  required
+                  value={studentIdentifier}
+                  onChange={(e) => setStudentIdentifier(e.target.value)}
+                  placeholder="scholar@kluniversity.in or 2300030001"
+                />
+              </label>
+
+              <label className="block">
+                <span className="mb-2 block text-[11px] font-bold text-white/55">Password</span>
+                <input
+                  className={fieldClass}
+                  type="password"
+                  autoComplete="current-password"
+                  required
+                  value={studentPassword}
+                  onChange={(e) => setStudentPassword(e.target.value)}
+                  placeholder="Enter your account password"
+                />
+              </label>
+
+              {/* Referral / Invite Code Input (Optional) */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-white/55 flex items-center gap-1.5">
+                    <Gift className="h-3.5 w-3.5 text-purple-400" />
+                    <span>Referral / Invite Code (Optional)</span>
+                  </span>
+                  {referralStatus?.valid && (
+                    <span className="text-[10px] font-mono text-emerald-300 font-bold">
+                      ✓ Valid: {referralStatus.label}
+                    </span>
+                  )}
+                </div>
+                <input
+                  className={`${fieldClass} font-mono`}
+                  type="text"
+                  maxLength={32}
+                  value={referralCode}
+                  onChange={(e) => {
+                    const val = e.target.value.toUpperCase().replace(/[^A-Z0-9_-]/g, '');
+                    setReferralCode(val);
+                    if (val.length > 2) {
+                      const check = MockStorageManager.validateReferralCode(val);
+                      setReferralStatus(check.valid ? { valid: true, label: check.label } : { valid: false });
+                    } else {
+                      setReferralStatus(null);
+                    }
+                  }}
+                  placeholder="e.g. KLU-ELITE-2026 or DEEPTHANUSH-VIP"
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="vss-button min-h-12 w-full cursor-pointer"
+              >
+                Sign In with Student Account <ArrowRight className="h-4 w-4" />
+              </button>
+
+              {/* 1-Click Demo Login */}
+              <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={handleDemoLogin}
+                  className="flex w-full items-center justify-center gap-2 rounded-2xl border border-violet-500/30 bg-violet-500/10 hover:bg-violet-500/20 px-4 py-3 text-xs font-bold text-violet-300 transition"
+                >
+                  <Sparkles className="h-4 w-4 text-violet-400" />
+                  <span>1-Click Verified Student Demo (ShadowScholar_01)</span>
+                </button>
+              </div>
+            </form>
+          ) : (
           <form onSubmit={handleLogin} className="space-y-4">
             {error && !isLocked && (
               <p
@@ -572,6 +825,7 @@ export default function LoginForm() {
               )}
             </button>
           </form>
+          )}
 
           {/* Security & Access Audit Log Tray */}
           <div className="rounded-2xl border border-white/10 bg-white/[0.02] overflow-hidden text-xs">

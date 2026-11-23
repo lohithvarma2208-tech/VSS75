@@ -64,10 +64,8 @@ export default function NotesPage() {
 
   const handleDownload = (res: Resource) => {
     MockStorageManager.incrementDownload(res.id);
-    const content =
-      res.file_content_preview ||
-      `// Virtual Student Space Notes Reference\n// Course: ${res.course_code}\n// Title: ${res.title}`;
-    triggerBrowserDownload(res.file_name, content);
+    const targetUrl = res.file_data_url || res.file_url;
+    triggerBrowserDownload(res.file_name, targetUrl, undefined, res.file_content_preview);
     showToast(`Downloaded ${res.file_name}`, 'success');
   };
 
