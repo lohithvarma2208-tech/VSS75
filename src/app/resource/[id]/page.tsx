@@ -131,8 +131,8 @@ export default function ResourceDetailPage() {
       return;
     }
 
-    // 3. Direct Data URL or remote fetch
-    const targetUrl = previewSrc || resource.file_data_url || resource.file_url;
+    // 3. Direct remote fetch or data URL
+    const targetUrl = resource.file_url || resource.file_data_url || previewSrc || undefined;
     const ok = await triggerBrowserDownload(
       resource.file_name,
       targetUrl,

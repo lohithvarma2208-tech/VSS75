@@ -49,7 +49,7 @@ export default function ResourcePreviewModal({
       return;
     }
 
-    const targetUrl = resource.file_data_url || resource.file_url;
+    const targetUrl = resource.file_url || resource.file_data_url;
     const ok = await triggerBrowserDownload(
       resource.file_name,
       targetUrl,

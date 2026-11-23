@@ -88,7 +88,7 @@ export default function NotesPage() {
       return;
     }
 
-    const targetUrl = res.file_data_url || res.file_url;
+    const targetUrl = res.file_url || res.file_data_url;
     const ok = await triggerBrowserDownload(
       res.file_name,
       targetUrl,

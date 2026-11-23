@@ -62,13 +62,16 @@ export async function triggerBrowserDownload(
 
   // 1. Direct Blob URLs (e.g. from URL.createObjectURL of original uploaded file)
   if (contentOrUrl?.startsWith('blob:')) {
-    const a = document.createElement('a');
-    a.href = contentOrUrl;
-    a.download = fileName;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    return true;
+    try {
+      const blobResp = await fetch(contentOrUrl);
+      if (blobResp.ok) {
+        const blob = await blobResp.blob();
+        triggerBlobDownload(blob, fileName);
+        return true;
+      }
+    } catch {
+      // Blob expired/revoked across tab reloads, continue to persistent storage fetch
+    }
   }
 
   // 1b. Direct Data URLs (Base64 binary)
@@ -97,7 +100,7 @@ export async function triggerBrowserDownload(
     // Continue to remote storage fetch
   }
 
-  // 2. Direct fetch from actual storage URL (Supabase, CDN, public/samples, or relative path)
+  // 2. Direct fetch from actual storage URL (Supabase, CDN, public/samples, R2, or relative path)
   const target = contentOrUrl || (ext === 'pdf' ? `/samples/${fileName}` : '');
   if (
     target &&
@@ -123,6 +126,26 @@ export async function triggerBrowserDownload(
       const sampleResp = await fetch(`/samples/${fileName}`);
       if (sampleResp.ok) {
         const blob = await sampleResp.blob();
+        triggerBlobDownload(blob, fileName);
+        return true;
+      }
+    } catch {
+      // Continue
+    }
+  }
+
+  // 2c. Check Cloudflare R2 bucket directly via /api/r2/download
+  const r2Candidates = [
+    `/api/r2/download?key=samples/${encodeURIComponent(fileName)}`,
+    extraMeta?.id ? `/api/r2/download?key=resources/${encodeURIComponent(extraMeta.id)}/${encodeURIComponent(fileName)}` : '',
+    `/api/r2/download?key=${encodeURIComponent(fileName)}`,
+  ].filter(Boolean);
+
+  for (const r2Candidate of r2Candidates) {
+    try {
+      const r2Resp = await fetch(r2Candidate);
+      if (r2Resp.ok) {
+        const blob = await r2Resp.blob();
         triggerBlobDownload(blob, fileName);
         return true;
       }

@@ -382,18 +382,21 @@ export class MockStorageManager {
 
   // --- Resources ---
   static getResources(): Resource[] {
-    if (!this.isBrowser()) return [];
+    if (!this.isBrowser()) return SAMPLE_RESOURCES;
     try {
       const data = localStorage.getItem(STORAGE_KEYS.RESOURCES);
       if (data) {
         const parsed = JSON.parse(data);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          // Remove synthetic seed so it never shadows or blocks user submissions
-          const cleaned = parsed.filter((r: Resource) => r.id !== 'res-dsa-module-3');
-          if (cleaned.length !== parsed.length) {
-            localStorage.setItem(STORAGE_KEYS.RESOURCES, JSON.stringify(cleaned));
+          // Merge any newly introduced sample resources that might be missing from an older user cache
+          const existingIds = new Set(parsed.map((r: Resource) => r.id));
+          const missingSamples = SAMPLE_RESOURCES.filter((s) => !existingIds.has(s.id));
+          if (missingSamples.length > 0) {
+            const merged = [...missingSamples, ...parsed];
+            localStorage.setItem(STORAGE_KEYS.RESOURCES, JSON.stringify(merged));
+            return merged;
           }
-          return cleaned;
+          return parsed;
         }
       }
       localStorage.setItem(STORAGE_KEYS.RESOURCES, JSON.stringify(SAMPLE_RESOURCES));
@@ -601,6 +604,10 @@ export class MockStorageManager {
     const exact = list.find((r) => r.id === id);
     if (exact) return exact;
 
+    // Check directly in SAMPLE_RESOURCES if not in current list
+    const sampleExact = SAMPLE_RESOURCES.find((r) => r.id === id);
+    if (sampleExact) return sampleExact;
+
     // Support numeric indices like /resource/1 or /resource/2
     const num = parseInt(id, 10);
     if (!isNaN(num) && num >= 1 && num <= list.length) {
@@ -609,7 +616,10 @@ export class MockStorageManager {
 
     // Support slug match or filename match
     const lower = id.toLowerCase();
-    return list.find((r) => r.file_name.toLowerCase().includes(lower) || r.title.toLowerCase().includes(lower));
+    const matched = list.find((r) => r.file_name.toLowerCase().includes(lower) || r.title.toLowerCase().includes(lower));
+    if (matched) return matched;
+
+    return SAMPLE_RESOURCES.find((r) => r.file_name.toLowerCase().includes(lower) || r.title.toLowerCase().includes(lower));
   }
 
   static deleteResource(id: string): boolean {
