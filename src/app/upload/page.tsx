@@ -30,6 +30,48 @@ function inferResource(file: File, title: string, course: StudentCourse) {
   return { category: 'Notes' as ResourceCategory, type: 'Study Notes' };
 }
 
+async function uploadToR2Storage(file: File, resourceId: string): Promise<string | null> {
+  try {
+    if (file.size <= 4.5 * 1024 * 1024) {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('resourceId', resourceId);
+      const res = await fetch('/api/r2/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      if (res.ok) {
+        const json = await res.json();
+        if (json.ok && json.url) return json.url;
+      }
+    } else {
+      const presignRes = await fetch('/api/r2/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fileName: file.name,
+          contentType: file.type || 'application/pdf',
+          resourceId,
+        }),
+      });
+      if (presignRes.ok) {
+        const { uploadUrl, finalUrl } = await presignRes.json();
+        if (uploadUrl && finalUrl) {
+          const putRes = await fetch(uploadUrl, {
+            method: 'PUT',
+            headers: { 'Content-Type': file.type || 'application/pdf' },
+            body: file,
+          });
+          if (putRes.ok) return finalUrl;
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('[R2 Upload] Cloudflare R2 storage skipped, using local persistence', err);
+  }
+  return null;
+}
+
 export default function UploadPage() {
   const router = useRouter();
   const fileInput = useRef<HTMLInputElement>(null);
@@ -119,6 +161,10 @@ export default function UploadPage() {
       }
     }
 
+    const pendingResourceId = `res-${Date.now()}`;
+    // Attempt persistent Cloudflare R2 upload for multi-device global access
+    const r2Url = await uploadToR2Storage(file, pendingResourceId);
+
     const created = MockStorageManager.addResource({
       title: title.trim(),
       description: note.trim() || `Student-shared ${inferred.type.toLowerCase()} for ${selectedCourse.name}.`,
@@ -129,7 +175,7 @@ export default function UploadPage() {
       academic_year: academic?.academicYear || currentUser.academic_year || '',
       resource_type: inferred.type,
       file_name: file.name,
-      file_url: dataUrl || objectUrl || `/samples/${file.name}`,
+      file_url: r2Url || dataUrl || objectUrl || `/samples/${file.name}`,
       file_data_url: dataUrl || undefined,
       file_size: file.size,
       file_type: (ALLOWED_EXTENSIONS.includes(extension) ? extension : 'pdf') as ResourceFileType,
