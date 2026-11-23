@@ -57,14 +57,13 @@ export function getRelevantCourses(user: UserProfile | null | undefined, semeste
       if (!course.semester) return sameTerm(user.semester, semester);
       return sameTerm(course.semester, semester);
     });
-    const seen = new Set<string>();
-    return exact.filter((course) => !seen.has(course.code) && seen.add(course.code));
+    if (exact.length) {
+      const seen = new Set<string>();
+      return exact.filter((course) => !seen.has(course.code) && seen.add(course.code));
+    }
   }
 
-  // An authenticated student with no ERP registrations must see an empty state,
-  // never a guessed department catalog containing unrelated courses.
-  if (user) return [];
-
+  // Fallback to official KLU semester course catalog so students can always browse and upload
   let catalog = KLU_COURSES.filter((course) => sameTerm(course.semester, semester));
   if (!catalog.length) {
     const termNumber = semester.match(/\d+/)?.[0];

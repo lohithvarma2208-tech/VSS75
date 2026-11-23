@@ -18,6 +18,7 @@ import {
   ReferralCode,
   ReferralUsage,
 } from '@/types';
+import { SAMPLE_RESOURCES } from '@/lib/data/sample-data';
 
 const STORAGE_KEYS = {
   RESOURCES: 'vss_resources_v3',
@@ -349,24 +350,6 @@ export class MockStorageManager {
       .filter((key): key is string => Boolean(key?.startsWith('vss_') && key.endsWith('_v2')))
       .forEach((key) => localStorage.removeItem(key));
 
-    const prune = (key: string, prefixes: string[]) => {
-      try {
-        const value = JSON.parse(localStorage.getItem(key) || '[]');
-        if (Array.isArray(value)) {
-          localStorage.setItem(key, JSON.stringify(value.filter((item) => {
-            const id = typeof item === 'string' ? item : String(item?.id || '');
-            return !prefixes.some((prefix) => id.startsWith(prefix));
-          })));
-        }
-      } catch { localStorage.removeItem(key); }
-    };
-
-    prune(STORAGE_KEYS.RESOURCES, ['res-klu']);
-    prune(STORAGE_KEYS.PROJECTS, ['proj-klu']);
-    prune(STORAGE_KEYS.REQUESTS, ['req-klu']);
-    prune(STORAGE_KEYS.BOOKMARKS, ['res-klu']);
-    prune(STORAGE_KEYS.LIKED_RESOURCES, ['res-klu']);
-    prune(STORAGE_KEYS.SAVED_REQUESTS, ['req-klu']);
     localStorage.setItem('vss_demo_cleanup_v1', 'done');
   }
 
@@ -402,12 +385,24 @@ export class MockStorageManager {
     if (!this.isBrowser()) return [];
     try {
       const data = localStorage.getItem(STORAGE_KEYS.RESOURCES);
-      if (data) return JSON.parse(data);
-      localStorage.setItem(STORAGE_KEYS.RESOURCES, '[]');
-      return [];
+      if (data) {
+        const parsed = JSON.parse(data);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          if (!parsed.some((r: Resource) => r.id === 'res-dsa-module-3' || r.file_name === 'DSA_Module_3_Arrays_Strings_Core_Patterns.pdf')) {
+            const dsa = SAMPLE_RESOURCES.find((r) => r.id === 'res-dsa-module-3');
+            if (dsa) {
+              parsed.unshift(dsa);
+              this.saveResources(parsed);
+            }
+          }
+          return parsed;
+        }
+      }
+      localStorage.setItem(STORAGE_KEYS.RESOURCES, JSON.stringify(SAMPLE_RESOURCES));
+      return SAMPLE_RESOURCES;
     } catch (e) {
       console.warn('Failed reading resources from storage', e);
-      return [];
+      return SAMPLE_RESOURCES;
     }
   }
 
