@@ -40,7 +40,12 @@ function read<T>(store: Map<string, { value: T; expires: number }>, id: string, 
 export const saveChallenge = (challenge: ErpChallenge) =>
   save(state.challenges, challenge, CHALLENGE_SECONDS, 128);
 export const consumeChallenge = (id: string) => read(state.challenges, id, true);
-const useSupabase = () => process.env.NODE_ENV === 'production' || Boolean(process.env.SUPABASE_SECRET_KEY);
+const useSupabase = () =>
+  Boolean(
+    process.env.NEXT_PUBLIC_SUPABASE_URL &&
+    process.env.SUPABASE_SECRET_KEY &&
+    process.env.ERP_SESSION_ENCRYPTION_KEY
+  );
 
 export async function saveErpSession(profile: ErpProfile) {
   return useSupabase()

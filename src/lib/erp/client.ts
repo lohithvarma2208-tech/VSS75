@@ -394,7 +394,22 @@ export async function verifyErpLogin(challenge: ErpChallenge, input: LoginInput)
     const html = await response.text();
     const profile = parseProfile(html, input.username);
     if (profile) return fetchCurrentCourses(jar, profile);
-    if (load(html)('#login-form').length) return null;
+    if (load(html)('#login-form').length) {
+      const $ = load(html);
+      const text = $.text();
+      const isCaptchaIncorrect = /verification code is incorrect|captcha.*incorrect/i.test(text);
+      const isAuthIncorrect = /incorrect username or password|invalid username or password/i.test(text);
+      if (isCaptchaIncorrect && isAuthIncorrect) {
+        throw new Error('Incorrect credentials and CAPTCHA verification code.');
+      }
+      if (isCaptchaIncorrect) {
+        throw new Error('The CAPTCHA verification code is incorrect. Please enter the exact characters shown.');
+      }
+      if (isAuthIncorrect) {
+        throw new Error('Incorrect ERP username or password. Please verify your student credentials.');
+      }
+      return null;
+    }
   } else {
     await response.body?.cancel();
     if (response.status === 400 || response.status === 401 || response.status === 403 || response.status === 422) return null;

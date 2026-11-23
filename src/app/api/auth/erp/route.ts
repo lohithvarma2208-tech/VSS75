@@ -124,6 +124,9 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     const reason = error instanceof Error ? error.message : 'Unknown error';
     console.error('[ERP sign-in]', stage, reason);
+    if (stage === 'verify-erp' && error instanceof Error && error.message && !error.message.includes('ERP sign-in is unavailable')) {
+      return clearChallenge(json({ error: error.message }, 401));
+    }
     return clearChallenge(json({
       error: 'KL ERP could not complete sign-in. Try again shortly.',
       failureStage: stage,

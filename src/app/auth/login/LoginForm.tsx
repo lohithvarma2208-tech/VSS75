@@ -177,7 +177,7 @@ export default function LoginForm() {
         action: 'login',
         username: cleanUsername,
         password,
-        captcha: captcha.trim().toUpperCase(),
+        captcha: captcha.trim(),
         challengeId: challenge.challengeId,
         acceptedTerms,
       });
@@ -497,19 +497,20 @@ export default function LoginForm() {
                   <div className="space-y-1">
                     <input
                       ref={captchaInput}
-                      className={`${fieldClass} text-center font-mono font-bold tracking-[0.2em] uppercase text-sm`}
+                      className={`${fieldClass} text-center font-mono font-bold tracking-[0.2em] text-sm`}
                       autoComplete="off"
-                      autoCapitalize="characters"
+                      autoCapitalize="none"
+                      autoCorrect="off"
                       spellCheck={false}
                       required
                       disabled={isLocked}
                       maxLength={32}
                       value={captcha}
-                      onChange={(event) => setCaptcha(event.target.value.toUpperCase())}
-                      placeholder="TYPE CHARACTERS SHOWN"
+                      onChange={(event) => setCaptcha(event.target.value)}
+                      placeholder="Enter exact characters shown"
                     />
                     <div className="flex items-center justify-between px-1 text-[10px] font-mono text-white/40">
-                      <span>Case-insensitive verification</span>
+                      <span>Exact case verification</span>
                       <span>
                         Attempts: <strong className="text-amber-300">{remainingAttempts} / 5</strong>
                       </span>
