@@ -138,9 +138,15 @@ export default function UploadPage() {
       status: 'approved',
     });
 
-    // Store complete authentic file in IndexedDB & Memory Cache
+    // Store complete authentic file in IndexedDB & Memory Cache under multiple lookup keys
     await storeUploadedFile(created.id, file);
-    if (dataUrl) await storeUploadedFile(`${created.id}_data_url`, dataUrl);
+    await storeUploadedFile(file.name, file);
+    if (created.file_name !== file.name) await storeUploadedFile(created.file_name, file);
+    if (dataUrl) {
+      await storeUploadedFile(`${created.id}_data_url`, dataUrl);
+      await storeUploadedFile(`${file.name}_data_url`, dataUrl);
+      if (created.file_name !== file.name) await storeUploadedFile(`${created.file_name}_data_url`, dataUrl);
+    }
 
     setSubmitting(false);
     if (created.status === 'rejected') { setDuplicate(created); setError(created.rejection_reason || 'This file already exists.'); return; }

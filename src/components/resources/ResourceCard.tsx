@@ -40,7 +40,7 @@ export default function ResourceCard({ resource, layout = 'grid' }: ResourceCard
     MockStorageManager.incrementDownload(resource.id);
 
     // 1. Check IndexedDB/Memory store for authentic uploaded file
-    const stored = await getUploadedFile(resource.id);
+    const stored = (await getUploadedFile(resource.id)) || (await getUploadedFile(resource.file_name));
     if (stored) {
       if (stored instanceof Blob) {
         triggerBlobDownload(stored, resource.file_name);
@@ -54,7 +54,7 @@ export default function ResourceCard({ resource, layout = 'grid' }: ResourceCard
     }
 
     // 2. Check stored data URL
-    const storedDataUrl = await getUploadedFile(`${resource.id}_data_url`);
+    const storedDataUrl = (await getUploadedFile(`${resource.id}_data_url`)) || (await getUploadedFile(`${resource.file_name}_data_url`));
     if (typeof storedDataUrl === 'string' && storedDataUrl.startsWith('data:')) {
       triggerBlobDownload(dataUrlToBlob(storedDataUrl), resource.file_name);
       showToast(`Downloaded ${resource.file_name}`, 'success');

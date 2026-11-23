@@ -67,7 +67,7 @@ export default function NotesPage() {
     MockStorageManager.incrementDownload(res.id);
 
     // 1. Check IndexedDB/Memory store for authentic uploaded file
-    const stored = await getUploadedFile(res.id);
+    const stored = (await getUploadedFile(res.id)) || (await getUploadedFile(res.file_name));
     if (stored) {
       if (stored instanceof Blob) {
         triggerBlobDownload(stored, res.file_name);
@@ -81,7 +81,7 @@ export default function NotesPage() {
     }
 
     // 2. Check stored data URL
-    const storedDataUrl = await getUploadedFile(`${res.id}_data_url`);
+    const storedDataUrl = (await getUploadedFile(`${res.id}_data_url`)) || (await getUploadedFile(`${res.file_name}_data_url`));
     if (typeof storedDataUrl === 'string' && storedDataUrl.startsWith('data:')) {
       triggerBlobDownload(dataUrlToBlob(storedDataUrl), res.file_name);
       showToast(`Downloaded ${res.file_name}`, 'success');

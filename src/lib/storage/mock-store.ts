@@ -416,9 +416,14 @@ export class MockStorageManager {
     try {
       localStorage.setItem(STORAGE_KEYS.RESOURCES, JSON.stringify(resources));
     } catch {
-      // If localStorage quota is exceeded due to binary Data URLs, keep metadata and text preview
+      // If localStorage quota is exceeded due to binary Data URLs, strip Data URLs from localStorage
+      // (The authentic binary remains safely preserved in IndexedDB / Memory Cache)
       try {
-        const lightweight = resources.map((r, i) => (i > 1 && r.file_data_url ? { ...r, file_data_url: undefined } : r));
+        const lightweight = resources.map((r) => ({
+          ...r,
+          file_data_url: undefined,
+          file_url: r.file_url?.startsWith('data:') ? `/samples/${r.file_name}` : r.file_url,
+        }));
         localStorage.setItem(STORAGE_KEYS.RESOURCES, JSON.stringify(lightweight));
       } catch (e) {
         console.warn('Storage quota limit reached', e);
