@@ -1664,72 +1664,8 @@ export class MockStorageManager {
     } catch (e) {
       console.warn('Failed reading registered users', e);
     }
-    const initialUsers: UserProfile[] = [
-      {
-        id: 'usr-deepthanush',
-        username: 'deepthanush',
-        full_name: 'Deepthanush (Founder & Platform Lead)',
-        code_name: 'Alpha_Architect',
-        email: '2300030001@kluniversity.in',
-        department: 'CSE',
-        semester: 'Sem 6',
-        role: 'admin',
-        is_verified_student: true,
-        university_email: '2300030001@kluniversity.in',
-        verified_at: '2026-01-10T10:00:00.000Z',
-        created_at: '2026-01-10T10:00:00.000Z',
-        enrolled_courses: ['23CS2104', '23CS2105', '23CS2106'],
-      },
-      {
-        id: 'usr-student-01',
-        username: 'shadow_scholar_01',
-        full_name: 'K. Lohith Varma',
-        code_name: 'ShadowScholar_01',
-        email: '2300030042@kluniversity.in',
-        department: 'CSE',
-        semester: 'Sem 4',
-        role: 'student',
-        is_verified_student: true,
-        university_email: '2300030042@kluniversity.in',
-        verified_at: '2026-02-14T08:30:00.000Z',
-        created_at: '2026-02-14T08:30:00.000Z',
-        enrolled_courses: ['23CS2104', '23CS2105', '23CS2106', '23MT2001'],
-      },
-      {
-        id: 'usr-student-02',
-        username: 'circuit_titan_77',
-        full_name: 'Circuit Titan',
-        code_name: 'CircuitTitan_77',
-        email: '2300030099@kluniversity.in',
-        department: 'ECE',
-        semester: 'Sem 4',
-        role: 'student',
-        is_verified_student: true,
-        university_email: '2300030099@kluniversity.in',
-        verified_at: '2026-02-18T14:15:00.000Z',
-        created_at: '2026-02-18T14:15:00.000Z',
-        enrolled_courses: ['23EC2101', '23EC2102'],
-      },
-      {
-        id: 'usr-student-03',
-        username: 'neural_viper_x',
-        full_name: 'Neural Viper',
-        code_name: 'NeuralViper_X',
-        email: '2400030018@kluniversity.in',
-        department: 'AI&DS',
-        semester: 'Sem 2',
-        role: 'student',
-        is_verified_student: true,
-        university_email: '2400030018@kluniversity.in',
-        verified_at: '2026-02-20T11:20:00.000Z',
-        created_at: '2026-02-20T11:20:00.000Z',
-        enrolled_courses: ['23AI1101', '23AI1102'],
-      },
-    ];
-    if (this.isBrowser()) {
-      localStorage.setItem(STORAGE_KEYS.REGISTERED_USERS, JSON.stringify(initialUsers));
-    }
-    return initialUsers;
+    return [];
+  }
   }
 
   static saveRegisteredUser(user: UserProfile): void {
