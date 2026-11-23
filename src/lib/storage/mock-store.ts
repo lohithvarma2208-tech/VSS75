@@ -599,7 +599,19 @@ export class MockStorageManager {
   }
 
   static getResourceById(id: string): Resource | undefined {
-    return this.getResources().find((r) => r.id === id);
+    const list = this.getResources();
+    const exact = list.find((r) => r.id === id);
+    if (exact) return exact;
+
+    // Support numeric indices like /resource/1 or /resource/2
+    const num = parseInt(id, 10);
+    if (!isNaN(num) && num >= 1 && num <= list.length) {
+      return list[num - 1];
+    }
+
+    // Support slug match or filename match
+    const lower = id.toLowerCase();
+    return list.find((r) => r.file_name.toLowerCase().includes(lower) || r.title.toLowerCase().includes(lower));
   }
 
   static deleteResource(id: string): boolean {
