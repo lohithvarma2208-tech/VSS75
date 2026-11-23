@@ -216,7 +216,7 @@ const INITIAL_OFFERS: RequestOffer[] = [
     uploaded_file_name: 'ProducerConsumerSynchronization.java',
     uploaded_file_url: '/samples/ProducerConsumerSynchronization.java',
     uploaded_file_type: 'java',
-    uploaded_file_size: 3450,
+    uploaded_file_size: 4807,
     title: 'Producer-Consumer Synchronization Java Source Code',
     description: 'Tested Java program using synchronized wait() and notify() with sample terminal logs.',
     message: 'Includes comments for each thread block and expected output screenshot in the header.',

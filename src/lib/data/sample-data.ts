@@ -112,7 +112,7 @@ PATTERN 3: KADANE ALGORITHM (MAX SUBARRAY)
     resource_type: 'DTIE Project Portfolio',
     file_name: '26UC1137_DTIE_Phase1_to_5_Portfolio.pdf',
     file_url: '/samples/26UC1137_DTIE_Phase1_to_5_Portfolio.pdf',
-    file_size: 4850000,
+    file_size: 4095,
     file_type: 'pdf',
     file_content_preview: `KL UNIVERSITY · B.TECH Y26 CURRICULUM
 COURSE CODE: 26UC1137 - DESIGN THINKING FOR INNOVATION & ENTREPRENEURSHIP (DTIE)
@@ -158,7 +158,7 @@ STAGE 5: TEST
     resource_type: 'Java Source Code',
     file_name: 'BankTransactionEngine.java',
     file_url: '/samples/BankTransactionEngine.java',
-    file_size: 19800,
+    file_size: 1753,
     file_type: 'java',
     file_content_preview: `package in.klu.y26.pspj.banking;
 
@@ -239,7 +239,7 @@ public class BankTransactionEngine {
     resource_type: 'Python Pipeline',
     file_name: 'campus_rag_pipeline.py',
     file_url: '/samples/campus_rag_pipeline.py',
-    file_size: 24200,
+    file_size: 1218,
     file_type: 'py',
     file_content_preview: `"""
 KL University Y26 Curriculum · 26AD2202 Generative AI & AI Platform Engineering
@@ -298,7 +298,7 @@ if __name__ == "__main__":
     resource_type: 'Lab Record',
     file_name: '23CS2101_Exp5_AVL_Trees_LabRecord.pdf',
     file_url: '/samples/23CS2101_Exp5_AVL_Trees_LabRecord.pdf',
-    file_size: 2450000, // ~2.4MB
+    file_size: 3609,
     file_type: 'pdf',
     file_content_preview: `EXPERIMENT NO: 05
 COURSE CODE: 23CS2101 - DATA STRUCTURES AND ALGORITHMS
@@ -346,7 +346,7 @@ Resulting Root: 30, Height: 3 (Balanced)`,
     resource_type: 'DTIE Project Report',
     file_name: 'DTIE_Smart_Campus_Cooler_Report.pdf',
     file_url: '/samples/DTIE_Smart_Campus_Cooler_Report.pdf',
-    file_size: 5820000,
+    file_size: 3448,
     file_type: 'pdf',
     file_content_preview: `KL UNIVERSITY — DEPARTMENT OF GENERAL ENGINEERING
 COURSE: 23DT1101 DESIGN THINKING & INNOVATION IN ENGINEERING (DTIE)
@@ -393,7 +393,7 @@ PHASE 4: PROTOTYPE
     resource_type: 'Assignment Code',
     file_name: 'EventRegistrationController.java',
     file_url: '/samples/EventRegistrationController.java',
-    file_size: 14500,
+    file_size: 409,
     file_type: 'java',
     file_content_preview: `package in.kluniversity.events.controller;
 
@@ -459,7 +459,7 @@ public class EventRegistrationController {
     resource_type: 'Lecture Notes',
     file_name: '23MT2001_Discrete_Maths_Unit2_Unit3_Notes.pdf',
     file_url: '/samples/23MT2001_Discrete_Maths_Unit2_Unit3_Notes.pdf',
-    file_size: 4200000,
+    file_size: 3587,
     file_type: 'pdf',
     file_content_preview: `DISCRETE MATHEMATICS & GRAPH THEORY (23MT2001)
 UNIT 2: COMBINATORICS & RECURRENCE RELATIONS
@@ -510,7 +510,7 @@ Particular Solution: a_n = -4*(3)^n + 5*(4)^n`,
     resource_type: 'Lab Experiment',
     file_name: '23CS3309_Wireshark_TCP_Handshake_Analysis.pdf',
     file_url: '/samples/23CS3309_Wireshark_TCP_Handshake_Analysis.pdf',
-    file_size: 3100000,
+    file_size: 3649,
     file_type: 'pdf',
     file_content_preview: `EXPERIMENT 4: TCP THREE-WAY HANDSHAKE & PACKET TRACE DECODING
 COURSE: 23CS3309 COMPUTER NETWORKS & PROTOCOLS
@@ -560,7 +560,7 @@ Frame 14 (Client -> Server):
     resource_type: 'Source Code / Notebook',
     file_name: 'plant_leaf_disease_cnn.py',
     file_url: '/samples/plant_leaf_disease_cnn.py',
-    file_size: 28400,
+    file_size: 198,
     file_type: 'py',
     file_content_preview: `import torch
 import torch.nn as nn
@@ -615,7 +615,7 @@ if __name__ == "__main__":
     resource_type: 'HDL Code',
     file_name: 'alu_4bit.v',
     file_url: '/samples/alu_4bit.v',
-    file_size: 8900,
+    file_size: 892,
     file_type: 'c',
     file_content_preview: `module alu_4bit (
     input [3:0] A,
@@ -667,7 +667,7 @@ endmodule`,
     resource_type: 'Question Bank',
     file_name: '23CS3106_DBMS_Model_Papers_Solutions.pdf',
     file_url: '/samples/23CS3106_DBMS_Model_Papers_Solutions.pdf',
-    file_size: 4700000,
+    file_size: 3686,
     file_type: 'pdf',
     file_content_preview: `KL UNIVERSITY — DEPARTMENT OF COMPUTER SCIENCE & ENGINEERING
 COURSE CODE: 23CS3106 DATABASE MANAGEMENT SYSTEMS
