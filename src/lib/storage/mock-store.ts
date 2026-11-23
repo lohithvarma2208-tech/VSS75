@@ -388,14 +388,12 @@ export class MockStorageManager {
       if (data) {
         const parsed = JSON.parse(data);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          if (!parsed.some((r: Resource) => r.id === 'res-dsa-module-3' || r.file_name === 'DSA_Module_3_Arrays_Strings_Core_Patterns.pdf')) {
-            const dsa = SAMPLE_RESOURCES.find((r) => r.id === 'res-dsa-module-3');
-            if (dsa) {
-              parsed.unshift(dsa);
-              this.saveResources(parsed);
-            }
+          // Remove synthetic seed so it never shadows or blocks user submissions
+          const cleaned = parsed.filter((r: Resource) => r.id !== 'res-dsa-module-3');
+          if (cleaned.length !== parsed.length) {
+            localStorage.setItem(STORAGE_KEYS.RESOURCES, JSON.stringify(cleaned));
           }
-          return parsed;
+          return cleaned;
         }
       }
       localStorage.setItem(STORAGE_KEYS.RESOURCES, JSON.stringify(SAMPLE_RESOURCES));

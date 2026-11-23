@@ -133,18 +133,23 @@ export default function ResourceDetailPage() {
 
     // 3. Direct Data URL or remote fetch
     const targetUrl = previewSrc || resource.file_data_url || resource.file_url;
-    await triggerBrowserDownload(
+    const ok = await triggerBrowserDownload(
       resource.file_name,
       targetUrl,
       undefined,
       resource.file_content_preview,
       {
+        id: resource.id,
         title: resource.title,
         course: `${resource.course_code} - ${resource.course_name}`,
         description: resource.description,
       }
     );
-    showToast(`Downloaded ${resource.file_name}`, 'success');
+    if (ok) {
+      showToast(`Downloaded ${resource.file_name}`, 'success');
+    } else {
+      showToast('Original PDF unavailable. Please try again later.', 'error');
+    }
   };
 
   const handleShare = () => {
@@ -216,7 +221,7 @@ export default function ResourceDetailPage() {
           {/* Description */}
           <div className="rounded-3xl border border-white/10 bg-[#131B2E]/70 backdrop-blur-xl p-6 sm:p-7 shadow-xl space-y-3">
             <h2 className="text-xs font-bold text-[#D8B4FE] uppercase tracking-wider font-mono">
-              Academic Overview & Purpose
+              Student Notes & Submission Details
             </h2>
             <p className="text-xs sm:text-sm text-white/80 leading-relaxed whitespace-pre-line font-medium">
               {resource.description}

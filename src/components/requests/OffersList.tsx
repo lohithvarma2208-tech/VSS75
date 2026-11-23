@@ -54,11 +54,18 @@ export default function OffersList({ offers, request, onOffersChange }: OffersLi
     }
   };
 
-  const handleDownloadUploadedFile = (offer: RequestOffer) => {
+  const handleDownloadUploadedFile = async (offer: RequestOffer) => {
     const filename = offer.uploaded_file_name || 'klu_resource.pdf';
-    const content = `// Virtual Student Space - Resource Offer Fulfillment\n// Request: ${request.title}\n// Title: ${offer.title}\n// Contributor: ${offer.contributor_name}\n\n[Academic Resource Content downloaded from VSS]`;
-    triggerBrowserDownload(filename, content);
-    showToast(`Downloaded ${filename}`, 'success');
+    const targetUrl = offer.uploaded_file_url || (offer.resource_id ? `/samples/${filename}` : '');
+    const ok = await triggerBrowserDownload(filename, targetUrl, undefined, undefined, {
+      id: offer.resource_id,
+      title: offer.title,
+    });
+    if (ok) {
+      showToast(`Downloaded ${filename}`, 'success');
+    } else {
+      showToast('Original PDF unavailable. Please try again later.', 'error');
+    }
   };
 
   if (offers.length === 0) {

@@ -58,48 +58,6 @@ export const DEMO_USERS: UserProfile[] = [
 
 export const SAMPLE_RESOURCES: Resource[] = [
   {
-    id: 'res-dsa-module-3',
-    title: 'DSA Module 3 Arrays Strings Core Patterns',
-    description:
-      'Official Y26/Y25 B.Tech Curriculum — Data Structures & Algorithms 1 (26SC1203 / 26SC1203E). Core algorithmic patterns: Two Pointers, Sliding Window, Kadane Maximum Subarray, Prefix Sums, and String frequency mapping with complete Java and Python solutions.',
-    category: 'Notes',
-    course_code: '26SC1203',
-    course_name: 'Data Structures and Algorithms - 1',
-    semester: 'Sem 2',
-    academic_year: '2026-2027',
-    resource_type: 'Study Notes',
-    file_name: 'DSA_Module_3_Arrays_Strings_Core_Patterns.pdf',
-    file_url: '/samples/DSA_Module_3_Arrays_Strings_Core_Patterns.pdf',
-    file_size: 5413,
-    file_type: 'pdf',
-    file_content_preview: `KL UNIVERSITY · CSE DEPARTMENT
-COURSE: 26SC1203 - DATA STRUCTURES AND ALGORITHMS - 1
-MODULE 3: ARRAYS & STRINGS CORE PATTERNS
-
-PATTERN 1: TWO POINTERS & SLIDING WINDOW
-- Technique: Maintain left and right pointers to shrink/expand search space in O(N).
-- Subarray Sum Equals K, Longest Substring Without Repeating Characters.
-
-PATTERN 2: PREFIX SUMS & DIFFERENCE ARRAYS
-- Precompute P[i] = P[i-1] + arr[i] in O(N).
-- Range Sum Queries query(L, R) executed in O(1) time.
-
-PATTERN 3: KADANE ALGORITHM (MAX SUBARRAY)
-- maxEndingHere = Math.max(arr[i], maxEndingHere + arr[i]);
-- Tracks maxSoFar in O(1) auxiliary space.`,
-    author_id: 'usr-student-01',
-    author_name: 'ShadowScholar_01',
-    author_username: 'shadow_scholar_01',
-    is_anonymous: false,
-    tags: ['26SC1203', 'DSA', 'Arrays', 'Strings', 'Sliding Window', 'Two Pointers'],
-    likes_count: 89,
-    downloads_count: 512,
-    views_count: 1420,
-    status: 'approved',
-    created_at: '2026-10-12T14:20:00Z',
-    updated_at: '2026-10-12T14:20:00Z',
-  },
-  {
     id: 'res-klu-y26-001',
     title: '26UC1137 DTIE Stanford 5-Stage Innovation Portfolio: Campus IoT Heat-Island Mitigator',
     description:

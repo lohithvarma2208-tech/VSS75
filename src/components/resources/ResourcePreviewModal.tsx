@@ -50,18 +50,23 @@ export default function ResourcePreviewModal({
     }
 
     const targetUrl = resource.file_data_url || resource.file_url;
-    await triggerBrowserDownload(
+    const ok = await triggerBrowserDownload(
       resource.file_name,
       targetUrl,
       undefined,
       resource.file_content_preview,
       {
+        id: resource.id,
         title: resource.title,
         course: `${resource.course_code} - ${resource.course_name}`,
         description: resource.description,
       }
     );
-    showToast(`Downloaded ${resource.file_name}`, 'success');
+    if (ok) {
+      showToast(`Downloaded ${resource.file_name}`, 'success');
+    } else {
+      showToast('Original PDF unavailable. Please try again later.', 'error');
+    }
   };
 
   const isCode = ['java', 'py', 'c', 'cpp', 'v', 'txt'].includes(resource.file_type);

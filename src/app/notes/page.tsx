@@ -89,18 +89,23 @@ export default function NotesPage() {
     }
 
     const targetUrl = res.file_data_url || res.file_url;
-    await triggerBrowserDownload(
+    const ok = await triggerBrowserDownload(
       res.file_name,
       targetUrl,
       undefined,
       res.file_content_preview,
       {
+        id: res.id,
         title: res.title,
         course: `${res.course_code} - ${res.course_name}`,
         description: res.description,
       }
     );
-    showToast(`Downloaded ${res.file_name}`, 'success');
+    if (ok) {
+      showToast(`Downloaded ${res.file_name}`, 'success');
+    } else {
+      showToast('Original PDF unavailable. Please try again later.', 'error');
+    }
   };
 
   return (
