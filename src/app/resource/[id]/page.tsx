@@ -68,6 +68,11 @@ export default function ResourceDetailPage() {
     const found = MockStorageManager.getResourceById(id);
     if (found) {
       setResource(found);
+      getUploadedFile(found.file_name).then((val) => {
+        if (!val) return;
+        if (val instanceof Blob) setPreviewSrc(URL.createObjectURL(val));
+        else if (typeof val === 'string' && val.startsWith('data:')) setPreviewSrc(URL.createObjectURL(dataUrlToBlob(val)));
+      });
       const all = MockStorageManager.getResources();
       const related = all
         .filter(
