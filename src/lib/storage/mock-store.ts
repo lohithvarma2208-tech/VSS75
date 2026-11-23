@@ -1666,7 +1666,6 @@ export class MockStorageManager {
     }
     return [];
   }
-  }
 
   static saveRegisteredUser(user: UserProfile): void {
     if (!this.isBrowser()) return;
