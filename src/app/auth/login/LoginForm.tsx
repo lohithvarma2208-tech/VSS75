@@ -506,7 +506,7 @@ export default function LoginForm() {
                       setReferralStatus(null);
                     }
                   }}
-                  placeholder="e.g. KLU-ELITE-2026 or DEEPTHANUSH-VIP"
+                  placeholder=""
                 />
               </div>
 
@@ -603,7 +603,7 @@ export default function LoginForm() {
                     setReferralStatus(null);
                   }
                 }}
-                placeholder="e.g. KLU-ELITE-2026 or DEEPTHANUSH-VIP"
+                placeholder=""
               />
             </div>
 

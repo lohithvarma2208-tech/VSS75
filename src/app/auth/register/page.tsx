@@ -322,7 +322,7 @@ export default function RegisterPage() {
               <div className="relative">
                 <input
                   type="text"
-                  placeholder="e.g. KLU-ELITE-2026 or DEEPTHANUSH-VIP"
+                  placeholder=""
                   value={referralCode}
                   onChange={(e) => {
                     const clean = e.target.value.toUpperCase().replace(/[^A-Z0-9_-]/g, '');

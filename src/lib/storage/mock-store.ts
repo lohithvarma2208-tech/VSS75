@@ -1276,7 +1276,7 @@ export class MockStorageManager {
     }
     const initialCodes: ReferralCode[] = [
       {
-        code: 'KLU-ELITE-2026',
+        code: 'KLU-STUDENT-PASS',
         label: 'Campus VIP Pioneer Pass',
         created_at: new Date(Date.now() - 3600000 * 24 * 2).toISOString(),
         uses_count: 0,
@@ -1290,8 +1290,8 @@ export class MockStorageManager {
         referrals: [],
       },
       {
-        code: 'DEEPTHANUSH-VIP',
-        label: 'Founder Direct Referral',
+        code: 'CAMPUS-HONOURS',
+        label: 'Academic Honours Referral',
         created_at: new Date(Date.now() - 3600000 * 12).toISOString(),
         uses_count: 0,
         referrals: [],
