@@ -108,7 +108,7 @@ export default function UploadPage() {
   }, [courses, courseCode]);
 
   function chooseFile(next: File) {
-    if (next.size > 50 * 1024 * 1024) { setError('Choose a file smaller than 50 MB.'); return; }
+    if (next.size > 4 * 1024 * 1024) { setError('Choose a file smaller than 4 MB.'); return; }
     const extension = next.name.split('.').pop()?.toLowerCase() || '';
     if (!ALLOWED_EXTENSIONS.includes(extension)) { setError('That file type is not supported yet.'); return; }
     setError(''); setFile(next);
@@ -213,7 +213,7 @@ export default function UploadPage() {
 
       <form onSubmit={submit} className="mt-5 space-y-4">
         <section className="vss-card p-4 sm:p-5">
-          <div className="flex items-center gap-3"><Step number="1" /><span><b className="block text-sm">Add your file</b><small className="text-[10px] text-white/30">PDF, document, slides, code or image · 50 MB max</small></span></div>
+          <div className="flex items-center gap-3"><Step number="1" /><span><b className="block text-sm">Add your file</b><small className="text-[10px] text-white/30">PDF, document, slides, code or image · 4 MB max</small></span></div>
           <input ref={fileInput} type="file" className="hidden" accept=".pdf,.docx,.pptx,.zip,.py,.java,.cpp,.c,.txt,.png,.jpg,.jpeg" onChange={(event) => event.target.files?.[0] && chooseFile(event.target.files[0])} />
           {file ? <div className="mt-4 flex items-center gap-3 rounded-2xl border border-emerald-400/15 bg-emerald-400/[0.05] p-3"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-emerald-300 text-black"><FileText className="h-4 w-4" /></span><span className="min-w-0 flex-1"><b className="block truncate text-xs">{file.name}</b><small className="text-[9px] text-white/30">{formatBytes(file.size)}</small></span><button type="button" onClick={() => setFile(null)} className="grid h-8 w-8 place-items-center rounded-full bg-white/[0.05] text-white/45"><X className="h-3.5 w-3.5" /></button></div> : <button type="button" onClick={() => fileInput.current?.click()} onDragOver={(event) => { event.preventDefault(); setDragging(true); }} onDragLeave={() => setDragging(false)} onDrop={(event) => { event.preventDefault(); setDragging(false); if (event.dataTransfer.files[0]) chooseFile(event.dataTransfer.files[0]); }} className={`mt-4 flex min-h-32 w-full flex-col items-center justify-center rounded-2xl border border-dashed p-5 transition ${dragging ? 'border-violet-300 bg-violet-400/10' : 'border-white/12 bg-white/[0.02] hover:bg-white/[0.04]'}`}><FileUp className="h-5 w-5 text-violet-300" /><b className="mt-3 text-xs">Choose a file</b><small className="mt-1 text-[9px] text-white/28">or drop it here</small></button>}
         </section>

@@ -6,7 +6,9 @@ import { getErpSession, SESSION_COOKIE } from '@/lib/erp/session';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-const MAX_BYTES = 50 * 1024 * 1024;
+// Vercel's request body ceiling is 4.5 MB. Keep a small safety margin until
+// bucket-level CORS is enabled for direct-to-R2 uploads.
+const MAX_BYTES = 4 * 1024 * 1024;
 const ALLOWED_EXTENSIONS = new Set(['pdf', 'docx', 'doc', 'pptx', 'ppt', 'xls', 'xlsx', 'zip', 'py', 'java', 'cpp', 'c', 'txt', 'png', 'jpg', 'jpeg']);
 
 function safeFileName(value: string) {
@@ -16,7 +18,7 @@ function safeFileName(value: string) {
 function validateFile(fileName: string, size: number) {
   const extension = fileName.split('.').pop()?.toLowerCase() || '';
   if (!ALLOWED_EXTENSIONS.has(extension)) return 'This file type is not supported.';
-  if (!Number.isFinite(size) || size <= 0 || size > MAX_BYTES) return 'Files must be between 1 byte and 50 MB.';
+  if (!Number.isFinite(size) || size <= 0 || size > MAX_BYTES) return 'Choose a file smaller than 4 MB.';
   return '';
 }
 
