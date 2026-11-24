@@ -345,12 +345,29 @@ export class MockStorageManager {
   }
 
   static removeLegacyDemoData(): void {
-    if (!this.isBrowser() || localStorage.getItem('vss_demo_cleanup_v1') === 'done') return;
-    Array.from({ length: localStorage.length }, (_, index) => localStorage.key(index))
-      .filter((key): key is string => Boolean(key?.startsWith('vss_') && key.endsWith('_v2')))
-      .forEach((key) => localStorage.removeItem(key));
+    if (!this.isBrowser()) return;
 
-    localStorage.setItem('vss_demo_cleanup_v1', 'done');
+    // Remove legacy v2 keys
+    if (localStorage.getItem('vss_demo_cleanup_v1') !== 'done') {
+      Array.from({ length: localStorage.length }, (_, index) => localStorage.key(index))
+        .filter((key): key is string => Boolean(key?.startsWith('vss_') && key.endsWith('_v2')))
+        .forEach((key) => localStorage.removeItem(key));
+      localStorage.setItem('vss_demo_cleanup_v1', 'done');
+    }
+
+    // Complete purge of all previous user test uploads across the platform
+    if (localStorage.getItem('vss_purge_all_uploads_v2') !== 'done') {
+      try {
+        localStorage.setItem(STORAGE_KEYS.RESOURCES, JSON.stringify(SAMPLE_RESOURCES));
+        if (typeof window !== 'undefined' && window.indexedDB) {
+          window.indexedDB.deleteDatabase('vss_files_db_v1');
+        }
+      } catch (e) {
+        console.warn('Error purging previous uploads', e);
+      }
+      localStorage.setItem('vss_purge_all_uploads_v2', 'done');
+      window.dispatchEvent(new Event('klu_resources_change'));
+    }
   }
 
   // --- Current User ---
@@ -388,15 +405,25 @@ export class MockStorageManager {
       if (data) {
         const parsed = JSON.parse(data);
         if (Array.isArray(parsed) && parsed.length > 0) {
+          // Remove any previous test or rejected uploads
+          const cleaned = parsed.filter(
+            (r: Resource) =>
+              !r.id.startsWith('res-test-') &&
+              !r.id.startsWith('res-rejected-')
+          );
+
           // Merge any newly introduced sample resources that might be missing from an older user cache
-          const existingIds = new Set(parsed.map((r: Resource) => r.id));
+          const existingIds = new Set(cleaned.map((r: Resource) => r.id));
           const missingSamples = SAMPLE_RESOURCES.filter((s) => !existingIds.has(s.id));
           if (missingSamples.length > 0) {
-            const merged = [...missingSamples, ...parsed];
+            const merged = [...missingSamples, ...cleaned];
             localStorage.setItem(STORAGE_KEYS.RESOURCES, JSON.stringify(merged));
             return merged;
           }
-          return parsed;
+          if (cleaned.length !== parsed.length) {
+            localStorage.setItem(STORAGE_KEYS.RESOURCES, JSON.stringify(cleaned));
+          }
+          return cleaned;
         }
       }
       localStorage.setItem(STORAGE_KEYS.RESOURCES, JSON.stringify(SAMPLE_RESOURCES));

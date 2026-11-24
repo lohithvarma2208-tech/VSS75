@@ -30,14 +30,16 @@ function inferResource(file: File, title: string, course: StudentCourse) {
   return { category: 'Notes' as ResourceCategory, type: 'Study Notes' };
 }
 
-async function uploadToR2Storage(file: File, resourceId: string): Promise<string | null> {
+async function uploadToR2Storage(file: File, resourceId: string, authorId?: string): Promise<string | null> {
   try {
+    const authHeaders: Record<string, string> = authorId ? { 'x-vss-author-id': authorId } : {};
     if (file.size <= 4.5 * 1024 * 1024) {
       const formData = new FormData();
       formData.append('file', file);
       formData.append('resourceId', resourceId);
       const res = await fetch('/api/r2/upload', {
         method: 'POST',
+        headers: authHeaders,
         body: formData,
       });
       if (res.ok) {
@@ -49,7 +51,7 @@ async function uploadToR2Storage(file: File, resourceId: string): Promise<string
     } else {
       const presignRes = await fetch('/api/r2/upload', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders },
         body: JSON.stringify({
           fileName: file.name,
           contentType: file.type || 'application/pdf',
@@ -151,7 +153,7 @@ export default function UploadPage() {
     // Attempt persistent Cloudflare R2 upload for multi-device global access
     let r2Url: string;
     try {
-      r2Url = await uploadToR2Storage(file, pendingResourceId) || '';
+      r2Url = await uploadToR2Storage(file, pendingResourceId, currentUser?.id) || '';
       if (!r2Url) throw new Error('Upload failed. Please try again.');
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : 'Upload failed. Please try again.');

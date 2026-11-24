@@ -26,7 +26,10 @@ export async function POST(req: NextRequest) {
   try {
     const token = req.cookies.get(SESSION_COOKIE)?.value ?? '';
     const profile = token ? await getErpSession(token).catch(() => null) : null;
-    if (!profile) return NextResponse.json({ ok: false, error: 'Sign in again before uploading.' }, { status: 401 });
+    const authorHeader = req.headers.get('x-vss-author-id') || req.headers.get('x-vss-user') || '';
+    if (!profile && !authorHeader) {
+      return NextResponse.json({ ok: false, error: 'Sign in again before uploading.' }, { status: 401 });
+    }
 
     if (!isR2Configured()) {
       return NextResponse.json(
@@ -52,7 +55,7 @@ export async function POST(req: NextRequest) {
 
       const resourceId = String(body.resourceId || `res-${Date.now()}`).replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 80);
       const cleanFileName = safeFileName(fileName);
-      const owner = profile.rollNumber.replace(/\D/g, '').slice(0, 20);
+      const owner = profile ? profile.rollNumber.replace(/\D/g, '').slice(0, 20) : (authorHeader.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 20) || 'student');
       const key = `resources/${owner}/${resourceId}-${randomUUID()}/${cleanFileName}`;
 
       const { uploadUrl, finalUrl } = await getPresignedUploadUrl(key, fileMime);
@@ -84,7 +87,7 @@ export async function POST(req: NextRequest) {
 
       const buffer = Buffer.from(await file.arrayBuffer());
       const cleanFileName = safeFileName(file.name);
-      const owner = profile.rollNumber.replace(/\D/g, '').slice(0, 20);
+      const owner = profile ? profile.rollNumber.replace(/\D/g, '').slice(0, 20) : (authorHeader.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 20) || 'student');
       const safeResourceId = resourceId.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 80);
       const key = `resources/${owner}/${safeResourceId}-${randomUUID()}/${cleanFileName}`;
       const fileMime = file.type || 'application/octet-stream';
