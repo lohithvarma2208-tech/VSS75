@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   BadgeCheck, BookOpen, CalendarDays, Download, Edit3, ExternalLink,
@@ -16,6 +16,7 @@ import { getStudentBadges } from '@/lib/badges';
 import { formatDate } from '@/lib/utils';
 
 export default function ProfilePage() {
+  const router = useRouter();
   const params = useParams();
   const username = params.username as string;
   const { currentUser, setCurrentUser, showToast, openVerifyModal, signOutAndOpenLogin } = useApp();
@@ -29,14 +30,18 @@ export default function ProfilePage() {
   const [semester, setSemester] = useState('');
 
   useEffect(() => {
-    const target = currentUser?.username === username ? currentUser : null;
+    if (!currentUser) {
+      router.replace('/auth/login');
+      return;
+    }
+    const target = currentUser.username === username ? currentUser : null;
     if (!target) { setProfile(null); setResources([]); setProjects([]); return; }
     setProfile(target);
     setBio(target.bio || ''); setDepartment(target.department); setSemester(target.semester);
     const allResources = MockStorageManager.getResources();
     setResources(allResources.filter((item) => item.author_username === target.username || item.author_name === target.full_name || item.author_id === target.id));
     setProjects(MockStorageManager.getProjects().filter((item) => item.author_username === target.username || item.author_name === target.full_name));
-  }, [username, currentUser]);
+  }, [username, currentUser, router]);
 
   if (!profile) return null;
   const owner = currentUser?.username === profile.username || currentUser?.id === profile.id;

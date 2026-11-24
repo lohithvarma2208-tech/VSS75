@@ -165,13 +165,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         console.warn('Could not open new login window', err);
       }
       try {
+        window.open('', '_self', '');
         window.close();
       } catch (err) {
         console.warn('Could not close current window', err);
       }
-      setTimeout(() => {
+      try {
         window.location.replace('/auth/login');
-      }, 150);
+      } catch {
+        // ignore
+      }
     }
   };
 
