@@ -19,7 +19,7 @@ const desktopLinks = [
 export default function Navbar() {
   const pathname = usePathname();
   const {
-    currentUser, logout, notifications, unreadNotificationCount,
+    currentUser, logout, signOutAndOpenLogin, notifications, unreadNotificationCount,
     markNotificationRead, markAllNotificationsRead,
   } = useApp();
   const [panel, setPanel] = useState<'notifications' | 'account' | null>(null);
@@ -113,7 +113,13 @@ export default function Navbar() {
                   <MenuLink href="/settings" icon={Settings} label="Settings" close={() => setPanel(null)} />
                   <MenuLink href="/admin" icon={ShieldCheck} label="Admin Portal" close={() => setPanel(null)} />
                 </div>
-                <button onClick={() => { logout(); setPanel(null); }} className="mt-1 flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-xs font-bold text-rose-300 hover:bg-rose-400/10">
+                <button
+                  onClick={() => {
+                    setPanel(null);
+                    signOutAndOpenLogin();
+                  }}
+                  className="mt-1 flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-xs font-bold text-rose-300 hover:bg-rose-400/10"
+                >
                   <LogOut className="h-4 w-4" /> Sign out
                 </button>
               </div>

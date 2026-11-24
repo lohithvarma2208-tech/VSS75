@@ -12,7 +12,7 @@ import { getRelevantCourses, readAcademicContext, saveAcademicContext, TERM_OPTI
 
 export default function SettingsPage() {
   const router = useRouter();
-  const { currentUser, setCurrentUser, logout, openVerifyModal } = useApp();
+  const { currentUser, setCurrentUser, logout, signOutAndOpenLogin, openVerifyModal } = useApp();
   const [academic, setAcademic] = useState<AcademicContext | null>(null);
 
   useEffect(() => { setAcademic(readAcademicContext(currentUser)); }, [currentUser]);
@@ -65,7 +65,7 @@ export default function SettingsPage() {
         <SettingsRow icon={CircleHelp} title="Help & requests" subtitle="Ask the community" href="/requests" />
       </SettingsGroup>
 
-      <button onClick={() => { logout(); router.push('/'); }} className="mt-7 flex w-full items-center justify-center gap-2 rounded-2xl border border-rose-400/15 bg-rose-400/[0.06] px-4 py-3.5 text-xs font-bold text-rose-300 hover:bg-rose-400/10"><LogOut className="h-4 w-4" /> Sign out</button>
+      <button onClick={signOutAndOpenLogin} className="mt-7 flex w-full items-center justify-center gap-2 rounded-2xl border border-rose-400/15 bg-rose-400/[0.06] px-4 py-3.5 text-xs font-bold text-rose-300 hover:bg-rose-400/10"><LogOut className="h-4 w-4" /> Sign out</button>
       <p className="mt-6 text-center text-[9px] font-semibold uppercase tracking-[0.16em] text-white/20">VSS · Virtual Student Space</p>
     </main>
   );

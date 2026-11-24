@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   BadgeCheck, BookOpen, CalendarDays, Download, Edit3, ExternalLink,
-  GraduationCap, Heart, Layers, Settings, Share2, X,
+  GraduationCap, Heart, Layers, LogOut, Settings, Share2, X,
 } from 'lucide-react';
 import type { ProjectItem, Resource, UserProfile } from '@/types';
 import { MockStorageManager } from '@/lib/storage/mock-store';
@@ -18,7 +18,7 @@ import { formatDate } from '@/lib/utils';
 export default function ProfilePage() {
   const params = useParams();
   const username = params.username as string;
-  const { currentUser, setCurrentUser, showToast, openVerifyModal } = useApp();
+  const { currentUser, setCurrentUser, showToast, openVerifyModal, signOutAndOpenLogin } = useApp();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [resources, setResources] = useState<Resource[]>([]);
   const [projects, setProjects] = useState<ProjectItem[]>([]);
@@ -89,6 +89,15 @@ export default function ProfilePage() {
           <div className="flex w-full gap-2 sm:w-auto">
             <button onClick={shareProfile} className="vss-button-secondary flex-1 px-4 py-2.5 text-xs sm:flex-none"><Share2 className="h-3.5 w-3.5" /> Share</button>
             {owner && <button onClick={() => setEditing(true)} className="vss-button-secondary flex-1 px-4 py-2.5 text-xs sm:flex-none"><Edit3 className="h-3.5 w-3.5" /> Edit</button>}
+            {owner && (
+              <button
+                onClick={signOutAndOpenLogin}
+                className="vss-button-secondary flex-1 px-4 py-2.5 text-xs text-rose-300 hover:text-rose-200 hover:bg-rose-500/10 sm:flex-none flex items-center justify-center gap-1.5"
+                title="Sign out"
+              >
+                <LogOut className="h-3.5 w-3.5" /> Sign out
+              </button>
+            )}
             {owner && <Link href="/settings" className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-white/10 bg-white/[0.05] text-white/55 hover:text-white" aria-label="Settings"><Settings className="h-4 w-4" /></Link>}
           </div>
         </div>

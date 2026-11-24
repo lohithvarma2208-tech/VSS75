@@ -8,6 +8,7 @@ interface AppContextType {
   currentUser: UserProfile | null;
   setCurrentUser: (user: UserProfile) => void;
   logout: () => void;
+  signOutAndOpenLogin: () => void;
   likedIds: string[];
   toggleLike: (resourceId: string) => void;
   savedIds: string[];
@@ -139,8 +140,39 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (typeof window !== 'undefined') {
       sessionStorage.removeItem('vss_show_benefits_ad');
       sessionStorage.removeItem('vss_seen_benefits_ad');
+      try {
+        fetch('/api/auth/erp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'logout' }),
+        }).catch(() => {});
+      } catch {
+        // ignore
+      }
     }
     showToast('Signed out of session', 'info');
+  };
+
+  const signOutAndOpenLogin = () => {
+    logout();
+    if (typeof window !== 'undefined') {
+      try {
+        const newWin = window.open('/auth/login', '_blank');
+        if (newWin) {
+          newWin.focus();
+        }
+      } catch (err) {
+        console.warn('Could not open new login window', err);
+      }
+      try {
+        window.close();
+      } catch (err) {
+        console.warn('Could not close current window', err);
+      }
+      setTimeout(() => {
+        window.location.replace('/auth/login');
+      }, 150);
+    }
   };
 
   const toggleLike = (resourceId: string) => {
@@ -182,6 +214,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         currentUser,
         setCurrentUser,
         logout,
+        signOutAndOpenLogin,
         likedIds,
         toggleLike,
         savedIds,

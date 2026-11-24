@@ -16,7 +16,16 @@ export default function SignOutButton() {
         body: JSON.stringify({ action: 'logout' }),
       });
       if (!response.ok) throw new Error('Sign-out failed');
-      window.location.replace('/auth/login');
+      try {
+        const newWin = window.open('/auth/login', '_blank');
+        if (newWin) newWin.focus();
+      } catch {}
+      try {
+        window.close();
+      } catch {}
+      setTimeout(() => {
+        window.location.replace('/auth/login');
+      }, 150);
     } catch {
       setError('Could not sign out. Please try again.');
       setBusy(false);
