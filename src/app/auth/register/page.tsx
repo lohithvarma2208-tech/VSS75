@@ -100,6 +100,20 @@ export default function RegisterPage() {
 
       setCurrentUser(newUser);
       MockStorageManager.saveRegisteredUser(newUser);
+      fetch('/api/admin/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          registrationNumber: newUser.username,
+          name: newUser.full_name,
+          department: newUser.department || 'CSE',
+          semester: newUser.semester || 'Sem 4',
+          academicYear: '2026-2027',
+          email: newUser.email,
+          role: newUser.role || 'student',
+          courses: [],
+        }),
+      }).catch(() => {});
 
       // Apply referral code if provided
       if (referralCode.trim()) {

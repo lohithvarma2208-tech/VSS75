@@ -1,82 +1,155 @@
-import { createHash } from 'node:crypto';
-import { createClient } from '@supabase/supabase-js';
 import { z } from 'zod';
 import type { ErpProfile } from './client';
+import { getFileFromR2, isR2Configured, uploadFileToR2 } from '@/lib/r2';
 
-const BUCKET = 'vss-admin-registry';
-const recordSchema = z.object({
+export const recordSchema = z.object({
   registrationNumber: z.string().min(1).max(64),
   name: z.string().min(1).max(200),
   department: z.string().max(200),
   semester: z.string().max(80).optional(),
   academicYear: z.string().max(40).optional(),
-  courses: z.array(z.object({ code: z.string(), name: z.string(), semester: z.string().optional() })).max(40),
-  firstLoginAt: z.string().datetime(),
-  lastLoginAt: z.string().datetime(),
+  courses: z.array(z.object({ code: z.string(), name: z.string(), semester: z.string().optional() })).max(100).default([]),
+  firstLoginAt: z.string(),
+  lastLoginAt: z.string(),
   loginCount: z.number().int().positive(),
   consentVersion: z.string().max(40).optional(),
-  consentedAt: z.string().datetime().optional(),
+  consentedAt: z.string().optional(),
+  email: z.string().optional(),
+  role: z.string().optional(),
 });
 
 export type AdminUserRecord = z.infer<typeof recordSchema>;
 
-function client() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const secret = process.env.SUPABASE_SECRET_KEY;
-  if (!url || !secret) throw new Error('Admin registry is not configured');
-  return createClient(url, secret, { auth: { persistSession: false, autoRefreshToken: false } });
+export interface UserLoginInput {
+  rollNumber: string;
+  name: string;
+  department?: string;
+  semester?: string;
+  academicYear?: string;
+  courses?: { code: string; name: string; semester?: string }[];
+  email?: string;
+  role?: string;
 }
 
-async function ensureBucket(db: ReturnType<typeof client>) {
-  const { data } = await db.storage.getBucket(BUCKET);
-  if (!data) {
-    const { error } = await db.storage.createBucket(BUCKET, { public: false, fileSizeLimit: 64 * 1024 });
-    if (error && !/already exists/i.test(error.message)) throw error;
+// In-memory cache across server requests
+const inMemoryUsers = new Map<string, AdminUserRecord>();
+
+async function readJsonFromR2<T>(key: string): Promise<T | null> {
+  try {
+    const res = await getFileFromR2(key);
+    if (!res || !res.Body) return null;
+    let text = '';
+    if (typeof (res.Body as any).transformToString === 'function') {
+      text = await (res.Body as any).transformToString('utf-8');
+    } else {
+      const chunks: Buffer[] = [];
+      for await (const chunk of res.Body as any) {
+        chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+      }
+      text = Buffer.concat(chunks).toString('utf-8');
+    }
+    return JSON.parse(text) as T;
+  } catch {
+    return null;
   }
 }
 
-function objectName(registrationNumber: string) {
-  return createHash('sha256').update(registrationNumber).digest('hex') + '.json';
+async function writeJsonToR2(key: string, data: unknown): Promise<void> {
+  const jsonBuf = Buffer.from(JSON.stringify(data, null, 2), 'utf-8');
+  await uploadFileToR2(jsonBuf, key, 'application/json');
 }
 
-export async function recordVerifiedLogin(profile: ErpProfile, incrementLogin = true, acceptedTerms = false) {
-  const db = client();
-  await ensureBucket(db);
-  const bucket = db.storage.from(BUCKET);
-  const path = objectName(profile.rollNumber);
+export async function recordVerifiedLogin(
+  profile: ErpProfile | UserLoginInput,
+  incrementLogin = true,
+  acceptedTerms = false
+): Promise<AdminUserRecord> {
+  const cleanRoll = String(profile.rollNumber || '').trim().toUpperCase();
+  if (!cleanRoll) throw new Error('Missing registration number');
+
   const now = new Date().toISOString();
-  let previous: AdminUserRecord | null = null;
-  const { data } = await bucket.download(path);
-  if (data) {
-    try { previous = recordSchema.parse(JSON.parse(await data.text())); } catch { previous = null; }
+  let existing = inMemoryUsers.get(cleanRoll) || null;
+
+  if (!existing && isR2Configured()) {
+    existing = await readJsonFromR2<AdminUserRecord>(`registry/users/${cleanRoll}.json`);
   }
+
   const record: AdminUserRecord = {
-    registrationNumber: profile.rollNumber,
-    name: profile.name,
-    department: profile.department,
-    semester: profile.semester,
-    academicYear: profile.academicYear,
-    courses: profile.courses || [],
-    firstLoginAt: previous?.firstLoginAt || now,
+    registrationNumber: cleanRoll,
+    name: profile.name || cleanRoll,
+    department: profile.department || existing?.department || 'CSE',
+    semester: profile.semester || existing?.semester || 'Sem 4',
+    academicYear: profile.academicYear || existing?.academicYear || '2026-2027',
+    courses: profile.courses || existing?.courses || [],
+    firstLoginAt: existing?.firstLoginAt || now,
     lastLoginAt: now,
-    loginCount: previous ? previous.loginCount + (incrementLogin ? 1 : 0) : 1,
-    consentVersion: acceptedTerms ? 'erp-login-v1' : previous?.consentVersion,
-    consentedAt: acceptedTerms ? now : previous?.consentedAt,
+    loginCount: existing ? existing.loginCount + (incrementLogin ? 1 : 0) : 1,
+    consentVersion: acceptedTerms ? 'erp-login-v1' : existing?.consentVersion,
+    consentedAt: acceptedTerms ? now : existing?.consentedAt,
+    email: (profile as any).email || existing?.email || `${cleanRoll.toLowerCase()}@kluniversity.in`,
+    role: (profile as any).role || existing?.role || 'student',
   };
-  const { error } = await bucket.upload(path, JSON.stringify(record), { contentType: 'application/json', upsert: true });
-  if (error) throw error;
+
+  inMemoryUsers.set(cleanRoll, record);
+
+  if (isR2Configured()) {
+    try {
+      await writeJsonToR2(`registry/users/${cleanRoll}.json`, record);
+      // Fetch or compute full user list for the index
+      const existingIndex = (await readJsonFromR2<AdminUserRecord[]>('registry/users_index.json')) || [];
+      const updatedIndex = [
+        record,
+        ...existingIndex.filter((u) => u.registrationNumber !== cleanRoll),
+      ].sort((a, b) => new Date(b.lastLoginAt).getTime() - new Date(a.lastLoginAt).getTime());
+
+      await writeJsonToR2('registry/users_index.json', updatedIndex);
+    } catch (err) {
+      console.warn('R2 user persistence failed, cached in memory', err);
+    }
+  }
+
+  return record;
 }
 
-export async function listVerifiedUsers() {
-  const db = client();
-  await ensureBucket(db);
-  const bucket = db.storage.from(BUCKET);
-  const { data: files, error } = await bucket.list('', { limit: 1000, sortBy: { column: 'updated_at', order: 'desc' } });
-  if (error) throw error;
-  const records = await Promise.all((files || []).filter((file) => /^[0-9a-f]{64}\.json$/.test(file.name)).map(async (file) => {
-    const { data } = await bucket.download(file.name);
-    if (!data) return null;
-    try { return recordSchema.parse(JSON.parse(await data.text())); } catch { return null; }
-  }));
-  return records.filter((record): record is AdminUserRecord => Boolean(record));
+export async function listVerifiedUsers(): Promise<AdminUserRecord[]> {
+  if (isR2Configured()) {
+    try {
+      const fromR2 = await readJsonFromR2<AdminUserRecord[]>('registry/users_index.json');
+      if (Array.isArray(fromR2) && fromR2.length > 0) {
+        for (const u of fromR2) {
+          if (!inMemoryUsers.has(u.registrationNumber)) {
+            inMemoryUsers.set(u.registrationNumber, u);
+          }
+        }
+        return fromR2;
+      }
+    } catch (err) {
+      console.warn('Failed reading users_index from R2', err);
+    }
+  }
+
+  return Array.from(inMemoryUsers.values()).sort(
+    (a, b) => new Date(b.lastLoginAt).getTime() - new Date(a.lastLoginAt).getTime()
+  );
+}
+
+export async function syncUserBatch(users: UserLoginInput[]): Promise<AdminUserRecord[]> {
+  const results: AdminUserRecord[] = [];
+  for (const u of users) {
+    const rawRoll = u.rollNumber || (u as any).student_id || (u as any).username;
+    if (rawRoll) {
+      const roll = String(rawRoll).trim().toUpperCase();
+      const rec = await recordVerifiedLogin({
+        rollNumber: roll,
+        name: u.name || (u as any).full_name || roll,
+        department: u.department || 'CSE',
+        semester: u.semester || 'Sem 4',
+        email: u.email || `${roll.toLowerCase()}@kluniversity.in`,
+        role: u.role || 'student',
+        courses: u.courses || [],
+      }, false);
+      results.push(rec);
+    }
+  }
+  return results;
 }

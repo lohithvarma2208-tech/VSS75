@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import {
   BookOpenCheck,
@@ -35,6 +35,7 @@ import {
   ArrowUpRight,
   Sliders,
   Check,
+  RefreshCw,
 } from 'lucide-react';
 import { MockStorageManager } from '@/lib/storage/mock-store';
 import { ReferralCode, Resource, SecurityAuditLog, UserProfile } from '@/types';
@@ -49,6 +50,8 @@ interface UserRecord {
   firstLoginAt: string;
   lastLoginAt: string;
   loginCount: number;
+  email?: string;
+  role?: string;
 }
 
 interface AdminDashboardProps {
@@ -110,9 +113,24 @@ export default function AdminDashboard({ administrator, isPasskeyMode }: AdminDa
     setAuditLogs(MockStorageManager.getSecurityAuditLogs());
   };
 
-  const refreshLocalUsers = () => {
+  const fetchUsers = useCallback(() => {
+    setLoadingUsers(true);
+    fetch('/api/admin/users', { cache: 'no-store' })
+      .then(async (response) => {
+        const data = await response.json();
+        if (Array.isArray(data.users)) {
+          setErpUsers(data.users);
+        }
+      })
+      .catch(() => {
+        setErpUsers([]);
+      })
+      .finally(() => setLoadingUsers(false));
+  }, []);
+
+  const refreshLocalUsers = useCallback(() => {
     setLocalUsers(MockStorageManager.getRegisteredUsers());
-  };
+  }, []);
 
   useEffect(() => {
     refreshReferrals();
@@ -120,23 +138,27 @@ export default function AdminDashboard({ administrator, isPasskeyMode }: AdminDa
     refreshAuditLogs();
     refreshLocalUsers();
     setAnnouncement(MockStorageManager.getPlatformAnnouncement());
+    fetchUsers();
 
-    // Fetch server ERP users
-    fetch('/api/admin/users', { cache: 'no-store' })
-      .then(async (response) => {
-        const data = await response.json();
-        setErpUsers(data.users || []);
+    // Sync any existing local users to server registry
+    const locals = MockStorageManager.getRegisteredUsers();
+    if (locals.length > 0) {
+      fetch('/api/admin/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ users: locals }),
       })
-      .catch(() => {
-        // Fallback or offline
-        setErpUsers([]);
-      })
-      .finally(() => setLoadingUsers(false));
+        .then(() => fetchUsers())
+        .catch(() => {});
+    }
 
     // Listen for storage changes
     const onReferralChange = () => refreshReferrals();
     const onAuditChange = () => refreshAuditLogs();
-    const onUsersChange = () => refreshLocalUsers();
+    const onUsersChange = () => {
+      refreshLocalUsers();
+      fetchUsers();
+    };
 
     window.addEventListener('klu_referrals_change', onReferralChange);
     window.addEventListener('klu_security_audit_logged', onAuditChange);
@@ -147,7 +169,7 @@ export default function AdminDashboard({ administrator, isPasskeyMode }: AdminDa
       window.removeEventListener('klu_security_audit_logged', onAuditChange);
       window.removeEventListener('klu_users_change', onUsersChange);
     };
-  }, []);
+  }, [fetchUsers, refreshLocalUsers]);
 
   // --- Actions ---
   const handleCopyLink = (code: string) => {
@@ -254,6 +276,58 @@ export default function AdminDashboard({ administrator, isPasskeyMode }: AdminDa
     });
   }, [auditLogs, auditFilter, auditQuery]);
 
+  const unifiedUsers = useMemo(() => {
+    const map = new Map<string, UserRecord>();
+    for (const u of erpUsers) {
+      const reg = u.registrationNumber.toUpperCase();
+      map.set(reg, u);
+    }
+    for (const l of localUsers) {
+      const reg = (l.student_id || l.username || l.id).toUpperCase();
+      if (!map.has(reg)) {
+        map.set(reg, {
+          registrationNumber: reg,
+          name: l.full_name || reg,
+          department: l.department || 'CSE',
+          semester: l.semester || 'Sem 4',
+          academicYear: l.academic_year || '2026-2027',
+          courses: (l.registered_courses || []).map((c: any) =>
+            typeof c === 'string' ? { code: c, name: c } : c
+          ),
+          firstLoginAt: l.created_at || new Date().toISOString(),
+          lastLoginAt: l.created_at || new Date().toISOString(),
+          loginCount: 1,
+          email: l.email || `${reg.toLowerCase()}@kluniversity.in`,
+          role: l.role || 'student',
+        });
+      } else {
+        const existing = map.get(reg)!;
+        if (!existing.email && l.email) existing.email = l.email;
+        if (!existing.role && l.role) existing.role = l.role;
+      }
+    }
+    return Array.from(map.values()).sort(
+      (a, b) => new Date(b.lastLoginAt).getTime() - new Date(a.lastLoginAt).getTime()
+    );
+  }, [erpUsers, localUsers]);
+
+  const filteredUsers = useMemo(() => {
+    return unifiedUsers.filter((u) => {
+      const role = (u.role || 'student').toLowerCase();
+      const matchRole = userRoleFilter === 'all' || role === userRoleFilter.toLowerCase();
+      const q = userQuery.trim().toLowerCase();
+      const matchQuery =
+        !q ||
+        u.name.toLowerCase().includes(q) ||
+        u.registrationNumber.toLowerCase().includes(q) ||
+        (u.department && u.department.toLowerCase().includes(q)) ||
+        (u.semester && u.semester.toLowerCase().includes(q)) ||
+        (u.email && u.email.toLowerCase().includes(q)) ||
+        (u.role && u.role.toLowerCase().includes(q));
+      return matchRole && matchQuery;
+    });
+  }, [unifiedUsers, userQuery, userRoleFilter]);
+
   const mask = (value: string) => (showNumbers ? value : `${value.slice(0, 2)}••••${value.slice(-2)}`);
 
   return (
@@ -325,7 +399,7 @@ export default function AdminDashboard({ administrator, isPasskeyMode }: AdminDa
           <Users className="h-4 w-4" />
           <span>User Registry</span>
           <span className="ml-1 rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-mono">
-            {erpUsers.length || localUsers.length}
+            {unifiedUsers.length}
           </span>
         </button>
 
@@ -628,104 +702,141 @@ export default function AdminDashboard({ administrator, isPasskeyMode }: AdminDa
         <section className="mt-7 space-y-6">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h2 className="text-lg font-black text-white">Verified Scholar Registry</h2>
+              <h2 className="text-lg font-black text-white">Verified Scholar Registry & Directory</h2>
               <p className="text-xs text-white/50">
-                Accounts authenticated via KL University ERP or registered anonymous scholar identities.
+                Accounts authenticated via KL University ERP, Student ID, or registered scholar identities.
               </p>
             </div>
-            <button
-              onClick={() => setShowNumbers(!showNumbers)}
-              className="vss-button-secondary px-3.5 py-2 text-xs flex items-center gap-1.5 self-start sm:self-auto"
-            >
-              {showNumbers ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-              <span>{showNumbers ? 'Mask Registration Numbers' : 'Reveal Numbers'}</span>
-            </button>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={() => fetchUsers()}
+                className="vss-button-secondary px-3.5 py-2 text-xs flex items-center gap-1.5"
+                title="Refresh user directory from secure storage"
+              >
+                <RefreshCw className={`h-3.5 w-3.5 ${loadingUsers ? 'animate-spin' : ''}`} />
+                <span>Refresh</span>
+              </button>
+              <button
+                onClick={() => setShowNumbers(!showNumbers)}
+                className="vss-button-secondary px-3.5 py-2 text-xs flex items-center gap-1.5 self-start sm:self-auto"
+              >
+                {showNumbers ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                <span>{showNumbers ? 'Mask Registration Numbers' : 'Reveal Numbers'}</span>
+              </button>
+            </div>
           </div>
 
-          <div className="relative">
-            <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/30" />
-            <input
-              value={userQuery}
-              onChange={(e) => setUserQuery(e.target.value)}
-              placeholder="Search by student name, registration number, department or semester..."
-              className="w-full rounded-2xl border border-white/10 bg-black/40 pl-10 pr-4 py-3 text-xs sm:text-sm text-white placeholder-white/30 focus:border-purple-400 focus:outline-none"
-            />
+          {/* Search & Role Filter Bar */}
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="relative flex-1">
+              <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/30" />
+              <input
+                value={userQuery}
+                onChange={(e) => setUserQuery(e.target.value)}
+                placeholder="Search by student name, registration number, department, email or semester..."
+                className="w-full rounded-2xl border border-white/10 bg-black/40 pl-10 pr-4 py-3 text-xs sm:text-sm text-white placeholder-white/30 focus:border-purple-400 focus:outline-none"
+              />
+              {userQuery && (
+                <button
+                  onClick={() => setUserQuery('')}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-white/40 hover:text-white"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+
+            <div className="flex items-center gap-1.5 self-start sm:self-auto rounded-2xl border border-white/10 bg-black/30 p-1">
+              {(['all', 'student', 'admin'] as const).map((r) => (
+                <button
+                  key={r}
+                  onClick={() => setUserRoleFilter(r)}
+                  className={`rounded-xl px-3 py-1.5 text-xs font-bold capitalize transition ${
+                    userRoleFilter === r
+                      ? 'bg-purple-600 text-white shadow'
+                      : 'text-white/50 hover:text-white'
+                  }`}
+                >
+                  {r === 'all' ? 'All Scholars' : r}
+                </button>
+              ))}
+            </div>
           </div>
+
+          {/* Loading State */}
+          {loadingUsers && unifiedUsers.length === 0 && (
+            <div className="vss-card p-12 text-center">
+              <RefreshCw className="mx-auto h-6 w-6 animate-spin text-purple-400" />
+              <p className="mt-3 text-xs text-white/60">Loading scholar directory from secure storage...</p>
+            </div>
+          )}
+
+          {/* Empty State */}
+          {!loadingUsers && filteredUsers.length === 0 && (
+            <div className="vss-card p-12 text-center border border-white/10">
+              <Users className="mx-auto h-8 w-8 text-white/30" />
+              <h3 className="mt-3 text-sm font-bold text-white">
+                {userQuery ? 'No scholars match your search query' : 'No scholars found in directory'}
+              </h3>
+              <p className="mt-1 text-xs text-white/40 max-w-sm mx-auto">
+                {userQuery
+                  ? 'Try searching by a different name, department, or student roll number.'
+                  : 'As students log in or register on VSS, their verified profiles and activity details will automatically appear here.'}
+              </p>
+              {userQuery && (
+                <button
+                  onClick={() => setUserQuery('')}
+                  className="vss-button-secondary text-xs px-4 py-2 mt-4"
+                >
+                  Clear Search
+                </button>
+              )}
+            </div>
+          )}
 
           {/* User Cards Grid */}
           <div className="grid gap-3 md:grid-cols-2">
-            {/* Render local registered scholars */}
-            {localUsers.map((user) => (
+            {filteredUsers.map((user) => (
               <div
-                key={user.id}
-                className="vss-card p-4 flex items-center justify-between gap-3 border border-white/[0.07] bg-[#0c101a]"
-              >
-                <div className="flex items-center gap-3 min-w-0">
-                  <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-purple-600/30 text-purple-300 font-black text-sm">
-                    {user.username.charAt(0).toUpperCase()}
-                  </span>
-                  <div className="min-w-0">
-                    <b className="block truncate text-xs font-bold text-white">
-                      {user.full_name}
-                    </b>
-                    <small className="block truncate font-mono text-[10px] text-white/40">
-                      @{user.username} · {user.department || 'CSE'} ({user.semester || 'Sem 4'})
-                    </small>
-                    <small className="block truncate font-mono text-[9px] text-white/30">
-                      {mask(user.email)}
-                    </small>
-                  </div>
-                </div>
-
-                <div className="text-right shrink-0">
-                  <span className="inline-block rounded-md bg-purple-500/10 border border-purple-500/20 px-2 py-0.5 text-[9px] font-mono font-bold text-purple-300 uppercase">
-                    {user.role}
-                  </span>
-                  <div className="mt-1 flex items-center gap-1 justify-end">
-                    <button
-                      onClick={() =>
-                        MockStorageManager.updateUserRole(
-                          user.id,
-                          user.role === 'admin' ? 'student' : 'admin'
-                        )
-                      }
-                      className="text-[9px] text-purple-400 hover:underline"
-                    >
-                      {user.role === 'admin' ? 'Set Student' : 'Promote Admin'}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-
-            {/* Render server ERP users if present */}
-            {erpUsers.map((user) => (
-              <button
                 key={user.registrationNumber}
                 onClick={() => setSelectedUser(user)}
-                className="vss-card vss-card-hover flex items-center justify-between gap-3 p-4 text-left border border-white/[0.07]"
+                className="vss-card vss-card-hover p-4 flex items-center justify-between gap-3 border border-white/[0.07] bg-[#0c101a] cursor-pointer group transition-all hover:border-purple-500/40"
               >
                 <div className="flex items-center gap-3 min-w-0">
-                  <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-violet-400 text-sm font-black text-black">
+                  <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-purple-600/40 to-blue-600/30 border border-purple-400/20 text-purple-200 font-black text-sm">
                     {user.name.charAt(0).toUpperCase()}
                   </span>
                   <div className="min-w-0">
-                    <b className="block truncate text-xs font-bold text-white">{user.name}</b>
-                    <small className="block truncate font-mono text-[10px] text-white/40">
-                      {mask(user.registrationNumber)} · {user.department || 'Department unavailable'}
+                    <div className="flex items-center gap-1.5">
+                      <b className="truncate text-xs font-bold text-white group-hover:text-purple-300 transition">
+                        {user.name}
+                      </b>
+                      <span className="inline-block rounded bg-purple-500/10 border border-purple-500/20 px-1.5 py-0.5 text-[8px] font-mono font-bold text-purple-300 uppercase">
+                        {user.role || 'student'}
+                      </span>
+                    </div>
+                    <small className="block truncate font-mono text-[10px] text-white/50 mt-0.5">
+                      {mask(user.registrationNumber)} · {user.department || 'CSE'} ({user.semester || 'Sem 4'})
+                    </small>
+                    <small className="block truncate font-mono text-[9px] text-white/35 mt-0.5">
+                      {mask(user.email || `${user.registrationNumber.toLowerCase()}@kluniversity.in`)}
                     </small>
                   </div>
                 </div>
-                <div className="text-right shrink-0">
-                  <span className="text-[10px] font-mono text-emerald-400 font-bold">
-                    {user.loginCount} logins
+
+                <div className="text-right shrink-0 space-y-1">
+                  <span className="inline-block rounded-md bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 text-[9px] font-mono text-emerald-300 font-bold">
+                    {user.loginCount} {user.loginCount === 1 ? 'login' : 'logins'}
+                  </span>
+                  <span className="block text-[9px] text-purple-400/70 group-hover:text-purple-300 transition font-mono">
+                    View details →
                   </span>
                 </div>
-              </button>
+              </div>
             ))}
           </div>
 
-          {/* User details modal for ERP records */}
+          {/* User details modal */}
           {selectedUser && (
             <div
               className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
@@ -737,9 +848,14 @@ export default function AdminDashboard({ administrator, isPasskeyMode }: AdminDa
               >
                 <div className="flex items-start justify-between">
                   <div>
-                    <h3 className="text-base font-black text-white">{selectedUser.name}</h3>
-                    <p className="font-mono text-xs text-purple-300">
-                      {selectedUser.registrationNumber}
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-base font-black text-white">{selectedUser.name}</h3>
+                      <span className="rounded bg-purple-500/15 border border-purple-500/30 px-2 py-0.5 text-[9px] font-mono font-bold text-purple-300 uppercase">
+                        {selectedUser.role || 'student'}
+                      </span>
+                    </div>
+                    <p className="font-mono text-xs text-purple-300 mt-0.5">
+                      {showNumbers ? selectedUser.registrationNumber : mask(selectedUser.registrationNumber)}
                     </p>
                   </div>
                   <button
@@ -752,37 +868,72 @@ export default function AdminDashboard({ administrator, isPasskeyMode }: AdminDa
 
                 <div className="mt-5 space-y-2">
                   <div className="rounded-xl bg-white/[0.02] p-3 text-xs flex justify-between">
+                    <span className="text-white/40">Email:</span>
+                    <span className="font-mono text-white">
+                      {selectedUser.email || `${selectedUser.registrationNumber.toLowerCase()}@kluniversity.in`}
+                    </span>
+                  </div>
+                  <div className="rounded-xl bg-white/[0.02] p-3 text-xs flex justify-between">
                     <span className="text-white/40">Department:</span>
                     <span className="font-bold text-white">{selectedUser.department}</span>
                   </div>
                   <div className="rounded-xl bg-white/[0.02] p-3 text-xs flex justify-between">
                     <span className="text-white/40">Semester:</span>
-                    <span className="font-bold text-white">{selectedUser.semester || 'N/A'}</span>
+                    <span className="font-bold text-white">{selectedUser.semester || 'Sem 4'}</span>
                   </div>
                   <div className="rounded-xl bg-white/[0.02] p-3 text-xs flex justify-between">
                     <span className="text-white/40">Verified Logins:</span>
-                    <span className="font-bold text-emerald-400">{selectedUser.loginCount}</span>
+                    <span className="font-bold text-emerald-400 font-mono">{selectedUser.loginCount}</span>
+                  </div>
+                  <div className="rounded-xl bg-white/[0.02] p-3 text-xs flex justify-between">
+                    <span className="text-white/40">First Joined:</span>
+                    <span className="text-white text-[11px] font-mono">
+                      {new Date(selectedUser.firstLoginAt).toLocaleString()}
+                    </span>
                   </div>
                   <div className="rounded-xl bg-white/[0.02] p-3 text-xs flex justify-between">
                     <span className="text-white/40">Last Seen:</span>
-                    <span className="text-white">{new Date(selectedUser.lastLoginAt).toLocaleString()}</span>
+                    <span className="text-white text-[11px] font-mono">
+                      {new Date(selectedUser.lastLoginAt).toLocaleString()}
+                    </span>
                   </div>
                 </div>
 
                 <div className="mt-4">
                   <h4 className="text-xs font-bold text-white/60 mb-2">Registered Courses</h4>
                   <div className="max-h-40 overflow-y-auto space-y-1.5">
-                    {selectedUser.courses.length ? (
+                    {selectedUser.courses && selectedUser.courses.length ? (
                       selectedUser.courses.map((c) => (
-                        <div key={c.code} className="rounded-lg bg-black/30 p-2 text-xs">
+                        <div key={c.code} className="rounded-lg bg-black/30 p-2 text-xs flex items-center justify-between">
                           <b className="font-mono text-purple-300">{c.code}</b>
-                          <span className="text-white/60 ml-2">{c.name}</span>
+                          <span className="text-white/60 truncate ml-2">{c.name}</span>
                         </div>
                       ))
                     ) : (
-                      <p className="text-xs text-white/30">No courses listed.</p>
+                      <p className="text-xs text-white/30 italic">No courses listed for this profile.</p>
                     )}
                   </div>
+                </div>
+
+                <div className="mt-6 pt-4 border-t border-white/10 flex items-center justify-between">
+                  <button
+                    onClick={() => {
+                      const nextRole = selectedUser.role === 'admin' ? 'student' : 'admin';
+                      MockStorageManager.updateUserRole(selectedUser.registrationNumber, nextRole);
+                      setSelectedUser({ ...selectedUser, role: nextRole });
+                      fetchUsers();
+                    }}
+                    className="text-xs text-purple-300 hover:text-purple-200 hover:underline font-bold"
+                  >
+                    {selectedUser.role === 'admin' ? 'Revoke Admin (Set Student)' : 'Promote to Admin'}
+                  </button>
+
+                  <button
+                    onClick={() => setSelectedUser(null)}
+                    className="vss-button-secondary text-xs px-4 py-2"
+                  >
+                    Close
+                  </button>
                 </div>
               </div>
             </div>

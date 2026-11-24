@@ -213,6 +213,20 @@ export default function LoginForm() {
         };
         MockStorageManager.setCurrentUser(verifiedUser);
         setCurrentUser(verifiedUser);
+        fetch('/api/admin/users', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            registrationNumber: verifiedUser.student_id || verifiedUser.username,
+            name: verifiedUser.full_name,
+            department: verifiedUser.department || 'CSE',
+            semester: verifiedUser.semester || 'Sem 4',
+            academicYear: verifiedUser.academic_year || '2026-2027',
+            email: verifiedUser.email,
+            role: verifiedUser.role,
+            courses: verifiedUser.registered_courses || [],
+          }),
+        }).catch(() => {});
         showToast(`Welcome back, ${p.name}!`, 'success');
       }
 
@@ -329,6 +343,20 @@ export default function LoginForm() {
 
     MockStorageManager.setCurrentUser(loggedInUser);
     setCurrentUser(loggedInUser);
+    fetch('/api/admin/users', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        registrationNumber: loggedInUser.student_id || loggedInUser.username,
+        name: loggedInUser.full_name,
+        department: loggedInUser.department || 'CSE',
+        semester: loggedInUser.semester || 'Sem 4',
+        academicYear: '2026-2027',
+        email: loggedInUser.email || `${loggedInUser.username}@kluniversity.in`,
+        role: loggedInUser.role || 'student',
+        courses: loggedInUser.registered_courses || [],
+      }),
+    }).catch(() => {});
     MockStorageManager.recordSecurityAuditLog({
       event: 'LOGIN_SUCCESS',
       masked_erp_id: loggedInUser.username,
