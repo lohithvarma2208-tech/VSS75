@@ -22,25 +22,17 @@ import { generateUserCodeName } from '@/lib/data/academic-heads';
 import { VerifiedBadge } from '@/components/common/VerifiedBadge';
 import { MockStorageManager } from '@/lib/storage/mock-store';
 
-const PRESET_HANDLES = [
-  'ShadowScholar_01',
-  'DataValkyrie_09',
-  'CircuitTitan_77',
-  'AlgoPhantom_42',
-  'QuantumArchon_18',
-  'NeuralViper_X',
-  'BinaryGhost_33',
-];
+
 
 export default function RegisterPage() {
   const router = useRouter();
   const { setCurrentUser, showToast } = useApp();
 
-  const [username, setUsername] = useState('ShadowScholar_01');
-  const [email, setEmail] = useState('scholar@kluniversity.in');
+  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [department, setDepartment] = useState('CSE');
   const [semester, setSemester] = useState('Sem 4');
-  const [password, setPassword] = useState('Scholar@Pass2026!');
+  const [password, setPassword] = useState('');
   const [referralCode, setReferralCode] = useState('');
   const [referralStatus, setReferralStatus] = useState<{ valid: boolean; label?: string } | null>(null);
   const [error, setError] = useState('');
@@ -65,9 +57,10 @@ export default function RegisterPage() {
   const liveCodeName = generateUserCodeName(username || 'anonymous');
 
   const handleRandomizeHandle = () => {
-    const random = PRESET_HANDLES[Math.floor(Math.random() * PRESET_HANDLES.length)];
-    const unique = `${random.split('_')[0]}_${Math.floor(10 + Math.random() * 89)}`;
-    setUsername(unique);
+    const prefixes = ['student', 'scholar', 'peer', 'learner', 'cadet', 'coder'];
+    const num = Math.floor(1000 + Math.random() * 9000);
+    const prefix = prefixes[Math.floor(Math.random() * prefixes.length)];
+    setUsername(`${prefix}_${num}`);
     setError('');
   };
 
@@ -219,7 +212,7 @@ export default function RegisterPage() {
                 </div>
                 <input
                   type="text"
-                  placeholder="e.g. ShadowScholar_01"
+                  placeholder="e.g. 2300030001 or student_handle"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   className="w-full h-11 rounded-2xl border border-white/15 bg-[#0B0F19] pl-9 pr-24 text-xs sm:text-sm text-white placeholder-white/40 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/30 font-mono transition"
@@ -232,28 +225,7 @@ export default function RegisterPage() {
                 </div>
               </div>
 
-              {/* Quick Handle Chips */}
-              <div className="pt-1">
-                <span className="text-[10px] font-mono text-white/40 block mb-1.5">
-                  Popular alias suggestions:
-                </span>
-                <div className="flex flex-wrap gap-1.5">
-                  {PRESET_HANDLES.slice(0, 4).map((h) => (
-                    <button
-                      key={h}
-                      type="button"
-                      onClick={() => setUsername(h)}
-                      className={`text-[10px] font-mono px-2.5 py-1 rounded-lg border transition ${
-                        username === h
-                          ? 'bg-purple-500/30 border-purple-400 text-white font-bold'
-                          : 'bg-white/5 border-white/10 text-white/60 hover:text-white hover:bg-white/10'
-                      }`}
-                    >
-                      @{h}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              
             </div>
 
             {/* University Email */}

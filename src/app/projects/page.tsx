@@ -171,7 +171,22 @@ export default function ProjectsPage() {
       </div>
 
       {/* Project Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {filteredProjects.length === 0 ? (
+        <div className="p-16 text-center rounded-[2.5rem] border border-dashed border-white/15 bg-[#131B2E]/50">
+          <Layers className="h-12 w-12 text-white/30 mx-auto mb-3" />
+          <h3 className="text-base font-bold text-white">No student projects published yet</h3>
+          <p className="text-xs text-white/50 max-w-md mx-auto mt-1 mb-6 leading-relaxed">
+            Be the first to publish a capstone project, mini-project, or hackathon build to the campus directory.
+          </p>
+          <button
+            onClick={() => setIsCreateModalOpen(true)}
+            className="px-6 py-2.5 rounded-full bg-gradient-to-r from-[#8B5CF6] to-[#3B82F6] text-white text-xs font-extrabold shadow-md shadow-indigo-500/25 transition"
+          >
+            Publish Project
+          </button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {filteredProjects.map((proj) => (
           <div
             key={proj.id}
@@ -251,6 +266,7 @@ export default function ProjectsPage() {
           </div>
         ))}
       </div>
+      )}
 
       {/* Showcase Modal */}
       {isCreateModalOpen && (
@@ -375,7 +391,7 @@ export default function ProjectsPage() {
                 </label>
                 <input
                   type="text"
-                  placeholder="ShadowScholar_01 (Lead), CyberFalcon_99, QuantumEcho_23"
+                  placeholder="Lead Student, Contributor 1, Contributor 2"
                   value={newTeamMembers}
                   onChange={(e) => setNewTeamMembers(e.target.value)}
                   className="w-full h-11 rounded-full border border-white/15 bg-[#0B0F19] px-4 text-xs text-white focus:border-purple-500 focus:outline-none"

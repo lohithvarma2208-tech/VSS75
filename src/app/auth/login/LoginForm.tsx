@@ -302,23 +302,6 @@ export default function LoginForm() {
 
     if (found) {
       loggedInUser = found;
-    } else if (clean.toLowerCase().includes('scholar') || clean.toLowerCase() === 'shadow_scholar_01') {
-      loggedInUser = {
-        id: 'usr-student-01',
-        username: 'shadow_scholar_01',
-        full_name: 'ShadowScholar_01',
-        email: 'scholar@kluniversity.in',
-        university_email: 'scholar@kluniversity.in',
-        department: 'CSE',
-        semester: 'Sem 4',
-        role: 'student',
-        student_id: '2300030001',
-        is_verified_student: true,
-        code_name: 'SHADOW_SCHOLAR_01',
-        academic_position: '👑 Supreme Academic Chancellor',
-        bio: 'Passionate about algorithms, competitive programming, and open-source contributions at Virtual Student Space.',
-        created_at: new Date().toISOString(),
-      };
     } else {
       const isEmail = clean.includes('@');
       const rollNumber = isEmail ? clean.split('@')[0] : clean;
@@ -359,28 +342,7 @@ export default function LoginForm() {
     window.location.replace('/dashboard');
   }
 
-  function handleDemoLogin() {
-    const demoUser: UserProfile = {
-      id: 'usr-student-01',
-      username: 'shadow_scholar_01',
-      full_name: 'ShadowScholar_01',
-      email: 'scholar@kluniversity.in',
-      university_email: 'scholar@kluniversity.in',
-      department: 'CSE',
-      semester: 'Sem 4',
-      role: 'student',
-      student_id: '2300030001',
-      is_verified_student: true,
-      code_name: 'SHADOW_SCHOLAR_01',
-      academic_position: '👑 Supreme Academic Chancellor',
-      bio: 'Passionate about algorithms, competitive programming, and open-source contributions at Virtual Student Space.',
-      created_at: new Date().toISOString(),
-    };
-    MockStorageManager.setCurrentUser(demoUser);
-    setCurrentUser(demoUser);
-    showToast('Signed in as Verified Scholar (ShadowScholar_01)', 'success');
-    window.location.replace('/dashboard');
-  }
+  
 
   return (
     <div className="mx-auto grid min-h-[calc(100vh-68px)] max-w-6xl items-stretch lg:grid-cols-[.9fr_1.1fr]">
@@ -555,17 +517,7 @@ export default function LoginForm() {
                 Sign In with Student Account <ArrowRight className="h-4 w-4" />
               </button>
 
-              {/* 1-Click Demo Login */}
-              <div className="pt-2">
-                <button
-                  type="button"
-                  onClick={handleDemoLogin}
-                  className="flex w-full items-center justify-center gap-2 rounded-2xl border border-violet-500/30 bg-violet-500/10 hover:bg-violet-500/20 px-4 py-3 text-xs font-bold text-violet-300 transition"
-                >
-                  <Sparkles className="h-4 w-4 text-violet-400" />
-                  <span>1-Click Verified Student Demo (ShadowScholar_01)</span>
-                </button>
-              </div>
+              
             </form>
           ) : (
           <form onSubmit={handleLogin} className="space-y-4">

@@ -42,302 +42,13 @@ const STORAGE_KEYS = {
   ANNOUNCEMENT: 'vss_platform_announcement_v3',
 };
 
-// Initial Resource Requests
-const INITIAL_REQUESTS: ResourceRequest[] = [
-  {
-    id: 'req-klu-001',
-    user_id: 'usr-student-01',
-    title: 'Does anyone have Module 3 Maths notes for 23MT2001 Discrete Mathematics?',
-    description:
-      'Looking for clear handwritten or typed notes covering Recurrence Relations, Generating Functions, and Graph Isomorphism for the upcoming In-Sem 2 exam. Please share if you have solved examples or previous semester review questions.',
-    programme: 'B.Tech',
-    course_code: '23MT2001',
-    course_name: 'Discrete Mathematics & Graph Theory',
-    semester: 'Sem 3',
-    category: 'Mathematics',
-    resource_type: 'Unit Notes',
-    module_number: 'Module 3',
-    topic: 'Recurrence Relations & Generating Functions',
-    assignment_number: 'In-Sem 2 Prep',
-    academic_year: '2025-2026',
-    preferred_format: 'PDF',
-    tags: ['23MT2001', 'Maths', 'Module 3', 'Graph Theory', 'In-Sem 2'],
-    deadline: '2026-11-28',
-    is_anonymous: false,
-    status: 'open',
-    requester_name: 'ShadowScholar_01',
-    requester_username: 'shadow_scholar_01',
-    requester_department: 'CSE',
-    requester_is_verified: true,
-    created_at: '2026-11-18T09:30:00Z',
-    updated_at: '2026-11-18T09:30:00Z',
-  },
-  {
-    id: 'req-klu-002',
-    user_id: 'usr-moderator-01',
-    title: 'Can someone share the DTIE project report format & Phase 3 evaluation rubrics?',
-    description:
-      'Our team is finalizing the Phase 3 Design Thinking review documentation for 26UC1137. We need the official KLEF report template containing the Pugh selection matrix and prototyping cost estimation sheets.',
-    programme: 'B.Tech',
-    course_code: '26UC1137',
-    course_name: 'Design Thinking for Innovation & Entrepreneurship',
-    semester: 'Tri-Sem 1 (T1)',
-    category: 'DTIE Projects',
-    resource_type: 'Project Report',
-    module_number: 'Phase 3',
-    topic: 'Pugh Selection Matrix & Prototyping',
-    academic_year: '2026-2027',
-    preferred_format: 'PDF / DOCX',
-    tags: ['26UC1137', 'DTIE', 'Phase 3', 'Pugh Matrix', 'Report Format'],
-    deadline: '2026-11-25',
-    is_anonymous: false,
-    status: 'fulfilled',
-    requester_name: 'NeuralViper_X',
-    requester_username: 'neural_viper_x',
-    requester_department: 'AI&DS',
-    requester_is_verified: true,
-    created_at: '2026-11-15T14:15:00Z',
-    updated_at: '2026-11-16T11:20:00Z',
-    fulfilled_at: '2026-11-16T11:20:00Z',
-  },
-  {
-    id: 'req-klu-003',
-    user_id: 'usr-student-01',
-    title: 'I need Java lab experiment 7 - Multithreading & Producer-Consumer Problem',
-    description:
-      'Need the working Java source code with thread synchronization using wait() and notify(), plus the input/output console execution screenshot for the 23CS2103 lab record evaluation.',
-    programme: 'B.Tech',
-    course_code: '23CS2103',
-    course_name: 'Object Oriented Programming through Java',
-    semester: 'Sem 4',
-    category: 'Lab Experiments',
-    resource_type: 'Lab Experiment',
-    module_number: 'Module 4',
-    topic: 'Multithreading & Synchronization',
-    assignment_number: 'Experiment 7',
-    academic_year: '2025-2026',
-    preferred_format: 'Code (.java, .txt)',
-    tags: ['23CS2103', 'Java', 'Exp 7', 'Multithreading', 'Lab Record'],
-    deadline: '2026-11-30',
-    is_anonymous: false,
-    status: 'partially_fulfilled',
-    requester_name: 'ShadowScholar_01',
-    requester_username: 'shadow_scholar_01',
-    requester_department: 'CSE',
-    requester_is_verified: true,
-    created_at: '2026-11-19T08:00:00Z',
-    updated_at: '2026-11-20T10:45:00Z',
-  },
-  {
-    id: 'req-klu-004',
-    user_id: 'usr-student-02',
-    title: 'Previous semester question papers (In-Sem 1 & In-Sem 2) for DSA (23CS2101)',
-    description:
-      'Does anyone have last year In-Sem 1 and In-Sem 2 question papers for 23CS2101 Data Structures and Algorithms with the answer key or marking scheme?',
-    programme: 'B.Tech',
-    course_code: '23CS2101',
-    course_name: 'Data Structures and Algorithms',
-    semester: 'Sem 3',
-    category: 'Study Resources',
-    resource_type: 'Question Papers',
-    module_number: 'Module 1-3',
-    topic: 'In-Sem 1 & 2 Question Papers',
-    academic_year: '2024-2025',
-    preferred_format: 'PDF',
-    tags: ['23CS2101', 'DSA', 'Question Paper', 'In-Sem', 'KLEF Exams'],
-    deadline: '2026-12-05',
-    is_anonymous: false,
-    status: 'open',
-    requester_name: 'CircuitTitan_77',
-    requester_username: 'circuit_titan_77',
-    requester_department: 'CSE',
-    requester_is_verified: true,
-    created_at: '2026-11-19T16:20:00Z',
-    updated_at: '2026-11-19T16:20:00Z',
-  },
-  {
-    id: 'req-klu-005',
-    user_id: 'usr-student-03',
-    title: 'Reference PPT on CNN Architectures (ResNet & VGG) for AI Lab Seminar',
-    description:
-      'Looking for a well-illustrated slide deck explaining Convolutional Neural Networks, residual skip connections in ResNet-50, and feature map visualizations for our 15-minute seminar presentation.',
-    programme: 'B.Tech',
-    course_code: '23AI2201',
-    course_name: 'Deep Learning & Computer Vision',
-    semester: 'Sem 5',
-    category: 'Presentations',
-    resource_type: 'Seminar PPT',
-    module_number: 'Module 2',
-    topic: 'CNN Architectures (ResNet, VGG)',
-    academic_year: '2025-2026',
-    preferred_format: 'PPTX / PDF',
-    tags: ['23AI2201', 'Deep Learning', 'CNN', 'ResNet', 'PPT'],
-    deadline: '2026-12-02',
-    is_anonymous: false,
-    status: 'open',
-    requester_name: 'DataValkyrie_09',
-    requester_username: 'data_valkyrie_09',
-    requester_department: 'AI&DS',
-    requester_is_verified: false,
-    created_at: '2026-11-20T11:10:00Z',
-    updated_at: '2026-11-20T11:10:00Z',
-  },
-];
-
-// Initial Offers
-const INITIAL_OFFERS: RequestOffer[] = [
-  {
-    id: 'off-klu-001',
-    request_id: 'req-klu-002',
-    contributor_id: 'usr-student-01',
-    contributor_name: 'ShadowScholar_01',
-    contributor_username: 'shadow_scholar_01',
-    contributor_department: 'CSE',
-    contributor_is_verified: true,
-    offer_type: 'existing_resource',
-    resource_id: 'res-klu-y26-001',
-    title: '26UC1137 DTIE Stanford 5-Stage Innovation Portfolio',
-    description:
-      'Complete Phase 1 to Phase 5 documentation including Pugh matrix and BOM calculation sheets.',
-    message: 'Here is our team’s complete Phase 3 report that received full marks during the DTIE review.',
-    status: 'accepted',
-    created_at: '2026-11-16T10:00:00Z',
-    updated_at: '2026-11-16T11:20:00Z',
-  },
-  {
-    id: 'off-klu-002',
-    request_id: 'req-klu-003',
-    contributor_id: 'usr-moderator-01',
-    contributor_name: 'NeuralViper_X',
-    contributor_username: 'neural_viper_x',
-    contributor_department: 'AI&DS',
-    contributor_is_verified: true,
-    offer_type: 'upload',
-    uploaded_file_name: 'ProducerConsumerSynchronization.java',
-    uploaded_file_url: '/samples/ProducerConsumerSynchronization.java',
-    uploaded_file_type: 'java',
-    uploaded_file_size: 4807,
-    title: 'Producer-Consumer Synchronization Java Source Code',
-    description: 'Tested Java program using synchronized wait() and notify() with sample terminal logs.',
-    message: 'Includes comments for each thread block and expected output screenshot in the header.',
-    status: 'accepted',
-    created_at: '2026-11-19T14:30:00Z',
-    updated_at: '2026-11-20T09:00:00Z',
-  },
-  {
-    id: 'off-klu-003',
-    request_id: 'req-klu-003',
-    contributor_id: 'usr-student-02',
-    contributor_name: 'CircuitTitan_77',
-    contributor_username: 'circuit_titan_77',
-    contributor_department: 'CSE',
-    contributor_is_verified: true,
-    offer_type: 'external_link',
-    external_url: 'https://docs.oracle.com/javase/tutorial/essential/concurrency/guardmeth.html',
-    title: 'Oracle Official Guarded Blocks & Producer-Consumer Tutorial',
-    description: 'Official Java SE documentation on thread coordination and bounded buffers.',
-    message: 'Also check this official Oracle reference if your faculty asks about condition queues.',
-    status: 'pending',
-    created_at: '2026-11-20T10:45:00Z',
-    updated_at: '2026-11-20T10:45:00Z',
-  },
-];
-
-// Initial Discussion Responses
-const INITIAL_RESPONSES: RequestResponse[] = [
-  {
-    id: 'resp-klu-001',
-    request_id: 'req-klu-001',
-    user_id: 'usr-moderator-01',
-    user_name: 'NeuralViper_X',
-    user_username: 'neural_viper_x',
-    user_department: 'AI&DS',
-    user_is_verified: true,
-    parent_response_id: null,
-    content:
-      'Check the central library drive folder too; Professor Rao shared a solved question bank on Recurrence Relations last term.',
-    created_at: '2026-11-18T10:15:00Z',
-    updated_at: '2026-11-18T10:15:00Z',
-  },
-  {
-    id: 'resp-klu-002',
-    request_id: 'req-klu-001',
-    user_id: 'usr-student-01',
-    user_name: 'ShadowScholar_01',
-    user_username: 'shadow_scholar_01',
-    user_department: 'CSE',
-    user_is_verified: true,
-    parent_response_id: 'resp-klu-001',
-    content: 'Thanks Ananya! I will check that out as well.',
-    created_at: '2026-11-18T11:00:00Z',
-    updated_at: '2026-11-18T11:00:00Z',
-  },
-];
-
-// Initial Saved Requests
-const INITIAL_SAVED_REQUESTS: string[] = ['req-klu-001', 'req-klu-003'];
-
-// Initial Comments
-const INITIAL_COMMENTS: ResourceComment[] = [
-  {
-    id: 'comm-1',
-    resource_id: 'res-klu-001',
-    user_id: 'usr-moderator-01',
-    user_name: 'NeuralViper_X',
-    user_username: 'neural_viper_x',
-    content: 'Very well structured! The AVL double rotation derivation saved a lot of time before the lab evaluation.',
-    created_at: '2024-09-14T11:20:00Z',
-  },
-  {
-    id: 'comm-2',
-    resource_id: 'res-klu-002',
-    user_id: 'usr-student-01',
-    user_name: 'ShadowScholar_01',
-    user_username: 'shadow_scholar_01',
-    content: 'The Pugh selection matrix in Phase 3 is a great reference for our DTIE second review next Monday.',
-    created_at: '2024-04-20T16:05:00Z',
-  },
-];
-
-// Initial Reports
-const INITIAL_REPORTS: ResourceReport[] = [
-  {
-    id: 'rep-1',
-    resource_id: 'res-klu-007',
-    resource_title: '4-Bit Arithmetic Logic Unit (ALU) Verilog HDL Code, Testbench & Waveforms',
-    reported_by: 'usr-student-01',
-    reporter_username: 'shadow_scholar_01',
-    reason: 'wrong_category',
-    description: 'This is an ECE hardware code resource; check if it fits better under Digital Logic or Programming tag.',
-    status: 'pending',
-    created_at: '2024-11-12T14:00:00Z',
-  },
-];
-
-// Initial Notifications
-const INITIAL_NOTIFICATIONS: NotificationItem[] = [
-  {
-    id: 'notif-1',
-    user_id: 'usr-student-01',
-    actor_name: 'NeuralViper_X',
-    type: 'comment',
-    title: 'New comment on your lab record',
-    message: '@neural_viper_x commented on "Binary Search Trees & AVL Tree Rotations Lab Record".',
-    resource_id: 'res-klu-001',
-    is_read: false,
-    created_at: '2024-09-14T11:20:00Z',
-  },
-  {
-    id: 'notif-2',
-    user_id: 'usr-student-01',
-    actor_name: 'VSS System Bot',
-    type: 'system',
-    title: 'Welcome to Virtual Student Space',
-    message: 'Welcome to Virtual Student Space (VSS)! Explore peer coursework, lab records, and notes.',
-    is_read: true,
-    created_at: '2024-09-12T10:00:00Z',
-  },
-];
+// Initial Resource Requests, Offers, Comments, Reports, Notifications
+const INITIAL_REQUESTS: ResourceRequest[] = [];
+const INITIAL_OFFERS: RequestOffer[] = [];
+const INITIAL_RESPONSES: RequestResponse[] = [];
+const INITIAL_COMMENTS: ResourceComment[] = [];
+const INITIAL_REPORTS: ResourceReport[] = [];
+const INITIAL_NOTIFICATIONS: NotificationItem[] = [];
 
 export class MockStorageManager {
   private static isBrowser(): boolean {
@@ -367,6 +78,44 @@ export class MockStorageManager {
       }
       localStorage.setItem('vss_purge_all_uploads_v2', 'done');
       window.dispatchEvent(new Event('klu_resources_change'));
+    }
+
+    // Complete purge of all fake/mock uploads and details across the platform
+    if (localStorage.getItem('vss_purge_fake_details_v3') !== 'done') {
+      try {
+        localStorage.setItem(STORAGE_KEYS.RESOURCES, '[]');
+        localStorage.setItem(STORAGE_KEYS.PROJECTS, '[]');
+        localStorage.setItem(STORAGE_KEYS.REQUESTS, '[]');
+        localStorage.setItem(STORAGE_KEYS.OFFERS, '[]');
+        localStorage.setItem(STORAGE_KEYS.RESPONSES, '[]');
+        localStorage.setItem(STORAGE_KEYS.COMMENTS, '[]');
+        localStorage.setItem(STORAGE_KEYS.REPORTS, '[]');
+        localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, '[]');
+        localStorage.setItem(STORAGE_KEYS.BOOKMARKS, '[]');
+        localStorage.setItem(STORAGE_KEYS.LIKED_RESOURCES, '[]');
+
+        const currentUserStr = localStorage.getItem(STORAGE_KEYS.CURRENT_USER);
+        if (currentUserStr) {
+          try {
+            const u = JSON.parse(currentUserStr);
+            if (u.username === 'shadow_scholar_01' || u.id === 'usr-student-01' || (u.full_name && u.full_name.includes('ShadowScholar'))) {
+              localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
+            }
+          } catch {
+            localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
+          }
+        }
+
+        if (typeof window !== 'undefined' && window.indexedDB) {
+          window.indexedDB.deleteDatabase('vss_files_db_v1');
+        }
+      } catch (e) {
+        console.warn('Error purging fake data', e);
+      }
+      localStorage.setItem('vss_purge_fake_details_v3', 'done');
+      window.dispatchEvent(new Event('klu_resources_change'));
+      window.dispatchEvent(new Event('klu_requests_change'));
+      window.dispatchEvent(new Event('klu_auth_change'));
     }
   }
 
@@ -399,38 +148,35 @@ export class MockStorageManager {
 
   // --- Resources ---
   static getResources(): Resource[] {
-    if (!this.isBrowser()) return SAMPLE_RESOURCES;
+    if (!this.isBrowser()) return [];
     try {
       const data = localStorage.getItem(STORAGE_KEYS.RESOURCES);
       if (data) {
         const parsed = JSON.parse(data);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          // Remove any previous test or rejected uploads
           const cleaned = parsed.filter(
             (r: Resource) =>
               !r.id.startsWith('res-test-') &&
-              !r.id.startsWith('res-rejected-')
+              !r.id.startsWith('res-rejected-') &&
+              !r.id.startsWith('res-dsa-') &&
+              !r.id.startsWith('res-klu-') &&
+              r.author_username !== 'shadow_scholar_01' &&
+              r.author_name !== 'ShadowScholar_01' &&
+              r.author_name !== 'NeuralViper_X' &&
+              r.author_name !== 'Academic Affairs Peer Lead' &&
+              r.author_name !== 'KLU Hardware Enthusiast'
           );
-
-          // Merge any newly introduced sample resources that might be missing from an older user cache
-          const existingIds = new Set(cleaned.map((r: Resource) => r.id));
-          const missingSamples = SAMPLE_RESOURCES.filter((s) => !existingIds.has(s.id));
-          if (missingSamples.length > 0) {
-            const merged = [...missingSamples, ...cleaned];
-            localStorage.setItem(STORAGE_KEYS.RESOURCES, JSON.stringify(merged));
-            return merged;
-          }
           if (cleaned.length !== parsed.length) {
             localStorage.setItem(STORAGE_KEYS.RESOURCES, JSON.stringify(cleaned));
           }
           return cleaned;
         }
       }
-      localStorage.setItem(STORAGE_KEYS.RESOURCES, JSON.stringify(SAMPLE_RESOURCES));
-      return SAMPLE_RESOURCES;
+      localStorage.setItem(STORAGE_KEYS.RESOURCES, '[]');
+      return [];
     } catch (e) {
       console.warn('Failed reading resources from storage', e);
-      return SAMPLE_RESOURCES;
+      return [];
     }
   }
 
@@ -632,7 +378,8 @@ export class MockStorageManager {
     if (exact) return exact;
 
     // Check directly in SAMPLE_RESOURCES if not in current list
-    const sampleExact = SAMPLE_RESOURCES.find((r) => r.id === id);
+    // sample lookup removed
+    const sampleExact = undefined;
     if (sampleExact) return sampleExact;
 
     // Support numeric indices like /resource/1 or /resource/2
@@ -646,7 +393,7 @@ export class MockStorageManager {
     const matched = list.find((r) => r.file_name.toLowerCase().includes(lower) || r.title.toLowerCase().includes(lower));
     if (matched) return matched;
 
-    return SAMPLE_RESOURCES.find((r) => r.file_name.toLowerCase().includes(lower) || r.title.toLowerCase().includes(lower));
+    return undefined;
   }
 
   static deleteResource(id: string): boolean {
@@ -1598,42 +1345,35 @@ export class MockStorageManager {
         code: 'KLU-ELITE-2026',
         label: 'Campus VIP Pioneer Pass',
         created_at: new Date(Date.now() - 3600000 * 24 * 2).toISOString(),
-        uses_count: 8,
-        referrals: [
-          { student_id: '2300030042', username: 'shadow_scholar_01', timestamp: new Date(Date.now() - 3600000 * 5).toISOString() },
-          { student_id: '2400030018', username: 'neural_viper_x', timestamp: new Date(Date.now() - 3600000 * 2).toISOString() },
-        ],
+        uses_count: 0,
+        referrals: [],
       },
       {
         code: 'CAMPUS-VIP-75',
         label: 'Core Inner Circle Access',
         created_at: new Date(Date.now() - 3600000 * 24).toISOString(),
-        uses_count: 5,
-        referrals: [
-          { student_id: '2200030099', username: 'provost_zero', timestamp: new Date(Date.now() - 3600000 * 8).toISOString() },
-        ],
+        uses_count: 0,
+        referrals: [],
       },
       {
         code: 'DEEPTHANUSH-VIP',
         label: 'Founder Direct Referral',
         created_at: new Date(Date.now() - 3600000 * 12).toISOString(),
-        uses_count: 12,
-        referrals: [
-          { student_id: '2300030099', username: 'circuit_titan_77', timestamp: new Date(Date.now() - 3600000 * 4).toISOString() },
-        ],
+        uses_count: 0,
+        referrals: [],
       },
       {
         code: 'PIONEER-SCHOLAR',
         label: 'Academic Honours Referral',
         created_at: new Date().toISOString(),
-        uses_count: 3,
+        uses_count: 0,
         referrals: [],
       },
       {
         code: 'VSS-FRIENDS',
         label: 'Study Circle Peer Invite',
         created_at: new Date().toISOString(),
-        uses_count: 6,
+        uses_count: 0,
         referrals: [],
       },
     ];
