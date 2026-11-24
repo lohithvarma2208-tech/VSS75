@@ -51,6 +51,12 @@ export function triggerBlobDownload(blob: Blob, fileName: string) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+export function r2DeliveryUrl(source: string, disposition: 'attachment' | 'inline' = 'attachment') {
+  if (!source || !source.includes('/api/r2/download')) return source;
+  const separator = source.includes('?') ? '&' : '?';
+  return `${source}${separator}disposition=${disposition}`;
+}
+
 export async function triggerBrowserDownload(
   fileName: string,
   contentOrUrl?: string,
@@ -59,6 +65,19 @@ export async function triggerBrowserDownload(
   extraMeta?: { title?: string; course?: string; description?: string; id?: string }
 ): Promise<boolean> {
   const ext = fileName.split('.').pop()?.toLowerCase() || '';
+
+  // Let the browser follow the short-lived signed R2 URL itself. This keeps
+  // the click inside the user gesture and works reliably on iOS/Safari.
+  if (contentOrUrl?.includes('/api/r2/download')) {
+    const a = document.createElement('a');
+    a.href = r2DeliveryUrl(contentOrUrl, 'attachment');
+    a.download = fileName;
+    a.rel = 'noopener';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    return true;
+  }
 
   // 1. Direct Blob URLs (e.g. from URL.createObjectURL of original uploaded file)
   if (contentOrUrl?.startsWith('blob:')) {

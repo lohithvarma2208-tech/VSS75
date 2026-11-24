@@ -8,7 +8,8 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const key = searchParams.get('key');
-    const redirectMode = searchParams.get('redirect') === 'true';
+    const proxyMode = searchParams.get('proxy') === 'true';
+    const disposition = searchParams.get('disposition') === 'inline' ? 'inline' : 'attachment';
 
     if (!key) {
       return NextResponse.json(
@@ -24,13 +25,18 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const cleanKey = decodeURIComponent(key).replace(/^\/+/, '');
+    const cleanKey = key.replace(/^\/+/, '');
+    if ((!cleanKey.startsWith('resources/') && !cleanKey.startsWith('samples/')) || cleanKey.includes('..')) {
+      return NextResponse.json({ ok: false, error: 'Invalid file key.' }, { status: 400 });
+    }
     const fileName = cleanKey.split('/').pop() || 'downloaded_file.pdf';
 
-    // If client requested a direct redirect to a presigned URL
-    if (redirectMode) {
-      const presignedUrl = await getPresignedDownloadUrl(cleanKey, fileName);
-      return NextResponse.redirect(presignedUrl);
+    // Browser-native delivery is the reliable path on mobile Safari and avoids
+    // buffering entire PDFs in application memory. Proxying remains available
+    // for compatibility checks only.
+    if (!proxyMode) {
+      const presignedUrl = await getPresignedDownloadUrl(cleanKey, fileName, 300, disposition);
+      return NextResponse.redirect(presignedUrl, 307);
     }
 
     // Direct binary stream from R2
@@ -50,7 +56,7 @@ export async function GET(req: NextRequest) {
     headers.set('Content-Type', r2Response.ContentType || 'application/octet-stream');
     headers.set(
       'Content-Disposition',
-      `attachment; filename="${encodeURIComponent(fileName)}"`
+      `${disposition}; filename="${fileName.replace(/[\r\n"\\]/g, '_')}"; filename*=UTF-8''${encodeURIComponent(fileName)}`
     );
     if (r2Response.ContentLength) {
       headers.set('Content-Length', r2Response.ContentLength.toString());

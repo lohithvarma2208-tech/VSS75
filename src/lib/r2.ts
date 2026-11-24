@@ -114,7 +114,8 @@ export async function getPresignedUploadUrl(
 export async function getPresignedDownloadUrl(
   key: string,
   fileName?: string,
-  expiresInSeconds = 3600
+  expiresInSeconds = 300,
+  disposition: 'attachment' | 'inline' = 'attachment'
 ): Promise<string> {
   const client = getR2Client();
   if (!client) {
@@ -125,7 +126,9 @@ export async function getPresignedDownloadUrl(
   const command = new GetObjectCommand({
     Bucket: bucketName,
     Key: cleanKey,
-    ResponseContentDisposition: fileName ? `attachment; filename="${fileName}"` : undefined,
+    ResponseContentDisposition: fileName
+      ? `${disposition}; filename="${fileName.replace(/[\r\n"\\]/g, '_')}"; filename*=UTF-8''${encodeURIComponent(fileName)}`
+      : disposition,
   });
 
   return await getSignedUrl(client, command, { expiresIn: expiresInSeconds });

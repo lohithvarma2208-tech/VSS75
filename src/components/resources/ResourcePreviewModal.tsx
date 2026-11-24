@@ -4,7 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { X, Download, FileText, Code2, BookOpen, Presentation, Archive, Sparkles, ExternalLink } from 'lucide-react';
 import { Resource } from '@/types';
-import { formatBytes, triggerBrowserDownload, dataUrlToBlob, triggerBlobDownload } from '@/lib/utils';
+import { formatBytes, triggerBrowserDownload, dataUrlToBlob, triggerBlobDownload, r2DeliveryUrl } from '@/lib/utils';
 import { getUploadedFile } from '@/lib/storage/file-storage';
 import { MockStorageManager } from '@/lib/storage/mock-store';
 import { useApp } from '@/lib/context/AppContext';
@@ -70,18 +70,19 @@ export default function ResourcePreviewModal({
   };
 
   const isCode = ['java', 'py', 'c', 'cpp', 'v', 'txt'].includes(resource.file_type);
+  const inlineDocumentSource = r2DeliveryUrl(resource.file_data_url || resource.file_url || '', 'inline');
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-150">
-      <div className="relative w-full max-w-3xl rounded-[2.5rem] bg-[#0D1527] shadow-2xl border border-white/15 overflow-hidden flex flex-col max-h-[90vh] text-white">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/80 backdrop-blur-md sm:items-center sm:p-4">
+      <div className="relative flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-t-[1.75rem] border border-white/10 bg-[#111115] text-white shadow-2xl sm:rounded-[1.75rem]">
         {/* Modal Header */}
-        <div className="flex items-center justify-between p-6 border-b border-white/10">
-          <div className="flex items-center gap-3.5">
-            <div className="p-3 rounded-2xl bg-purple-500/15 text-[#D8B4FE] border border-purple-500/30">
+        <div className="flex items-center justify-between gap-3 border-b border-white/10 p-4 sm:p-5">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="shrink-0 rounded-xl border border-purple-500/20 bg-purple-500/10 p-2.5 text-[#D8B4FE]">
               {isCode ? <Code2 className="h-5 w-5" /> : <FileText className="h-5 w-5" />}
             </div>
-            <div>
-              <div className="flex items-center gap-2">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 overflow-hidden">
                 <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-purple-500/15 text-[#D8B4FE]">
                   {resource.category}
                 </span>
@@ -91,7 +92,7 @@ export default function ResourcePreviewModal({
                 <span className="text-xs text-white/40">•</span>
                 <span className="text-xs text-white/50">{formatBytes(resource.file_size)}</span>
               </div>
-              <h3 className="font-bold text-base text-white line-clamp-1 mt-1">
+              <h3 className="mt-1 truncate text-sm font-bold text-white sm:text-base">
                 {resource.title}
               </h3>
             </div>
@@ -107,7 +108,7 @@ export default function ResourcePreviewModal({
         </div>
 
         {/* Modal Body / Document Previewer */}
-        <div className="flex-1 overflow-y-auto p-6 bg-[#0B0F19]/90 font-sans space-y-4">
+        <div className="flex-1 space-y-4 overflow-y-auto bg-[#0B0F19]/90 p-3 font-sans sm:p-5">
           <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10 text-xs flex flex-wrap items-center justify-between gap-2">
             <div>
               <span className="font-bold text-white/70">File: </span>
@@ -133,8 +134,8 @@ export default function ResourcePreviewModal({
                 </Link>
               </div>
               <iframe
-                src={resource.file_data_url || resource.file_url || '/samples/23CS2101_Exp5_AVL_Trees_LabRecord.pdf'}
-                className="w-full h-80 rounded-2xl border border-white/10 bg-black/50"
+                src={inlineDocumentSource}
+                className="h-[55vh] min-h-[360px] w-full rounded-xl border border-white/10 bg-white"
                 title={resource.file_name}
               />
             </div>
@@ -188,23 +189,23 @@ export default function ResourcePreviewModal({
         </div>
 
         {/* Modal Footer */}
-        <div className="flex items-center justify-between p-5 bg-[#0D1527] border-t border-white/10">
-          <p className="text-[11px] text-white/50 font-medium">
+        <div className="flex items-center justify-end gap-2 border-t border-white/10 bg-[#111115] p-3 sm:p-4">
+          <p className="mr-auto hidden text-[10px] font-medium text-white/40 sm:block">
             For academic study & reference only. Respect KLU honor code.
           </p>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <button
               onClick={onClose}
-              className="px-5 py-2.5 rounded-full border border-white/20 text-xs font-bold text-white hover:bg-white/10 transition"
+              className="rounded-full border border-white/15 px-4 py-2.5 text-xs font-bold text-white hover:bg-white/10"
             >
               Close
             </button>
             <button
               onClick={handleDownload}
-              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-gradient-to-r from-[#8B5CF6] to-[#3B82F6] hover:from-[#7C3AED] hover:to-[#2563EB] text-white text-xs font-extrabold shadow-lg shadow-indigo-500/30 transition"
+              className="inline-flex items-center gap-2 rounded-full bg-violet-500 px-4 py-2.5 text-xs font-extrabold text-white hover:bg-violet-400"
             >
               <Download className="h-3.5 w-3.5" />
-              <span>Download ({formatBytes(resource.file_size)})</span>
+              <span>Download</span>
             </button>
           </div>
         </div>

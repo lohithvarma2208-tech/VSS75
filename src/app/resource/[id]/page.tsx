@@ -21,7 +21,7 @@ import {
 import { Resource } from '@/types';
 import { MockStorageManager } from '@/lib/storage/mock-store';
 import { Badge } from '@/components/ui/Badge';
-import { formatBytes, formatDate, triggerBrowserDownload, dataUrlToBlob, triggerBlobDownload } from '@/lib/utils';
+import { formatBytes, formatDate, triggerBrowserDownload, dataUrlToBlob, triggerBlobDownload, r2DeliveryUrl } from '@/lib/utils';
 import { getUploadedFile } from '@/lib/storage/file-storage';
 import { useApp } from '@/lib/context/AppContext';
 import ReportModal from '@/components/resources/ReportModal';
@@ -105,6 +105,8 @@ export default function ResourceDetailPage() {
 
   const isLiked = likedIds.includes(resource.id);
   const isSaved = savedIds.includes(resource.id);
+  const documentSource = previewSrc || resource.file_data_url || resource.file_url || '';
+  const inlineDocumentSource = r2DeliveryUrl(documentSource, 'inline');
 
   const handleDownload = async () => {
     MockStorageManager.incrementDownload(resource.id);
@@ -268,7 +270,7 @@ export default function ResourceDetailPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <a
-                      href={previewSrc || resource.file_data_url || resource.file_url || '/samples/23CS2101_Exp5_AVL_Trees_LabRecord.pdf'}
+                      href={inlineDocumentSource}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="px-3 py-1 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs font-bold flex items-center gap-1 transition"
@@ -285,8 +287,8 @@ export default function ResourceDetailPage() {
                   </div>
                 </div>
                 <iframe
-                  src={previewSrc || resource.file_data_url || resource.file_url || '/samples/23CS2101_Exp5_AVL_Trees_LabRecord.pdf'}
-                  className="w-full h-[550px] bg-[#070A11] border-none"
+                  src={inlineDocumentSource}
+                  className="h-[62vh] min-h-[420px] w-full border-none bg-white"
                   title={resource.file_name}
                 />
               </div>

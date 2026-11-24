@@ -44,6 +44,8 @@ async function uploadToR2Storage(file: File, resourceId: string): Promise<string
         const json = await res.json();
         if (json.ok && json.url) return json.url;
       }
+      const failure = await res.json().catch(() => ({}));
+      throw new Error(failure.error || 'The file could not be uploaded.');
     } else {
       const presignRes = await fetch('/api/r2/upload', {
         method: 'POST',
@@ -51,6 +53,7 @@ async function uploadToR2Storage(file: File, resourceId: string): Promise<string
         body: JSON.stringify({
           fileName: file.name,
           contentType: file.type || 'application/pdf',
+          fileSize: file.size,
           resourceId,
         }),
       });
@@ -63,13 +66,17 @@ async function uploadToR2Storage(file: File, resourceId: string): Promise<string
             body: file,
           });
           if (putRes.ok) return finalUrl;
+          throw new Error('Cloudflare rejected the file upload. Please retry.');
         }
       }
+      const failure = await presignRes.json().catch(() => ({}));
+      throw new Error(failure.error || 'The upload link could not be created.');
     }
   } catch (err) {
-    console.warn('[R2 Upload] Cloudflare R2 storage skipped, using local persistence', err);
+    console.warn('[R2 Upload] Upload failed', err);
+    throw err instanceof Error ? err : new Error('Upload failed. Please try again.');
   }
-  return null;
+  throw new Error('Upload failed. Please try again.');
 }
 
 export default function UploadPage() {
@@ -78,7 +85,6 @@ export default function UploadPage() {
   const { currentUser, showToast } = useApp();
   const [academic, setAcademic] = useState<AcademicContext | null>(null);
   const [file, setFile] = useState<File | null>(null);
-  const [fileDataUrl, setFileDataUrl] = useState<string>('');
   const [title, setTitle] = useState('');
   const [note, setNote] = useState('');
   const [courseCode, setCourseCode] = useState('');
@@ -107,11 +113,6 @@ export default function UploadPage() {
     if (!ALLOWED_EXTENSIONS.includes(extension)) { setError('That file type is not supported yet.'); return; }
     setError(''); setFile(next);
 
-    // Read authentic binary as Data URL for direct PDF & Office document previews/downloads
-    const reader = new FileReader();
-    reader.onload = (e) => setFileDataUrl(e.target?.result as string);
-    reader.readAsDataURL(next);
-
     if (!title) setTitle(next.name.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim());
   }
 
@@ -123,21 +124,6 @@ export default function UploadPage() {
     if (title.trim().length < 3) { setError('Add a short title.'); return; }
     setSubmitting(true);
 
-    let dataUrl = fileDataUrl;
-    if (!dataUrl && typeof window !== 'undefined') {
-      try {
-        dataUrl = await new Promise<string>((resolve) => {
-          const r = new FileReader();
-          r.onload = () => resolve((r.result as string) || '');
-          r.onerror = () => resolve('');
-          r.readAsDataURL(file);
-        });
-      } catch {
-        // fallback to blob url
-      }
-    }
-
-    const objectUrl = typeof window !== 'undefined' ? URL.createObjectURL(file) : '';
     const inferred = inferResource(file, title, selectedCourse);
     const extension = file.name.split('.').pop()?.toLowerCase() || 'pdf';
     let preview = '';
@@ -163,7 +149,15 @@ export default function UploadPage() {
 
     const pendingResourceId = `res-${Date.now()}`;
     // Attempt persistent Cloudflare R2 upload for multi-device global access
-    const r2Url = await uploadToR2Storage(file, pendingResourceId);
+    let r2Url: string;
+    try {
+      r2Url = await uploadToR2Storage(file, pendingResourceId) || '';
+      if (!r2Url) throw new Error('Upload failed. Please try again.');
+    } catch (failure) {
+      setError(failure instanceof Error ? failure.message : 'Upload failed. Please try again.');
+      setSubmitting(false);
+      return;
+    }
 
     const created = MockStorageManager.addResource({
       title: title.trim(),
@@ -175,8 +169,7 @@ export default function UploadPage() {
       academic_year: academic?.academicYear || currentUser.academic_year || '',
       resource_type: inferred.type,
       file_name: file.name,
-      file_url: r2Url || dataUrl || objectUrl || `/samples/${file.name}`,
-      file_data_url: dataUrl || undefined,
+      file_url: r2Url,
       file_size: file.size,
       file_type: (ALLOWED_EXTENSIONS.includes(extension) ? extension : 'pdf') as ResourceFileType,
       file_content_preview: preview || undefined,
@@ -189,15 +182,10 @@ export default function UploadPage() {
       status: 'approved',
     });
 
-    // Store complete authentic file in IndexedDB & Memory Cache under multiple lookup keys
+    // Keep a local cache for instant same-device preview; R2 remains the source of truth.
     await storeUploadedFile(created.id, file);
     await storeUploadedFile(file.name, file);
     if (created.file_name !== file.name) await storeUploadedFile(created.file_name, file);
-    if (dataUrl) {
-      await storeUploadedFile(`${created.id}_data_url`, dataUrl);
-      await storeUploadedFile(`${file.name}_data_url`, dataUrl);
-      if (created.file_name !== file.name) await storeUploadedFile(`${created.file_name}_data_url`, dataUrl);
-    }
 
     setSubmitting(false);
     if (created.status === 'rejected') { setDuplicate(created); setError(created.rejection_reason || 'This file already exists.'); return; }
