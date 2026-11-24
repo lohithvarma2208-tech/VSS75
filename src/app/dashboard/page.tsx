@@ -34,7 +34,7 @@ import BadgeShelf from '@/components/profile/BadgeShelf';
 import { getStudentBadges } from '@/lib/badges';
 
 export default function DashboardPage() {
-  const { currentUser, showToast, openVerifyModal, savedRequestIds, openBenefitsAd } = useApp();
+  const { currentUser, showToast, openVerifyModal, savedRequestIds } = useApp();
   const [resources, setResources] = useState<Resource[]>([]);
   const [requests, setRequests] = useState<ResourceRequest[]>([]);
   const [offers, setOffers] = useState<RequestOffer[]>([]);
@@ -47,18 +47,6 @@ export default function DashboardPage() {
 
   useEffect(() => {
     loadData();
-
-    // Trigger the benefits ad modal strictly AFTER sign in or sign up when user lands on dashboard
-    if (typeof window !== 'undefined') {
-      const shouldShow = sessionStorage.getItem('vss_show_benefits_ad');
-      if (shouldShow === 'true') {
-        sessionStorage.removeItem('vss_show_benefits_ad');
-        sessionStorage.setItem('vss_seen_benefits_ad', 'true');
-        setTimeout(() => {
-          openBenefitsAd();
-        }, 350);
-      }
-    }
 
     const handleResChange = () => setResources(MockStorageManager.getResources());
     const handleReqChange = () => setRequests(MockStorageManager.getResourceRequests());
@@ -150,13 +138,6 @@ export default function DashboardPage() {
             <Trophy className="h-4 w-4 text-amber-400" />
             <span>Leaderboard</span>
           </Link>
-          <button
-            onClick={openBenefitsAd}
-            className="px-5 py-3.5 rounded-full border border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 text-xs sm:text-sm font-extrabold shadow-md transition active:scale-95 flex items-center gap-2"
-          >
-            <Sparkles className="h-4 w-4 text-amber-300" />
-            <span>Why Be Active? (Ad)</span>
-          </button>
           <Link
             href="/upload"
             className="px-7 py-3.5 rounded-full bg-gradient-to-r from-[#8B5CF6] to-[#3B82F6] hover:from-[#7C3AED] hover:to-[#2563EB] text-white text-xs sm:text-sm font-extrabold shadow-lg shadow-indigo-500/30 transition active:scale-95 flex items-center gap-2"

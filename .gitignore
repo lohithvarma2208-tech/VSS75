@@ -29,3 +29,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# agent and editor artifacts
+.llm-wiki-memory
+.turbo
+*.log
+

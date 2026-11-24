@@ -115,40 +115,38 @@ export default function ProjectsPage() {
   };
 
   return (
-    <div className="mx-auto max-w-7xl space-y-7 px-4 py-7 sm:px-8 sm:py-10 lg:px-12">
+    <div className="mx-auto max-w-6xl space-y-7 px-4 py-8 sm:px-7 sm:py-12">
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <span className="text-[11px] font-bold uppercase tracking-wider text-[#C084FC] font-mono">
-            Engineering Innovations
-          </span>
-          <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight mt-1">
-            Project Showcase
+          <p className="vss-kicker">Showcase & portfolio</p>
+          <h1 className="mt-2 text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
+            Student Projects
           </h1>
-          <p className="text-xs sm:text-sm text-white/70 mt-1 font-normal">
-            Discover student-built Capstone Major Projects, DTIE Prototypes, Hackathon submissions, and Hardware setups.
+          <p className="mt-2 text-xs sm:text-sm text-white/50 max-w-xl font-normal leading-relaxed">
+            Capstone major projects, mini-projects, hackathon prototypes, and hardware engineering builds.
           </p>
         </div>
 
         <button
           onClick={() => setIsCreateModalOpen(true)}
-          className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-gradient-to-r from-[#8B5CF6] to-[#3B82F6] hover:from-[#7C3AED] hover:to-[#2563EB] text-white text-xs sm:text-sm font-extrabold shadow-lg shadow-indigo-500/30 transition active:scale-95"
+          className="vss-button inline-flex items-center gap-2"
         >
           <Plus className="h-4 w-4" />
-          <span>Showcase Project</span>
+          <span>Publish Project</span>
         </button>
       </div>
 
       {/* Filters and Search */}
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
-          <Search className="absolute left-4 top-3.5 h-4 w-4 text-white/50" />
+          <Search className="absolute left-4 top-3.5 h-4 w-4 text-white/35" />
           <input
             type="text"
-            placeholder="Search projects by title, tech stack (e.g. YOLO, ROS2, React), or author..."
+            placeholder="Search projects by title, tech stack (e.g. YOLO, React, ROS2)..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full h-11 rounded-full border border-white/15 bg-[#131B2E] pl-11 pr-4 text-xs sm:text-sm text-white placeholder-white/50 focus:border-purple-500 focus:outline-none shadow-card"
+            className="w-full h-11 rounded-2xl border border-white/[0.08] bg-[#121214] pl-11 pr-4 text-xs sm:text-sm text-white placeholder-white/30 focus:border-violet-400/50 focus:outline-none transition"
           />
         </div>
 
@@ -160,8 +158,8 @@ export default function ProjectsPage() {
               onClick={() => setSelectedCategory(cat)}
               className={`px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition ${
                 selectedCategory === cat
-                  ? 'bg-gradient-to-r from-[#8B5CF6] to-[#3B82F6] text-white font-extrabold shadow-md shadow-indigo-500/25'
-                  : 'bg-[#131B2E] text-white/80 hover:bg-[#1A243B] hover:text-[#D8B4FE] border border-white/10'
+                  ? 'bg-white text-black font-extrabold shadow-sm'
+                  : 'bg-white/[0.04] text-white/70 hover:bg-white/[0.08] hover:text-white border border-white/[0.08]'
               }`}
             >
               {cat}
@@ -172,15 +170,17 @@ export default function ProjectsPage() {
 
       {/* Project Cards Grid */}
       {filteredProjects.length === 0 ? (
-        <div className="p-16 text-center rounded-[2.5rem] border border-dashed border-white/15 bg-[#131B2E]/50">
-          <Layers className="h-12 w-12 text-white/30 mx-auto mb-3" />
+        <div className="vss-card p-14 text-center">
+          <div className="mx-auto mb-4 grid h-12 w-12 place-items-center rounded-2xl bg-white/[0.05] text-white/40">
+            <Layers className="h-6 w-6" />
+          </div>
           <h3 className="text-base font-bold text-white">No student projects published yet</h3>
-          <p className="text-xs text-white/50 max-w-md mx-auto mt-1 mb-6 leading-relaxed">
+          <p className="mt-1.5 text-xs text-white/45 max-w-md mx-auto leading-relaxed">
             Be the first to publish a capstone project, mini-project, or hackathon build to the campus directory.
           </p>
           <button
             onClick={() => setIsCreateModalOpen(true)}
-            className="px-6 py-2.5 rounded-full bg-gradient-to-r from-[#8B5CF6] to-[#3B82F6] text-white text-xs font-extrabold shadow-md shadow-indigo-500/25 transition"
+            className="vss-button mt-6 inline-flex"
           >
             Publish Project
           </button>
@@ -190,7 +190,7 @@ export default function ProjectsPage() {
         {filteredProjects.map((proj) => (
           <div
             key={proj.id}
-            className="rounded-[2.5rem] border border-white/10 bg-[#131B2E]/80 p-7 shadow-card hover:border-purple-500/50 hover:bg-[#1A243B] transition-all flex flex-col justify-between"
+            className="vss-card vss-card-hover p-6 sm:p-7 flex flex-col justify-between"
           >
             <div className="space-y-3.5">
               <div className="flex items-center justify-between gap-2">

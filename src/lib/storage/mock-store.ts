@@ -21,25 +21,25 @@ import {
 import { SAMPLE_RESOURCES } from '@/lib/data/sample-data';
 
 const STORAGE_KEYS = {
-  RESOURCES: 'vss_resources_v3',
-  PROJECTS: 'vss_projects_v3',
-  COMMENTS: 'vss_comments_v3',
-  REPORTS: 'vss_reports_v3',
-  BOOKMARKS: 'vss_bookmarks_v3',
-  LIKED_RESOURCES: 'vss_liked_v3',
-  CURRENT_USER: 'vss_current_user_v3',
-  NOTIFICATIONS: 'vss_notifications_v3',
-  OTP_PENDING: 'vss_otp_pending_v3',
-  REQUESTS: 'vss_requests_v3',
-  OFFERS: 'vss_offers_v3',
-  RESPONSES: 'vss_responses_v3',
-  SAVED_REQUESTS: 'vss_saved_requests_v3',
-  REQUEST_REPORTS: 'vss_request_reports_v3',
-  SECURITY_AUDIT_LOGS: 'vss_security_audit_logs_v3',
-  RATE_LIMIT: 'vss_rate_limits_v3',
-  REFERRAL_CODES: 'vss_referral_codes_v3',
-  REGISTERED_USERS: 'vss_registered_users_v3',
-  ANNOUNCEMENT: 'vss_platform_announcement_v3',
+  RESOURCES: 'vss_resources_v4',
+  PROJECTS: 'vss_projects_v4',
+  COMMENTS: 'vss_comments_v4',
+  REPORTS: 'vss_reports_v4',
+  BOOKMARKS: 'vss_bookmarks_v4',
+  LIKED_RESOURCES: 'vss_liked_v4',
+  CURRENT_USER: 'vss_current_user_v4',
+  NOTIFICATIONS: 'vss_notifications_v4',
+  OTP_PENDING: 'vss_otp_pending_v4',
+  REQUESTS: 'vss_requests_v4',
+  OFFERS: 'vss_offers_v4',
+  RESPONSES: 'vss_responses_v4',
+  SAVED_REQUESTS: 'vss_saved_requests_v4',
+  REQUEST_REPORTS: 'vss_request_reports_v4',
+  SECURITY_AUDIT_LOGS: 'vss_security_audit_logs_v4',
+  RATE_LIMIT: 'vss_rate_limits_v4',
+  REFERRAL_CODES: 'vss_referral_codes_v4',
+  REGISTERED_USERS: 'vss_registered_users_v4',
+  ANNOUNCEMENT: 'vss_platform_announcement_v4',
 };
 
 // Initial Resource Requests, Offers, Comments, Reports, Notifications
@@ -58,64 +58,15 @@ export class MockStorageManager {
   static removeLegacyDemoData(): void {
     if (!this.isBrowser()) return;
 
-    // Remove legacy v2 keys
-    if (localStorage.getItem('vss_demo_cleanup_v1') !== 'done') {
-      Array.from({ length: localStorage.length }, (_, index) => localStorage.key(index))
-        .filter((key): key is string => Boolean(key?.startsWith('vss_') && key.endsWith('_v2')))
-        .forEach((key) => localStorage.removeItem(key));
-      localStorage.setItem('vss_demo_cleanup_v1', 'done');
-    }
+    // Purge any legacy keys (v1, v2, v3, demo, or unversioned) from localStorage
+    Array.from({ length: localStorage.length }, (_, index) => localStorage.key(index))
+      .filter((key): key is string => Boolean(key && key.startsWith('vss_') && !key.endsWith('_v4')))
+      .forEach((key) => localStorage.removeItem(key));
 
-    // Complete purge of all previous user test uploads across the platform
-    if (localStorage.getItem('vss_purge_all_uploads_v2') !== 'done') {
+    if (typeof window !== 'undefined' && window.indexedDB) {
       try {
-        localStorage.setItem(STORAGE_KEYS.RESOURCES, JSON.stringify(SAMPLE_RESOURCES));
-        if (typeof window !== 'undefined' && window.indexedDB) {
-          window.indexedDB.deleteDatabase('vss_files_db_v1');
-        }
-      } catch (e) {
-        console.warn('Error purging previous uploads', e);
-      }
-      localStorage.setItem('vss_purge_all_uploads_v2', 'done');
-      window.dispatchEvent(new Event('klu_resources_change'));
-    }
-
-    // Complete purge of all fake/mock uploads and details across the platform
-    if (localStorage.getItem('vss_purge_fake_details_v3') !== 'done') {
-      try {
-        localStorage.setItem(STORAGE_KEYS.RESOURCES, '[]');
-        localStorage.setItem(STORAGE_KEYS.PROJECTS, '[]');
-        localStorage.setItem(STORAGE_KEYS.REQUESTS, '[]');
-        localStorage.setItem(STORAGE_KEYS.OFFERS, '[]');
-        localStorage.setItem(STORAGE_KEYS.RESPONSES, '[]');
-        localStorage.setItem(STORAGE_KEYS.COMMENTS, '[]');
-        localStorage.setItem(STORAGE_KEYS.REPORTS, '[]');
-        localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, '[]');
-        localStorage.setItem(STORAGE_KEYS.BOOKMARKS, '[]');
-        localStorage.setItem(STORAGE_KEYS.LIKED_RESOURCES, '[]');
-
-        const currentUserStr = localStorage.getItem(STORAGE_KEYS.CURRENT_USER);
-        if (currentUserStr) {
-          try {
-            const u = JSON.parse(currentUserStr);
-            if (u.username === 'shadow_scholar_01' || u.id === 'usr-student-01' || (u.full_name && u.full_name.includes('ShadowScholar'))) {
-              localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
-            }
-          } catch {
-            localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
-          }
-        }
-
-        if (typeof window !== 'undefined' && window.indexedDB) {
-          window.indexedDB.deleteDatabase('vss_files_db_v1');
-        }
-      } catch (e) {
-        console.warn('Error purging fake data', e);
-      }
-      localStorage.setItem('vss_purge_fake_details_v3', 'done');
-      window.dispatchEvent(new Event('klu_resources_change'));
-      window.dispatchEvent(new Event('klu_requests_change'));
-      window.dispatchEvent(new Event('klu_auth_change'));
+        window.indexedDB.deleteDatabase('vss_files_db_v1');
+      } catch {}
     }
   }
 
@@ -153,24 +104,7 @@ export class MockStorageManager {
       const data = localStorage.getItem(STORAGE_KEYS.RESOURCES);
       if (data) {
         const parsed = JSON.parse(data);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          const cleaned = parsed.filter(
-            (r: Resource) =>
-              !r.id.startsWith('res-test-') &&
-              !r.id.startsWith('res-rejected-') &&
-              !r.id.startsWith('res-dsa-') &&
-              !r.id.startsWith('res-klu-') &&
-              r.author_username !== 'shadow_scholar_01' &&
-              r.author_name !== 'ShadowScholar_01' &&
-              r.author_name !== 'NeuralViper_X' &&
-              r.author_name !== 'Academic Affairs Peer Lead' &&
-              r.author_name !== 'KLU Hardware Enthusiast'
-          );
-          if (cleaned.length !== parsed.length) {
-            localStorage.setItem(STORAGE_KEYS.RESOURCES, JSON.stringify(cleaned));
-          }
-          return cleaned;
-        }
+        if (Array.isArray(parsed)) return parsed;
       }
       localStorage.setItem(STORAGE_KEYS.RESOURCES, '[]');
       return [];

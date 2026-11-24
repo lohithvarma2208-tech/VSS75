@@ -1,128 +1,126 @@
-# VSS75 — Virtual Student Space (Campus Academic Knowledge Network)
+# VSS — Virtual Student Space
 
-> **VSS75 MISSION**: Transforming scattered, ephemeral coursework into a permanent, discoverable, collegiate knowledge repository for KL University students.
+> **The student resource space for KL University (KLEF)**  
+> Production deployment: [https://klu-vss.vercel.app](https://klu-vss.vercel.app)
 
-**Virtual Student Space (VSS)** is a student academic resource-sharing platform built primarily for students of **KL University (KLU), India**.
-
-It transforms scattered, ephemeral coursework—previously lost across WhatsApp groups, Telegram chats, and private drives—into a permanent, discoverable, collegiate knowledge repository.
-
----
-
-## 🏛️ Product Overview & Architecture
-
-### The Peer Learning Cycle
-```
-STUDENT CREATES ➔ STUDENT SHARES ➔ OTHERS LEARN ➔ OTHERS IMPROVE ➔ OTHERS CONTRIBUTE
-```
-
-Virtual Student Space is designed specifically for peer academic reference, conceptual analysis, and research collaboration.
-
-### Supported Academic Categories:
-1. **Assignments & Problem Sets**
-2. **Programming Repositories & Algorithmic Solutions**
-3. **Lab Records & Formatted Observations**
-4. **Lab Experiments & Procedures**
-5. **Mini Projects**
-6. **Major Projects (Capstone)**
-7. **DTIE Projects (Design Thinking & Innovation in Engineering)**
-8. **Mathematics & Graph Theory Guides**
-9. **Handwritten Lecture & Unit Notes**
-10. **Presentations & Defense Slide Decks**
-11. **Technical Reports & Case Studies**
-12. **Study Resources & Previous Year Exam Questions (PYQs)**
-13. **Other Academic Toolchains & Guides**
+VSS is a peer-to-peer collegiate academic sharing platform built for KL University students. It enables verified students to share authentic lecture notes, lab records, previous year exam solutions, and project repositories.
 
 ---
 
-## 🚀 Tech Stack
-
-- **Framework**: Next.js 16 with App Router
-- **Language**: TypeScript (Strict typing)
-- **Styling**: Tailwind CSS with custom university collegiate theme & `Plus Jakarta Sans` + `JetBrains Mono` fonts
-- **Background Video Engine**: Multi-theme ambient video background with "The Vault of Knowledge" 10s Full HD loop
-- **Icons**: Lucide Icons
-- **PDF Suite**: PDF Studio Pro with multi-page annotation, handwritten signatures, whiteout redaction, and PDF merging/splitting
-- **Database / Backend Integration**: PostgreSQL / Supabase ready (`supabase/migrations/` and `seed.sql` included)
-- **State & Local Offline Engine**: Dynamic hybrid store with reactive browser persistence and instant demo mode
-- **Form Validation**: Zod & custom validation guards
-
----
-
-## 📁 Project Directory Structure
+## 🏛️ System Architecture & Directory Layout
 
 ```
-C:\Users\LOHITH\Documents\VSS75/
-├── .env.example              # Environment variables template
-├── .env.local                # Local environment setup
-├── package.json              # Project dependencies & scripts
-├── tsconfig.json             # TypeScript compiler configuration
-├── tailwind.config.ts        # Tailwind configuration & theme
-├── postcss.config.mjs        # PostCSS configuration
-├── next.config.mjs           # Next.js configuration
+vss75-deploy/
+├── .github/
+│   └── workflows/
+│       └── ci.yml             # GitHub Actions CI for automated build & typecheck
 ├── public/
-│   ├── samples/              # Sample downloadable coursework files
-│   ├── images/               # Key visuals & static hero graphics
-│   └── videos/               # Ambient looping videos including "The Vault of Knowledge"
-├── supabase/
-│   ├── migrations/
-│   │   ├── 20240101000000_init_schema.sql       # Full PostgreSQL DDL + RLS Policies
-│   │   └── 20240102000000_resource_requests.sql  # Coursework requests & offers schema
-│   └── seed.sql              # Rich sample data for KLU courses & categories
-└── src/
-    ├── app/
-    │   ├── layout.tsx        # Root layout with AppProvider, Navbar & Footer
-    │   ├── page.tsx          # Landing page (Hero, Categories, Cycle, Trending)
-    │   ├── explore/          # Search, category filters, course & semester sorting
-    │   ├── resource/[id]/    # Dedicated resource page, preview, download, comments
-    │   ├── requests/         # Academic bounty board & resource request system
-    │   ├── leaderboard/      # Academic Heads Leaderboard & top contributors
-    │   ├── pdf-studio/       # PDF Studio Pro document workspace
-    │   ├── upload/           # Drag-and-drop file upload with validation
-    │   ├── projects/         # Capstone, DTIE, Mini, and Hackathon showcase
-    │   ├── notes/            # Module-wise handwritten notes & study resources
-    │   ├── dashboard/        # Student dashboard with analytics & user uploads
-    │   ├── profile/[user]/   # Public student profile with editable bio
-    │   ├── saved/            # Bookmarks & saved resources hub
-    │   ├── admin/            # Protected moderation desk & report audit queue
-    │   └── auth/             # ERP sign-in, private profile, demo access and registration
-    ├── components/
-    │   ├── layout/           # Navbar, Footer
-    │   ├── common/           # AmbientBackgroundLayer, BackgroundVideo, VideoThemeSwitcher
-    │   ├── pdf-studio/       # Canvas, Exporter, Toolbars, Signature modal
-    │   ├── requests/         # Bounty cards, discussion, offer modals
-    │   ├── resources/        # ResourceCard, PreviewModal, ReportModal, Comments
-    │   └── ui/               # Badge, Toast
-    ├── lib/
-    │   ├── context/          # AppContext & reactive state
-    │   ├── data/             # Sample KLU courses & realistic demo dataset
-    │   ├── storage/          # Mock storage engine (offline fallback + storage)
-    │   ├── supabase/         # Supabase client & server connectors
-    │   ├── validation/       # Zod upload schemas
-    │   └── utils.ts          # Utility functions
-    └── types/
-        └── index.ts          # Comprehensive TypeScript interface definitions
+│   ├── images/                # Logos and static visual assets
+│   ├── samples/               # Static academic sample files (PDF, Java, Python, Verilog)
+│   └── pdf.worker.min.js      # PDF.js worker for client-side rendering
+├── scripts/
+│   ├── README.md              # Documentation for repository scripts
+│   ├── generate_all_authentic_pdfs.js  # Utility to generate multi-page course PDFs
+│   └── sync_all_to_r2.js      # Utility to sync local samples to Cloudflare R2
+├── src/
+│   ├── app/                   # Next.js 16 App Router pages & server routes
+│   │   ├── (routes)/          # Frontend pages (/notes, /explore, /upload, /dashboard, etc.)
+│   │   └── api/
+│   │       ├── auth/          # ERP authentication & session endpoints
+│   │       └── r2/            # Cloudflare R2 object storage integration
+│   │           ├── upload/    # Presigned upload & multipart streaming route
+│   │           ├── download/  # Byte-for-byte original PDF delivery (presigned / proxy)
+│   │           └── health/    # R2 configuration & status health check
+│   ├── components/
+│   │   ├── auth/              # Campus ERP & student verification modals
+│   │   ├── common/            # Shared badges, avatars, and verified indicators
+│   │   ├── layout/            # Navbar, footer, and shell navigation
+│   │   ├── requests/          # Discussion threads, request forms, and offer modals
+│   │   ├── resources/         # Resource cards, preview modal, and comments section
+│   │   └── ui/                # Toast notifications and base primitives
+│   ├── lib/
+│   │   ├── context/           # AppContext (global user state, toast, modal controls)
+│   │   ├── data/              # Official KLU course lists (klu-courses.ts, sample-data.ts)
+│   │   ├── erp/               # KL University ERP scraper and session validator
+│   │   └── storage/
+│   │       ├── file-storage.ts# Client-side IndexedDB binary blob caching
+│   │       └── mock-store.ts  # Client storage layer (vss_*_v4 keys & events)
+│   └── types/
+│       └── index.ts           # Shared TypeScript interfaces (Resource, UserProfile, etc.)
+├── .env.example               # Environment variables template
+├── next.config.mjs            # Next.js configuration (Turbopack optimization)
+├── tailwind.config.ts         # Tailwind CSS styling configuration
+└── tsconfig.json              # TypeScript strict configuration
 ```
 
 ---
 
-## ⚡ Running the Application Locally
+## ⚙️ Core Modules & Workflows
+
+### 1. File Storage & Cloudflare R2 Object Delivery
+Uploaded coursework files and notes are stored permanently in a Cloudflare R2 bucket (`klu-vss-files`) using the AWS S3 SDK.
+- **Upload Flow (`/api/r2/upload`)**:
+  - Small files (< 4.5 MB) are streamed directly to R2 via server route.
+  - Large files (> 4.5 MB) receive a presigned S3 PUT URL for direct browser-to-bucket upload.
+  - Supports authenticated ERP student sessions and client-authenticated requests (`x-vss-author-id`).
+- **Download Flow (`/api/r2/download`)**:
+  - Delivers byte-for-byte identical source PDFs directly from R2.
+  - Issues short-lived presigned 307 Temporary Redirects for mobile Safari optimization.
+  - Supports fallback proxy streaming (`?proxy=true`) and client-cached IndexedDB binary delivery.
+- **Health Check (`/api/r2/health`)**:
+  - Returns `200 OK` JSON with bucket status and configuration flags.
+
+### 2. Client Storage & Versioning
+- Local browser state uses namespaced keys versioned as `vss_*_v4` in [mock-store.ts](file:///C:/Users/LOHITH/Documents/vss75-deploy/src/lib/storage/mock-store.ts).
+- `MockStorageManager.removeLegacyDemoData()` automatically purges legacy unversioned or older keys from `localStorage` and cleans the local IndexedDB database.
+- State updates dispatch custom DOM events (`klu_resources_change`, `klu_requests_change`, `klu_auth_change`) for real-time reactivity across components.
+
+### 3. Authentication
+- **KL University ERP Session**: Authenticates against official campus ERP portal endpoints via [src/lib/erp/](file:///C:/Users/LOHITH/Documents/vss75-deploy/src/lib/erp).
+- **Direct Student Login**: Accepts verified student roll numbers with department resolution.
+
+---
+
+## 🚀 Environment Variables
+
+Copy `.env.example` to `.env` or configure in your deployment platform:
+
+```ini
+# Cloudflare R2 Object Storage Configuration
+CLOUDFLARE_ACCOUNT_ID=your-account-id
+R2_ACCESS_KEY_ID=your-access-key-id
+R2_SECRET_ACCESS_KEY=your-secret-access-key
+R2_BUCKET_NAME=klu-vss-files
+
+# Optional: Public R2 Custom Domain
+R2_PUBLIC_DOMAIN=
+
+# Campus Configuration
+NEXT_PUBLIC_ALLOWED_EMAIL_DOMAIN=kluniversity.in
+NEXT_PUBLIC_APP_URL=https://klu-vss.vercel.app
+```
+
+---
+
+## 🛠️ Development & Build Commands
 
 ```bash
-cd C:\Users\LOHITH\Documents\VSS75
+# Install dependencies
+npm install
+
+# Start development server
 npm run dev
+
+# Run TypeScript check and production build
+npm run build
+
+# Start production server
+npm run start
 ```
 
-Open **[http://localhost:3000](http://localhost:3000)** in your browser.
+---
 
-### ERP sign-in
+## 📦 Deployment
 
-Run VSS on Node.js 24 as a single instance over HTTPS in production. Create a private Supabase Storage bucket named vss-erp-sessions with application/json uploads enabled. Then set `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` (use a Supabase publishable key), `SUPABASE_SECRET_KEY`, and `ERP_SESSION_ENCRYPTION_KEY` in the server environment. See `.env.example`.
-
-CAPTCHA challenges expire after three minutes and live in process memory. The private Supabase bucket stores a marker named with the hash of each VSS session token. The student profile is encrypted in the HTTP-only session cookie and lasts one hour. Local development uses in-memory sessions when the Supabase secret key is unset.
-
-On `/auth/login`, load a CAPTCHA, enter your ERP username and password, and type the characters shown. VSS uses those credentials only for the verification request. After ERP confirms the account, VSS displays the name, roll number, and department returned by ERP on `/auth/erp/profile`.
-
-
-### Public Vercel URL
-
-The Vercel project uses the deploy/vercel directory and proxies requests to the Render service. Set ERP_PUBLIC_ORIGIN on Render to the exact HTTPS Vercel production origin. The Next.js app, ERP sessions, and private Supabase credentials stay on Render.
+- **Hosting**: Vercel (Auto-deployed on push to `main` branch).
+- **Git Commit Author**: Commits must use author `Deepthanush1337 <deepthanush3301@icloud.com>` to trigger builds on the linked Vercel team account.

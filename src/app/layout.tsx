@@ -6,7 +6,6 @@ import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import Toast from '@/components/ui/Toast';
 import { CampusVerificationModal } from '@/components/auth/CampusVerificationModal';
-import CampusBenefitsAdModal from '@/components/modals/CampusBenefitsAdModal';
 
 const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['400', '500', '600', '700', '800'], variable: '--font-sans', display: 'swap' });
 const mono = JetBrains_Mono({ subsets: ['latin'], weight: ['400', '500', '600'], variable: '--font-mono', display: 'swap' });
@@ -27,7 +26,6 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           <Footer />
           <Toast />
           <CampusVerificationModal />
-          <CampusBenefitsAdModal />
         </AppProvider>
       </body>
     </html>

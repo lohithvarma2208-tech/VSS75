@@ -12,7 +12,6 @@ import {
 } from 'lucide-react';
 import { CAMPUS_ACADEMIC_HEADS } from '@/lib/data/academic-heads';
 import { useApp } from '@/lib/context/AppContext';
-import BackgroundVideo from '@/components/common/BackgroundVideo';
 
 export default function LeaderboardPage() {
   const { currentUser } = useApp();
@@ -27,9 +26,8 @@ export default function LeaderboardPage() {
   return (
     <div className="mx-auto max-w-7xl space-y-7 px-4 py-7 sm:px-8 sm:py-10 lg:px-12">
       {/* Header Banner */}
-      <div className="rounded-[2.5rem] border border-purple-500/30 bg-gradient-to-r from-purple-950/40 via-[#131B2E] to-indigo-950/40 p-8 sm:p-10 text-white shadow-2xl backdrop-blur-md relative overflow-hidden">
-        {/* Background "The Vault of Knowledge" - Cinematic Master Loop */}
-        <BackgroundVideo src="/videos/vault-of-knowledge.mp4" opacity={0.85} overlayStyle="obsidian" />
+      <div className="rounded-[2rem] border border-white/[0.08] bg-[#121214] p-8 sm:p-10 text-white shadow-xl backdrop-blur-md relative overflow-hidden">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(168,85,247,.16),transparent_40%)]" />
 
         <div className="absolute -top-24 -right-24 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">

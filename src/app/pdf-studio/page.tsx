@@ -39,7 +39,6 @@ import PdfPageCanvas from '@/components/pdf-studio/PdfPageCanvas';
 import PdfSignatureModal from '@/components/pdf-studio/PdfSignatureModal';
 import PdfSearchModal from '@/components/pdf-studio/PdfSearchModal';
 import { exportFinalPdf } from '@/components/pdf-studio/pdf-exporter';
-import BackgroundVideo from '@/components/common/BackgroundVideo';
 
 const REQUIRED_SUBMISSIONS = 5;
 
@@ -501,8 +500,7 @@ export default function PDFStudioPage() {
   if (!isUnlocked) {
     return (
       <div className="min-h-screen bg-transparent flex flex-col items-center justify-center p-6 relative overflow-hidden">
-        {/* Background "The Vault of Knowledge" - Cinematic Master Loop */}
-        <BackgroundVideo src="/videos/vault-of-knowledge.mp4" opacity={0.85} overlayStyle="obsidian" />
+        <div className="absolute inset-0 bg-[#09090b]" />
 
         {/* Ambient atmospheric glows */}
         <div className="absolute top-1/4 -left-20 w-[480px] h-[480px] bg-blue-600/20 rounded-full blur-[140px] pointer-events-none" />
