@@ -263,6 +263,30 @@ export default function AdminDashboard({ administrator, isPasskeyMode }: AdminDa
     }
   };
 
+  const handlePurgeAllResources = async () => {
+    if (!confirm('CAUTION: Permanently purge ALL uploaded documents and metadata from Cloudflare R2 and local storage?')) return;
+    MockStorageManager.clearAllResources();
+    setResources([]);
+    try {
+      await fetch('/api/resources?purge=all', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ purge: 'all' }),
+      });
+    } catch (err) {
+      console.warn('Purge all error:', err);
+    }
+    MockStorageManager.recordSecurityAuditLog({
+      event: 'RESOURCE_MODERATED',
+      masked_erp_id: administrator.registrationNumber,
+      ip_address: '127.0.0.1 (Admin Desk)',
+      user_agent: typeof navigator !== 'undefined' ? navigator.userAgent : 'Admin Dashboard',
+      status: 'SUCCESS',
+      details: 'Admin purged ALL uploaded resources from repository and cloud storage.',
+    });
+    refreshResources();
+  };
+
   const handleClearAuditLogs = () => {
     if (confirm('Are you sure you want to clear all security audit logs?')) {
       MockStorageManager.clearSecurityAuditLogs();
@@ -998,7 +1022,7 @@ export default function AdminDashboard({ administrator, isPasskeyMode }: AdminDa
                 Review, approve, flag, or remove student-uploaded notes, lab manuals, and exam materials.
               </p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <span className="text-xs text-white/40">Filter:</span>
               {(['all', 'approved', 'pending', 'flagged', 'rejected'] as const).map((filter) => (
                 <button
@@ -1013,6 +1037,14 @@ export default function AdminDashboard({ administrator, isPasskeyMode }: AdminDa
                   {filter}
                 </button>
               ))}
+              <button
+                onClick={handlePurgeAllResources}
+                className="px-2.5 py-1 rounded-lg text-xs font-bold text-rose-300 bg-rose-500/10 border border-rose-500/20 hover:bg-rose-500/20 transition flex items-center gap-1 ml-auto sm:ml-2"
+                title="Permanently purge all uploaded resources from R2 and storage"
+              >
+                <Trash2 className="h-3 w-3" />
+                <span>Purge All Files</span>
+              </button>
             </div>
           </div>
 

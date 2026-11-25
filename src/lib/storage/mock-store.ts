@@ -161,6 +161,17 @@ export class MockStorageManager {
     }
   }
 
+  static clearAllResources(): void {
+    if (!this.isBrowser()) return;
+    localStorage.setItem(STORAGE_KEYS.RESOURCES, '[]');
+    if (typeof window !== 'undefined' && window.indexedDB) {
+      try {
+        window.indexedDB.deleteDatabase('vss_files_db_v1');
+      } catch {}
+    }
+    window.dispatchEvent(new Event('klu_resources_change'));
+  }
+
   static mergeSharedResources(shared: Resource[]): void {
     if (!this.isBrowser() || !Array.isArray(shared)) return;
     const deleted = this.getDeletedResourceIds();
@@ -177,7 +188,9 @@ export class MockStorageManager {
         views_count: Math.max(resource.views_count, existing.views_count),
       } : resource;
     });
-    const deviceOnly = local.filter((resource) => !sharedIds.has(resource.id));
+    // Server is the authoritative single source of truth for all cloud shared resources.
+    // If a cloud resource (res-user-) was deleted on the server, drop it locally too! Never resurrect it.
+    const deviceOnly = local.filter((resource) => !sharedIds.has(resource.id) && !resource.id.startsWith('res-user-'));
     this.saveResources([...mergedShared, ...deviceOnly]);
   }
 

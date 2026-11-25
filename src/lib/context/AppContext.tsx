@@ -105,7 +105,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         };
         MockStorageManager.setCurrentUser(user);
         setCurrentUserState(user);
-        syncSharedResources(true).catch((error) => console.warn('[Shared resources] Sync failed', error));
+        loadSharedResources().catch((error) => console.warn('[Shared resources] Load failed', error));
       })
       .catch(() => undefined);
 

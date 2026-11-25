@@ -247,6 +247,35 @@ export async function DELETE(request: NextRequest) {
   const { isAdmin, profile } = await checkAuth(request);
   const searchId = request.nextUrl.searchParams.get('id');
   const body = await request.json().catch(() => null);
+  const isPurgeAll = request.nextUrl.searchParams.get('purge') === 'all' || body?.purge === 'all';
+
+  if (isPurgeAll) {
+    if (!isAdmin) {
+      return NextResponse.json({ error: 'Unauthorized to purge repository.' }, { status: 403 });
+    }
+    try {
+      const allStored = await listJsonFromR2<StoredResource>(PREFIX).catch(() => []);
+      for (const item of allStored) {
+        if (item?.resource?.id) {
+          await deleteFileFromR2(metadataKey(item.resource.id)).catch(() => {});
+          if (item.resource.file_url) {
+            try {
+              const url = new URL(item.resource.file_url, 'https://klu-vss.vercel.app');
+              const fileKey = url.searchParams.get('key');
+              if (fileKey && fileKey.startsWith('resources/')) {
+                await deleteFileFromR2(fileKey).catch(() => {});
+              }
+            } catch {}
+          }
+        }
+      }
+      return NextResponse.json({ success: true, message: 'All uploaded resources permanently purged from cloud storage.' });
+    } catch (err) {
+      console.error('[Purge all error]', err);
+      return NextResponse.json({ error: 'Failed to purge repository.' }, { status: 500 });
+    }
+  }
+
   const targetId = (searchId || body?.id || '').trim();
 
   if (!targetId) {

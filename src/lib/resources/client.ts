@@ -35,10 +35,6 @@ export async function loadSharedResources() {
   return resources;
 }
 
-export async function syncSharedResources(publishLocal = false) {
-  if (publishLocal) {
-    const local = MockStorageManager.getResources().filter(isPublishable);
-    if (local.length) await publishSharedResources(local);
-  }
+export async function syncSharedResources(_publishLocal = false) {
   return loadSharedResources();
 }
