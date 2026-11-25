@@ -34,11 +34,23 @@ function ExploreContent() {
   const [viewLayout, setViewLayout] = useState<'grid' | 'list'>('grid');
 
   useEffect(() => {
-    loadSharedResources().catch(() => {});
+    let mounted = true;
     setResources(MockStorageManager.getResources());
-    const handleUpdate = () => setResources(MockStorageManager.getResources());
+    loadSharedResources()
+      .then((items) => {
+        if (mounted && Array.isArray(items) && items.length > 0) {
+          setResources(items);
+        }
+      })
+      .catch(() => {});
+    const handleUpdate = () => {
+      if (mounted) setResources(MockStorageManager.getResources());
+    };
     window.addEventListener('klu_resources_change', handleUpdate);
-    return () => window.removeEventListener('klu_resources_change', handleUpdate);
+    return () => {
+      mounted = false;
+      window.removeEventListener('klu_resources_change', handleUpdate);
+    };
   }, []);
 
   useEffect(() => {
@@ -52,10 +64,10 @@ function ExploreContent() {
   const visibleCategories = useMemo(() => {
     const found = new Set<ResourceCategory>();
     resources.forEach((resource) => {
-      if (academic && resource.semester === academic.semester && (!relevantCourseCodes.size || relevantCourseCodes.has(resource.course_code))) found.add(resource.category);
+      if (resource.status === 'approved') found.add(resource.category);
     });
     return ['All', ...Array.from(found)] as (ResourceCategory | 'All')[];
-  }, [resources, academic, relevantCourseCodes]);
+  }, [resources]);
 
   useEffect(() => {
     if (searchParams.get('q')) setSearchQuery(searchParams.get('q') || '');

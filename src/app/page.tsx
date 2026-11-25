@@ -27,11 +27,21 @@ export default function HomePage() {
   const [resources, setResources] = useState<Resource[]>([]);
 
   useEffect(() => {
-    loadSharedResources().catch(() => {});
+    let mounted = true;
     const refresh = () => setResources(MockStorageManager.getResources());
     refresh();
+    loadSharedResources()
+      .then((items) => {
+        if (mounted && Array.isArray(items) && items.length > 0) {
+          setResources(items);
+        }
+      })
+      .catch(() => {});
     window.addEventListener('klu_resources_change', refresh);
-    return () => window.removeEventListener('klu_resources_change', refresh);
+    return () => {
+      mounted = false;
+      window.removeEventListener('klu_resources_change', refresh);
+    };
   }, []);
 
   const academic = currentUser ? readAcademicContext(currentUser) : null;

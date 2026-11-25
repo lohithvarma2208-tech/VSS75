@@ -174,12 +174,28 @@ export class MockStorageManager {
 
   static mergeSharedResources(shared: Resource[]): void {
     if (!this.isBrowser() || !Array.isArray(shared)) return;
+    // Server is the authoritative single source of truth for all cloud shared resources.
+    // If the server returns active resources, clear any stale local deletion tombstones for them.
     const deleted = this.getDeletedResourceIds();
-    const activeShared = shared.filter((resource) => !deleted.has(resource.id));
-    const local = this.getResources().filter((resource) => !deleted.has(resource.id));
+    if (deleted.size > 0) {
+      let changed = false;
+      shared.forEach((r) => {
+        if (deleted.has(r.id)) {
+          deleted.delete(r.id);
+          changed = true;
+        }
+      });
+      if (changed) {
+        try {
+          localStorage.setItem(STORAGE_KEYS.DELETED_RESOURCES, JSON.stringify(Array.from(deleted)));
+        } catch {}
+      }
+    }
+
+    const local = this.getResources();
     const localById = new Map(local.map((resource) => [resource.id, resource]));
-    const sharedIds = new Set(activeShared.map((resource) => resource.id));
-    const mergedShared = activeShared.map((resource) => {
+    const sharedIds = new Set(shared.map((resource) => resource.id));
+    const mergedShared = shared.map((resource) => {
       const existing = localById.get(resource.id);
       return existing ? {
         ...resource,

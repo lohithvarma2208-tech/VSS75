@@ -47,18 +47,32 @@ export default function DashboardPage() {
   };
 
   useEffect(() => {
-    loadSharedResources().catch(() => {});
+    let mounted = true;
     loadData();
+    loadSharedResources()
+      .then((items) => {
+        if (mounted && Array.isArray(items) && items.length > 0) {
+          setResources(items);
+        }
+      })
+      .catch(() => {});
 
-    const handleResChange = () => setResources(MockStorageManager.getResources());
-    const handleReqChange = () => setRequests(MockStorageManager.getResourceRequests());
-    const handleOffChange = () => setOffers(MockStorageManager.getRequestOffers());
+    const handleResChange = () => {
+      if (mounted) setResources(MockStorageManager.getResources());
+    };
+    const handleReqChange = () => {
+      if (mounted) setRequests(MockStorageManager.getResourceRequests());
+    };
+    const handleOffChange = () => {
+      if (mounted) setOffers(MockStorageManager.getRequestOffers());
+    };
 
     window.addEventListener('klu_resources_change', handleResChange);
     window.addEventListener('klu_requests_change', handleReqChange);
     window.addEventListener('klu_offers_change', handleOffChange);
 
     return () => {
+      mounted = false;
       window.removeEventListener('klu_resources_change', handleResChange);
       window.removeEventListener('klu_requests_change', handleReqChange);
       window.removeEventListener('klu_offers_change', handleOffChange);

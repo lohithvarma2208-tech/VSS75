@@ -26,11 +26,23 @@ export default function NotesPage() {
   const [previewResource, setPreviewResource] = useState<Resource | null>(null);
 
   useEffect(() => {
-    loadSharedResources().catch(() => {});
+    let mounted = true;
     setResources(MockStorageManager.getResources());
-    const handleUpdate = () => setResources(MockStorageManager.getResources());
+    loadSharedResources()
+      .then((items) => {
+        if (mounted && Array.isArray(items) && items.length > 0) {
+          setResources(items);
+        }
+      })
+      .catch(() => {});
+    const handleUpdate = () => {
+      if (mounted) setResources(MockStorageManager.getResources());
+    };
     window.addEventListener('klu_resources_change', handleUpdate);
-    return () => window.removeEventListener('klu_resources_change', handleUpdate);
+    return () => {
+      mounted = false;
+      window.removeEventListener('klu_resources_change', handleUpdate);
+    };
   }, []);
 
   const notesList = useMemo(() => {
