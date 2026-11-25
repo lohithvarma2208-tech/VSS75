@@ -76,10 +76,15 @@ Uploaded coursework files and notes are stored permanently in a Cloudflare R2 bu
 - State updates dispatch custom DOM events (`klu_resources_change`, `klu_requests_change`, `klu_auth_change`) for real-time reactivity across components.
 
 ### 3. Authentication
-- **KL University ERP Session**: Authenticates against official campus ERP portal endpoints via [src/lib/erp/](file:///C:/Users/LOHITH/Documents/vss75-deploy/src/lib/erp).
-- **Direct Student Login**: Accepts verified student roll numbers with department resolution.
+- **KL University ERP Session**: Authenticates against official campus ERP portal endpoints via [src/lib/erp/](src/lib/erp) with live CAPTCHA challenges and student credentials.
+- **Security & Privacy**: Passwords are never stored on VSS servers or local storage. Rate limiting and access audit trails are enforced.
 
 ---
+
+## 🧭 Engineering Workflow & Contributor Guide
+
+For architectural rules, pre-commit checklists, and contributor guidelines, refer to **[WORKFLOW.md](WORKFLOW.md)**.
+
 
 ## 🚀 Environment Variables
 
