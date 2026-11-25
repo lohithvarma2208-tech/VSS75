@@ -270,7 +270,7 @@ export default function UploadPage() {
 
     if (created.status === 'rejected') { setSubmitting(false); setDuplicate(created); setError(created.rejection_reason || 'This file already exists.'); return; }
     try {
-      const saved = await publishSharedResources([created]);
+      const saved = await publishSharedResources([created], authorRoll);
       if (!saved.includes(created.id)) throw new Error('The shared record was not saved.');
     } catch (failure) {
       setSubmitting(false);

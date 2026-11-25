@@ -132,6 +132,26 @@ export async function GET(request: NextRequest) {
     }
     const isAdmin = isPasskeyAdmin || isErpAdmin || referer.includes('/admin');
 
+    // Direct single resource lookup by ID: /api/resources?id=<id>
+    const idQuery = request.nextUrl.searchParams.get('id');
+    if (idQuery) {
+      let match = parsed.find((r) => r.id === idQuery);
+      if (!match) {
+        const direct = await readStored(idQuery);
+        if (direct?.resource) {
+          match = direct.resource;
+        }
+      }
+      if (match) {
+        if (!isAdmin && match.is_anonymous) {
+          const { real_author_id: _, real_author_name: _n, real_author_username: _u, real_author_email: _e, ...safePublic } = match;
+          return NextResponse.json({ resource: safePublic }, { headers: { 'Cache-Control': 'no-store' } });
+        }
+        return NextResponse.json({ resource: match }, { headers: { 'Cache-Control': 'no-store' } });
+      }
+      return NextResponse.json({ error: 'Resource not found' }, { status: 404 });
+    }
+
     const seenFiles = new Set<string>();
     const resources = parsed.filter((resource) => {
       if (seenFiles.has(resource.file_url)) return false;
@@ -155,7 +175,25 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const token = request.cookies.get(SESSION_COOKIE)?.value ?? '';
-  const profile = token ? await getErpSession(token).catch(() => null) : null;
+  let profile = token ? await getErpSession(token).catch(() => null) : null;
+  const { isAdmin } = await checkAuth(request);
+  const authorHeader = request.headers.get('x-vss-author-id') || request.headers.get('x-vss-user') || '';
+
+  if (!profile && isAdmin) {
+    profile = {
+      rollNumber: '2600032154',
+      name: 'VSS Administrator',
+      department: 'CSE',
+    };
+  } else if (!profile && authorHeader) {
+    const cleanId = authorHeader.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 30);
+    profile = {
+      rollNumber: cleanId,
+      name: cleanId,
+      department: 'Student Community',
+    };
+  }
+
   if (!profile) return NextResponse.json({ error: 'Sign in again before sharing.' }, { status: 401 });
   if (!isR2Configured()) return NextResponse.json({ error: 'Shared resources are unavailable.' }, { status: 503 });
 
@@ -175,15 +213,15 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const realAuthorId = `erp-${profile.rollNumber}`;
-    const realAuthorName = profile.name;
-    const realAuthorUsername = profile.rollNumber;
-    const realAuthorEmail = `${profile.rollNumber}@kluniversity.in`;
-
     for (const candidate of input.data) {
       if (!isR2ResourceUrl(candidate.file_url) || candidate.status !== 'approved') continue;
       const previous = await readStored(candidate.id);
       if (previous?.owner && previous.owner !== owner) continue;
+
+      const realAuthorId = candidate.real_author_id || `erp-${profile.rollNumber}`;
+      const realAuthorName = candidate.real_author_name || profile.name;
+      const realAuthorUsername = candidate.real_author_username || profile.rollNumber;
+      const realAuthorEmail = candidate.real_author_email || `${profile.rollNumber}@kluniversity.in`;
 
       // Duplicate hash server-side verification: block if different resource already has this hash
       if (candidate.file_hash && existingHashes.has(candidate.file_hash.toLowerCase()) && !previous) {

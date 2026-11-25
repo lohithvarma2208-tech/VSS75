@@ -10,6 +10,7 @@ import {
 import type { Resource } from '@/types';
 import { useApp } from '@/lib/context/AppContext';
 import { MockStorageManager } from '@/lib/storage/mock-store';
+import { loadSharedResources } from '@/lib/resources/client';
 import { getRelevantCourses, readAcademicContext } from '@/lib/academic-context';
 
 const categoryStyle = {
@@ -26,6 +27,7 @@ export default function HomePage() {
   const [resources, setResources] = useState<Resource[]>([]);
 
   useEffect(() => {
+    loadSharedResources().catch(() => {});
     const refresh = () => setResources(MockStorageManager.getResources());
     refresh();
     window.addEventListener('klu_resources_change', refresh);

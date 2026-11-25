@@ -36,6 +36,7 @@ export default function ResourceDetailPage() {
 
   const { currentUser, likedIds, toggleLike, savedIds, toggleBookmark, showToast } = useApp();
   const [resource, setResource] = useState<Resource | null>(null);
+  const [loading, setLoading] = useState<boolean>(!MockStorageManager.getResourceById(id));
   const [relatedResources, setRelatedResources] = useState<Resource[]>([]);
   const [isReportOpen, setIsReportOpen] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
@@ -65,11 +66,13 @@ export default function ResourceDetailPage() {
   }, [id]);
 
   useEffect(() => {
+    let active = true;
     const found = MockStorageManager.getResourceById(id);
     if (found) {
       setResource(found);
+      setLoading(false);
       getUploadedFile(found.file_name).then((val) => {
-        if (!val) return;
+        if (!active || !val) return;
         if (val instanceof Blob) setPreviewSrc(URL.createObjectURL(val));
         else if (typeof val === 'string' && val.startsWith('data:')) setPreviewSrc(URL.createObjectURL(dataUrlToBlob(val)));
       });
@@ -82,8 +85,44 @@ export default function ResourceDetailPage() {
         )
         .slice(0, 3);
       setRelatedResources(related);
+    } else {
+      setLoading(true);
+      fetch(`/api/resources?id=${encodeURIComponent(id)}`, { cache: 'no-store' })
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (!active) return;
+          if (data?.resource) {
+            MockStorageManager.mergeSharedResources([data.resource]);
+            setResource(data.resource);
+            const all = MockStorageManager.getResources();
+            const related = all
+              .filter(
+                (r) =>
+                  r.id !== data.resource.id &&
+                  (r.course_code === data.resource.course_code || r.category === data.resource.category)
+              )
+              .slice(0, 3);
+            setRelatedResources(related);
+          }
+        })
+        .catch(() => {})
+        .finally(() => {
+          if (active) setLoading(false);
+        });
     }
+    return () => {
+      active = false;
+    };
   }, [id]);
+
+  if (loading && !resource) {
+    return (
+      <div className="mx-auto max-w-4xl px-4 py-24 text-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-violet-400 border-t-transparent mx-auto mb-4" />
+        <p className="text-xs text-white/50">Fetching academic document from repository…</p>
+      </div>
+    );
+  }
 
   if (!resource) {
     return (

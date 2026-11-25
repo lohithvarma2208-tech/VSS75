@@ -114,7 +114,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const handleBookmarksChange = () => setSavedIds(MockStorageManager.getSavedResourceIds());
     const handleSavedRequestsChange = () => setSavedRequestIds(MockStorageManager.getSavedRequestIds());
     const handleNotifsChange = () => setNotifications(MockStorageManager.getNotifications());
+    const handleSync = () => {
+      loadSharedResources().catch(() => {});
+    };
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') handleSync();
+    };
 
+    window.addEventListener('focus', handleSync);
+    document.addEventListener('visibilitychange', handleVisibility);
     window.addEventListener('klu_auth_change', handleAuthChange);
     window.addEventListener('klu_likes_change', handleLikesChange);
     window.addEventListener('klu_bookmarks_change', handleBookmarksChange);
@@ -122,6 +130,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     window.addEventListener('klu_notifs_change', handleNotifsChange);
 
     return () => {
+      window.removeEventListener('focus', handleSync);
+      document.removeEventListener('visibilitychange', handleVisibility);
       window.removeEventListener('klu_auth_change', handleAuthChange);
       window.removeEventListener('klu_likes_change', handleLikesChange);
       window.removeEventListener('klu_bookmarks_change', handleBookmarksChange);

@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { Resource } from '@/types';
 import { MockStorageManager } from '@/lib/storage/mock-store';
+import { loadSharedResources } from '@/lib/resources/client';
 import { SAMPLE_COURSES } from '@/lib/data/sample-data';
 import { formatBytes, formatDate, triggerBrowserDownload, dataUrlToBlob, triggerBlobDownload } from '@/lib/utils';
 import { getUploadedFile } from '@/lib/storage/file-storage';
@@ -25,6 +26,7 @@ export default function NotesPage() {
   const [previewResource, setPreviewResource] = useState<Resource | null>(null);
 
   useEffect(() => {
+    loadSharedResources().catch(() => {});
     setResources(MockStorageManager.getResources());
     const handleUpdate = () => setResources(MockStorageManager.getResources());
     window.addEventListener('klu_resources_change', handleUpdate);

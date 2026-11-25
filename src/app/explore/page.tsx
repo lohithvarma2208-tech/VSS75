@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { Resource, ResourceCategory } from '@/types';
 import { MockStorageManager } from '@/lib/storage/mock-store';
+import { loadSharedResources } from '@/lib/resources/client';
 import ResourceCard from '@/components/resources/ResourceCard';
 import Link from 'next/link';
 import { useApp } from '@/lib/context/AppContext';
@@ -33,6 +34,7 @@ function ExploreContent() {
   const [viewLayout, setViewLayout] = useState<'grid' | 'list'>('grid');
 
   useEffect(() => {
+    loadSharedResources().catch(() => {});
     setResources(MockStorageManager.getResources());
     const handleUpdate = () => setResources(MockStorageManager.getResources());
     window.addEventListener('klu_resources_change', handleUpdate);

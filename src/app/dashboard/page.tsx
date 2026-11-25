@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { Resource, ResourceRequest, RequestOffer } from '@/types';
 import { MockStorageManager } from '@/lib/storage/mock-store';
+import { loadSharedResources } from '@/lib/resources/client';
 import { useApp } from '@/lib/context/AppContext';
 import { formatBytes, formatDate } from '@/lib/utils';
 import ResourceCard from '@/components/resources/ResourceCard';
@@ -46,6 +47,7 @@ export default function DashboardPage() {
   };
 
   useEffect(() => {
+    loadSharedResources().catch(() => {});
     loadData();
 
     const handleResChange = () => setResources(MockStorageManager.getResources());
