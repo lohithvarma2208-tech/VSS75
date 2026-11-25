@@ -22,11 +22,8 @@ import {
   Clock,
   Layers,
   Trophy,
-  CalendarCheck,
-  MapPin,
-  ArrowRight,
 } from 'lucide-react';
-import { Resource, ResourceRequest, RequestOffer, StudentAttendanceSummary, StudentTimetable } from '@/types';
+import { Resource, ResourceRequest, RequestOffer } from '@/types';
 import { MockStorageManager } from '@/lib/storage/mock-store';
 import { useApp } from '@/lib/context/AppContext';
 import { formatBytes, formatDate } from '@/lib/utils';
@@ -35,36 +32,18 @@ import { VerifiedBadge } from '@/components/common/VerifiedBadge';
 import { RequestStatusBadge } from '@/components/requests/RequestStatusBadge';
 import BadgeShelf from '@/components/profile/BadgeShelf';
 import { getStudentBadges } from '@/lib/badges';
-import { getStudentAttendanceSummary, getStudentTimetable, getLiveScheduleStatus } from '@/lib/erp/academic-schedule';
 
 export default function DashboardPage() {
   const { currentUser, showToast, openVerifyModal, savedRequestIds } = useApp();
   const [resources, setResources] = useState<Resource[]>([]);
   const [requests, setRequests] = useState<ResourceRequest[]>([]);
   const [offers, setOffers] = useState<RequestOffer[]>([]);
-  const [attendanceSummary, setAttendanceSummary] = useState<StudentAttendanceSummary | null>(null);
-  const [liveTimetable, setLiveTimetable] = useState<ReturnType<typeof getLiveScheduleStatus> | null>(null);
 
   const loadData = () => {
     setResources(MockStorageManager.getResources());
     setRequests(MockStorageManager.getResourceRequests());
     setOffers(MockStorageManager.getRequestOffers());
   };
-
-  useEffect(() => {
-    const studentId = currentUser?.student_id || currentUser?.username || '2600080191';
-    const studentName = currentUser?.full_name || 'KLU Student';
-    const summary = getStudentAttendanceSummary(studentId, studentName, currentUser?.registered_courses || [], {
-      department: currentUser?.department,
-      semester: currentUser?.semester,
-    });
-    setAttendanceSummary(summary);
-
-    const tt = getStudentTimetable(studentId, currentUser?.registered_courses || [], {
-      semester: currentUser?.semester,
-    });
-    setLiveTimetable(getLiveScheduleStatus(tt.slots));
-  }, [currentUser]);
 
   useEffect(() => {
     loadData();
@@ -267,131 +246,6 @@ export default function DashboardPage() {
           <p className="text-[11px] text-white/40 mt-1">VSS Peer Contributor</p>
         </div>
       </div>
-
-      {/* Official KL ERP Academic Hub (Attendance Checker & Today's Schedule) */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Attendance Card */}
-        <div className="rounded-[2rem] border border-white/10 bg-[#121215] p-6 space-y-4 hover:border-violet-500/30 transition relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-36 h-36 bg-violet-500/10 rounded-full blur-2xl pointer-events-none" />
-          <div className="flex items-center justify-between">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-violet-500/15 border border-violet-500/30 px-3 py-1 font-mono text-[10px] font-bold text-violet-300">
-              <CalendarCheck className="h-3 w-3" /> KL ERP Attendance
-            </span>
-            <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border ${
-              (attendanceSummary?.overallPercentage ?? 0) >= 85
-                ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
-                : (attendanceSummary?.overallPercentage ?? 0) >= 75
-                ? 'bg-amber-500/15 text-amber-300 border-amber-500/30'
-                : 'bg-rose-500/15 text-rose-300 border-rose-500/30'
-            }`}>
-              {(attendanceSummary?.overallPercentage ?? 0) >= 75 ? 'Exam Eligible' : 'Below 75% Cutoff'}
-            </span>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <div className="relative grid h-16 w-16 place-items-center shrink-0">
-              <svg className="h-16 w-16 -rotate-90 transform" viewBox="0 0 36 36">
-                <path
-                  className="text-white/10"
-                  strokeWidth="3.8"
-                  stroke="currentColor"
-                  fill="none"
-                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                />
-                <path
-                  className={(attendanceSummary?.overallPercentage ?? 0) >= 85 ? 'text-emerald-400' : (attendanceSummary?.overallPercentage ?? 0) >= 75 ? 'text-amber-400' : 'text-rose-400'}
-                  strokeDasharray={`${attendanceSummary?.overallPercentage ?? 0}, 100`}
-                  strokeLinecap="round"
-                  strokeWidth="3.8"
-                  stroke="currentColor"
-                  fill="none"
-                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                />
-              </svg>
-              <span className="absolute font-mono text-sm font-black text-white">
-                {attendanceSummary?.overallPercentage ?? 0}%
-              </span>
-            </div>
-
-            <div className="space-y-1 min-w-0 flex-1">
-              <h3 className="text-base font-extrabold text-white">Attendance Checker</h3>
-              <p className="text-xs text-white/50">
-                {attendanceSummary?.totalAttended ?? 0} of {attendanceSummary?.totalConducted ?? 0} classes attended across {attendanceSummary?.courses.length ?? 0} registered courses.
-              </p>
-            </div>
-          </div>
-
-          <div className="pt-2 border-t border-white/5 flex items-center justify-between">
-            <span className="text-[11px] text-emerald-400 font-bold">
-              ✓ Bunk & eligibility calculator active
-            </span>
-            <Link
-              href="/attendance"
-              className="inline-flex items-center gap-1.5 text-xs font-bold text-violet-300 hover:text-white transition"
-            >
-              Open Checker <ArrowRight className="h-3.5 w-3.5" />
-            </Link>
-          </div>
-        </div>
-
-        {/* Timetable Card */}
-        <div className="rounded-[2rem] border border-white/10 bg-[#121215] p-6 space-y-4 hover:border-violet-500/30 transition relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-36 h-36 bg-blue-500/10 rounded-full blur-2xl pointer-events-none" />
-          <div className="flex items-center justify-between">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-500/15 border border-blue-500/30 px-3 py-1 font-mono text-[10px] font-bold text-blue-300">
-              <Clock className="h-3 w-3" /> Today&apos;s Schedule
-            </span>
-            <span className="text-[10px] font-mono text-white/40 uppercase">
-              {liveTimetable?.todayDay}
-            </span>
-          </div>
-
-          <div className="space-y-1.5 min-w-0">
-            {liveTimetable?.currentSlot ? (
-              <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/20 p-3 space-y-1">
-                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-300 uppercase">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" /> In Session Now
-                </span>
-                <p className="font-extrabold text-sm text-white truncate">
-                  {liveTimetable.currentSlot.courseCode} · {liveTimetable.currentSlot.courseName}
-                </p>
-                <p className="text-[11px] text-white/60 font-mono flex items-center gap-1">
-                  <MapPin className="h-3 w-3 text-violet-400" /> {liveTimetable.currentSlot.room} ({liveTimetable.currentSlot.startTime} - {liveTimetable.currentSlot.endTime})
-                </p>
-              </div>
-            ) : liveTimetable?.nextSlot ? (
-              <div className="rounded-xl bg-white/[0.03] border border-white/10 p-3 space-y-1">
-                <span className="text-[10px] font-bold text-violet-300 uppercase">
-                  Upcoming Next Today
-                </span>
-                <p className="font-extrabold text-sm text-white truncate">
-                  {liveTimetable.nextSlot.courseCode} · {liveTimetable.nextSlot.courseName}
-                </p>
-                <p className="text-[11px] text-white/60 font-mono flex items-center gap-1">
-                  <MapPin className="h-3 w-3 text-violet-400" /> {liveTimetable.nextSlot.room} at {liveTimetable.nextSlot.startTime}
-                </p>
-              </div>
-            ) : (
-              <div className="rounded-xl bg-white/[0.02] border border-white/5 p-3 text-xs text-white/50">
-                All scheduled periods completed for today.
-              </div>
-            )}
-          </div>
-
-          <div className="pt-2 border-t border-white/5 flex items-center justify-between">
-            <span className="text-[11px] text-white/40 font-mono">
-              Section {currentUser?.semester || 'Tri-Sem 2'}
-            </span>
-            <Link
-              href="/timetable"
-              className="inline-flex items-center gap-1.5 text-xs font-bold text-violet-300 hover:text-white transition"
-            >
-              View Full Timetable <ArrowRight className="h-3.5 w-3.5" />
-            </Link>
-          </div>
-        </div>
-      </div>
-
 
       {currentUser && <BadgeShelf badges={getStudentBadges({ profile: currentUser, resources: userUploads })} compact />}
 

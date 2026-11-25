@@ -6,15 +6,12 @@ import { usePathname } from 'next/navigation';
 import {
   Bell, Bookmark, ChevronDown, Compass, Home, LayoutDashboard,
   LogIn, LogOut, Plus, Settings, Upload, UserRound, ShieldCheck,
-  CalendarCheck, Clock,
 } from 'lucide-react';
 import { useApp } from '@/lib/context/AppContext';
 
 const desktopLinks = [
   { label: 'Home', href: '/' },
   { label: 'Explore', href: '/explore' },
-  { label: 'Attendance', href: '/attendance' },
-  { label: 'Timetable', href: '/timetable' },
   { label: 'Requests', href: '/requests' },
   { label: 'Leaderboard', href: '/leaderboard' },
 ];
@@ -111,8 +108,6 @@ export default function Navbar() {
                 </div>
                 <div className="rounded-2xl bg-black/25 p-1">
                   <MenuLink href="/dashboard" icon={LayoutDashboard} label="Dashboard" close={() => setPanel(null)} />
-                  <MenuLink href="/attendance" icon={CalendarCheck} label="Attendance Checker" close={() => setPanel(null)} />
-                  <MenuLink href="/timetable" icon={Clock} label="Class Timetable" close={() => setPanel(null)} />
                   <MenuLink href={`/profile/${currentUser.username}`} icon={UserRound} label="Profile" close={() => setPanel(null)} />
                   <MenuLink href="/saved" icon={Bookmark} label="Saved resources" close={() => setPanel(null)} />
                   <MenuLink href="/settings" icon={Settings} label="Settings" close={() => setPanel(null)} />
