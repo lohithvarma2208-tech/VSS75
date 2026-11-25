@@ -1,11 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getErpSession, SESSION_COOKIE } from '@/lib/erp/session';
-import { isAdminProfile } from '@/lib/erp/admin-auth';
+import { isAdminProfile, isValidAdminPasskey } from '@/lib/erp/admin-auth';
 import { listVerifiedUsers, recordVerifiedLogin, syncUserBatch } from '@/lib/erp/admin-registry';
 
 export const runtime = 'nodejs';
-
-const VALID_PASSKEYS = ['VSS75@ADMIN', 'DEEPTHANUSH@ADMIN', 'ADMIN-CORE-75'];
 
 export async function GET(request: NextRequest) {
   const token = request.cookies.get(SESSION_COOKIE)?.value ?? '';
@@ -14,7 +12,7 @@ export async function GET(request: NextRequest) {
   const searchPasskey = request.nextUrl.searchParams.get('passkey') ?? '';
 
   const effectivePasskey = passkey || authHeader || searchPasskey;
-  const isPasskeyAdmin = VALID_PASSKEYS.includes(effectivePasskey);
+  const isPasskeyAdmin = isValidAdminPasskey(effectivePasskey);
 
   let isErpAdmin = false;
   if (token) {

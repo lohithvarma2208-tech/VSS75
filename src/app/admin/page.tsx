@@ -1,12 +1,10 @@
 import { cookies } from 'next/headers';
 import { getErpSession, SESSION_COOKIE } from '@/lib/erp/session';
-import { isAdminProfile } from '@/lib/erp/admin-auth';
+import { isAdminProfile, isValidAdminPasskey } from '@/lib/erp/admin-auth';
 import AdminDashboard from './AdminDashboard';
 import AdminUnlockGate from './AdminUnlockGate';
 
 export const dynamic = 'force-dynamic';
-
-const VALID_PASSKEYS = ['VSS75@ADMIN', 'DEEPTHANUSH@ADMIN', 'ADMIN-CORE-75'];
 
 export default async function AdminPage() {
   const cookieStore = await cookies();
@@ -15,7 +13,7 @@ export default async function AdminPage() {
   const profile = token ? await getErpSession(token).catch(() => null) : null;
 
   const isServerAdmin = isAdminProfile(profile);
-  const isPasskeyAdmin = VALID_PASSKEYS.includes(adminPasskey);
+  const isPasskeyAdmin = isValidAdminPasskey(adminPasskey);
 
   if (!isServerAdmin && !isPasskeyAdmin) {
     return (

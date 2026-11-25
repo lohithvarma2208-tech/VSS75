@@ -38,9 +38,10 @@ export default function HomePage() {
   const enrolledCodes = useMemo(() => new Set(
     academic ? getRelevantCourses(currentUser, academic.semester).map((course) => course.code.toUpperCase()) : [],
   ), [academic?.semester, currentUser]);
-  const relevantResources = currentUser
+  const enrolledResources = currentUser
     ? resources.filter((resource) => enrolledCodes.has(resource.course_code.toUpperCase()))
     : resources;
+  const relevantResources = enrolledResources.length > 0 ? enrolledResources : resources;
   const recent = [...relevantResources].sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at)).slice(0, 5);
   const totalDownloads = relevantResources.reduce((sum, item) => sum + item.downloads_count, 0);
   const availableCategories = [...new Set(relevantResources.map((resource) => resource.category))]

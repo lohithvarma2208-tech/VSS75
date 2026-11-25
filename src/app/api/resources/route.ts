@@ -2,14 +2,13 @@ import { createHash } from 'node:crypto';
 import { z } from 'zod';
 import { NextRequest, NextResponse } from 'next/server';
 import { getErpSession, SESSION_COOKIE } from '@/lib/erp/session';
-import { isAdminProfile } from '@/lib/erp/admin-auth';
+import { isAdminProfile, isValidAdminPasskey } from '@/lib/erp/admin-auth';
 import { deleteFileFromR2, getFileFromR2, isR2Configured, listJsonFromR2, putJsonInR2 } from '@/lib/r2';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 const PREFIX = 'metadata/resources/';
-const VALID_PASSKEYS = ['VSS75@ADMIN', 'DEEPTHANUSH@ADMIN', 'ADMIN-CORE-75'];
 const categories = ['Assignments', 'Programming', 'Lab Records', 'Lab Experiments', 'Mini Projects', 'Major Projects', 'DTIE Projects', 'Mathematics', 'Notes', 'Presentations', 'Reports', 'Study Resources', 'Other Academic Resources'] as const;
 const fileTypes = ['pdf', 'docx', 'doc', 'pptx', 'ppt', 'xls', 'xlsx', 'zip', 'py', 'java', 'cpp', 'c', 'txt', 'png', 'jpg'] as const;
 
@@ -124,7 +123,7 @@ export async function GET(request: NextRequest) {
     const searchPasskey = request.nextUrl.searchParams.get('passkey') ?? '';
     const referer = request.headers.get('referer') || '';
 
-    const isPasskeyAdmin = VALID_PASSKEYS.includes(passkey || authHeader || searchPasskey);
+    const isPasskeyAdmin = isValidAdminPasskey(passkey || authHeader || searchPasskey);
     let isErpAdmin = false;
     if (token) {
       const profile = await getErpSession(token).catch(() => null);
@@ -268,7 +267,7 @@ async function checkAuth(request: NextRequest) {
   const searchPasskey = request.nextUrl.searchParams.get('passkey') ?? '';
   const referer = request.headers.get('referer') || '';
 
-  const isPasskeyAdmin = VALID_PASSKEYS.includes(passkey || authHeader || searchPasskey);
+  const isPasskeyAdmin = isValidAdminPasskey(passkey || authHeader || searchPasskey);
   let isErpAdmin = false;
   let profile = null;
   if (token) {

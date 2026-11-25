@@ -78,7 +78,7 @@ export default function AdminDashboard({ administrator, isPasskeyMode }: AdminDa
   const [loadingUsers, setLoadingUsers] = useState(true);
   const [userQuery, setUserQuery] = useState('');
   const [selectedUser, setSelectedUser] = useState<UserRecord | null>(null);
-  const [showNumbers, setShowNumbers] = useState(false);
+  const [showNumbers, setShowNumbers] = useState(true);
   const [userRoleFilter, setUserRoleFilter] = useState<string>('all');
 
   // --- Resource Moderation State ---
@@ -125,7 +125,7 @@ export default function AdminDashboard({ administrator, isPasskeyMode }: AdminDa
 
   const fetchUsers = useCallback(() => {
     setLoadingUsers(true);
-    fetch('/api/admin/users', { cache: 'no-store' })
+    fetch('/api/admin/users', { cache: 'no-store', credentials: 'include' })
       .then(async (response) => {
         const data = await response.json();
         if (Array.isArray(data.users)) {
@@ -885,7 +885,7 @@ export default function AdminDashboard({ administrator, isPasskeyMode }: AdminDa
                       </span>
                     </div>
                     <small className="block truncate font-mono text-[10px] text-white/50 mt-0.5">
-                      {mask(user.registrationNumber)} · {user.department || 'CSE'} ({user.semester || 'Sem 4'})
+                      <span className="text-purple-300 font-bold">{showNumbers ? user.registrationNumber : mask(user.registrationNumber)}</span> · {user.department || 'CSE'} ({user.semester || 'Sem 4'})
                     </small>
                     <small className="block truncate font-mono text-[9px] text-white/35 mt-0.5">
                       {mask(user.email || `${user.registrationNumber.toLowerCase()}@kluniversity.in`)}

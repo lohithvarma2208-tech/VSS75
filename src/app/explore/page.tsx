@@ -78,9 +78,6 @@ function ExploreContent() {
       );
     }
 
-    if (academic?.semester) result = result.filter((res) => res.semester === academic.semester);
-    if (relevantCourseCodes.size) result = result.filter((res) => relevantCourseCodes.has(res.course_code));
-
     if (selectedCategory !== 'All') {
       result = result.filter((res) => res.category === selectedCategory);
     }
@@ -89,13 +86,17 @@ function ExploreContent() {
       result = result.filter((res) => res.course_code === selectedCourse);
     }
 
-    if (selectedSort === 'downloads') {
-      result.sort((a, b) => b.downloads_count - a.downloads_count);
-    } else if (selectedSort === 'likes') {
-      result.sort((a, b) => b.likes_count - a.likes_count);
-    } else {
-      result.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-    }
+    // Sort: prioritize user's enrolled courses, then apply requested sorting
+    result.sort((a, b) => {
+      const aEnrolled = relevantCourseCodes.has(a.course_code) ? 1 : 0;
+      const bEnrolled = relevantCourseCodes.has(b.course_code) ? 1 : 0;
+      if (aEnrolled !== bEnrolled && selectedSort === 'newest') {
+        return bEnrolled - aEnrolled;
+      }
+      if (selectedSort === 'downloads') return b.downloads_count - a.downloads_count;
+      if (selectedSort === 'likes') return b.likes_count - a.likes_count;
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
 
     return result;
   }, [resources, searchQuery, selectedCategory, selectedCourse, selectedSort, academic, relevantCourseCodes]);
