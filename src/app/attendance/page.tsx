@@ -26,8 +26,21 @@ import { getStudentAttendanceSummary } from '@/lib/erp/academic-schedule';
 
 export default function AttendancePage() {
   const { currentUser, showToast } = useApp();
-  const [attendance, setAttendance] = useState<StudentAttendanceSummary | null>(null);
-  const [loading, setLoading] = useState(true);
+
+  const [attendance, setAttendance] = useState<StudentAttendanceSummary>(() => {
+    const studentId = currentUser?.student_id || currentUser?.username || '2600080191';
+    const studentName = currentUser?.full_name || 'SHAIK ABDUL RAHMAN';
+    return getStudentAttendanceSummary(
+      studentId,
+      studentName,
+      currentUser?.registered_courses || [],
+      {
+        department: currentUser?.department,
+        semester: currentUser?.semester,
+      }
+    );
+  });
+  const [isSyncing, setIsSyncing] = useState(false);
   const [filterMode, setFilterMode] = useState<'all' | 'safe' | 'warning' | 'critical'>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -36,40 +49,26 @@ export default function AttendancePage() {
   const [simulatedAttended, setSimulatedAttended] = useState(0);
 
   useEffect(() => {
-    async function loadAttendance() {
-      setLoading(true);
-      try {
-        const studentId = currentUser?.student_id || currentUser?.username || '2600080191';
-        const res = await fetch(`/api/erp/attendance?studentId=${encodeURIComponent(studentId)}`);
-        if (res.ok) {
-          const data = await res.json();
-          if (data.attendance) {
-            setAttendance(data.attendance);
-            setLoading(false);
-            return;
-          }
-        }
-      } catch (err) {
-        console.error('Failed to fetch from API:', err);
+    const studentId = currentUser?.student_id || currentUser?.username || '2600080191';
+    const studentName = currentUser?.full_name || 'SHAIK ABDUL RAHMAN';
+    const localSummary = getStudentAttendanceSummary(
+      studentId,
+      studentName,
+      currentUser?.registered_courses || [],
+      {
+        department: currentUser?.department,
+        semester: currentUser?.semester,
       }
+    );
+    setAttendance(localSummary);
 
-      // Fallback to local deterministic generator
-      const studentId = currentUser?.student_id || currentUser?.username || '2600080191';
-      const studentName = currentUser?.full_name || 'KLU Student';
-      const localSummary = getStudentAttendanceSummary(
-        studentId,
-        studentName,
-        currentUser?.registered_courses || [],
-        {
-          department: currentUser?.department,
-          semester: currentUser?.semester,
-        }
-      );
-      setAttendance(localSummary);
-      setLoading(false);
-    }
-
-    loadAttendance();
+    // Background sync with API
+    fetch(`/api/erp/attendance?studentId=${encodeURIComponent(studentId)}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.attendance) setAttendance(data.attendance);
+      })
+      .catch(() => {});
   }, [currentUser]);
 
   // Simulated metrics
@@ -121,18 +120,7 @@ export default function AttendancePage() {
     setSimulatedAttended(0);
   };
 
-  if (loading) {
-    return (
-      <div className="mx-auto flex min-h-[60vh] max-w-5xl items-center justify-center px-4">
-        <div className="flex flex-col items-center gap-3">
-          <RefreshCw className="h-8 w-8 animate-spin text-violet-400" />
-          <p className="text-sm font-bold text-white/50">Fetching student attendance from KL ERP…</p>
-        </div>
-      </div>
-    );
-  }
-
-  const overall = simulationMetrics?.newPercentage ?? attendance?.overallPercentage ?? 0;
+  const overall = simulationMetrics?.newPercentage ?? attendance.overallPercentage;
   const isSimulating = simulatedBunks > 0 || simulatedAttended > 0;
 
   return (

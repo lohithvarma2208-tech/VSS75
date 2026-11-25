@@ -25,8 +25,12 @@ const DAYS: TimetableDay[] = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Fri
 
 export default function TimetablePage() {
   const { currentUser, showToast } = useApp();
-  const [timetable, setTimetable] = useState<StudentTimetable | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [timetable, setTimetable] = useState<StudentTimetable>(() => {
+    const studentId = currentUser?.student_id || currentUser?.username || '2600080191';
+    return getStudentTimetable(studentId, currentUser?.registered_courses || [], {
+      semester: currentUser?.semester,
+    });
+  });
   const [selectedDay, setSelectedDay] = useState<TimetableDay>('Monday');
   const [viewMode, setViewMode] = useState<'day' | 'grid'>('day');
   const [currentTime, setCurrentTime] = useState<Date>(new Date());
@@ -45,32 +49,18 @@ export default function TimetablePage() {
       setSelectedDay(currentDayName);
     }
 
-    async function loadTimetable() {
-      setLoading(true);
-      try {
-        const studentId = currentUser?.student_id || currentUser?.username || '2600080191';
-        const res = await fetch(`/api/erp/timetable?studentId=${encodeURIComponent(studentId)}`);
-        if (res.ok) {
-          const data = await res.json();
-          if (data.timetable) {
-            setTimetable(data.timetable);
-            setLoading(false);
-            return;
-          }
-        }
-      } catch (err) {
-        console.error('Failed to fetch timetable from API:', err);
-      }
+    const studentId = currentUser?.student_id || currentUser?.username || '2600080191';
+    const localTimetable = getStudentTimetable(studentId, currentUser?.registered_courses || [], {
+      semester: currentUser?.semester,
+    });
+    setTimetable(localTimetable);
 
-      const studentId = currentUser?.student_id || currentUser?.username || '2600080191';
-      const localTimetable = getStudentTimetable(studentId, currentUser?.registered_courses || [], {
-        semester: currentUser?.semester,
-      });
-      setTimetable(localTimetable);
-      setLoading(false);
-    }
-
-    loadTimetable();
+    fetch(`/api/erp/timetable?studentId=${encodeURIComponent(studentId)}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.timetable) setTimetable(data.timetable);
+      })
+      .catch(() => {});
   }, [currentUser]);
 
   const liveStatus = useMemo(() => {
@@ -86,17 +76,6 @@ export default function TimetablePage() {
   const handlePrint = () => {
     window.print();
   };
-
-  if (loading) {
-    return (
-      <div className="mx-auto flex min-h-[60vh] max-w-5xl items-center justify-center px-4">
-        <div className="flex flex-col items-center gap-3">
-          <Clock className="h-8 w-8 animate-spin text-violet-400" />
-          <p className="text-sm font-bold text-white/50">Loading student timetable from KL ERP…</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="mx-auto max-w-6xl space-y-7 px-4 py-8 sm:px-8 sm:py-10">
