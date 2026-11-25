@@ -77,6 +77,7 @@ export interface Resource {
   file_type: ResourceFileType;
   file_content_preview?: string; // Text/code snippet for instant preview
   file_data_url?: string; // Direct Data URL for authentic PDF & binary rendering
+  file_hash?: string; // SHA-256 checksum of file for deduplication & verification
   department?: string;
   author_id?: string;
   author_name: string;
@@ -84,6 +85,10 @@ export interface Resource {
   author_avatar?: string;
   author_is_verified?: boolean;
   is_anonymous: boolean;
+  real_author_id?: string; // Admin-only security audit: true author roll/ID
+  real_author_name?: string; // Admin-only security audit: true author name
+  real_author_username?: string; // Admin-only security audit: true author roll number
+  real_author_email?: string; // Admin-only security audit: true author university email
   tags: string[];
   likes_count: number;
   downloads_count: number;

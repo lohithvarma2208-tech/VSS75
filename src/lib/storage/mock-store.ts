@@ -153,6 +153,12 @@ export class MockStorageManager {
     this.saveResources([...mergedShared, ...deviceOnly]);
   }
 
+  static findResourceByHash(hash?: string): Resource | undefined {
+    if (!hash) return undefined;
+    const target = hash.trim().toLowerCase();
+    return this.getResources().find((r) => r.file_hash?.toLowerCase() === target && r.status === 'approved');
+  }
+
   static checkDuplicateResource(data: {
     title: string;
     course_code: string;
@@ -160,14 +166,25 @@ export class MockStorageManager {
     file_name?: string;
     file_size?: number;
     file_content_preview?: string;
-  }): { isDuplicate: boolean; pioneer?: Resource; matchType?: 'file' | 'title' | 'content' } {
+    file_hash?: string;
+  }): { isDuplicate: boolean; pioneer?: Resource; matchType?: 'hash' | 'file' | 'title' | 'content' } {
     const resources = this.getResources().filter((r) => r.status === 'approved');
     const norm = (s?: string) => (s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
 
     const targetTitle = norm(data.title || '');
     const targetCode = (data.course_code || '').trim().toUpperCase();
+    const targetHash = data.file_hash?.trim().toLowerCase();
 
     for (const r of resources) {
+      // 0. Cryptographic SHA-256 hash match (100% byte-for-byte identical document)
+      if (
+        targetHash &&
+        r.file_hash &&
+        targetHash === r.file_hash.trim().toLowerCase()
+      ) {
+        return { isDuplicate: true, pioneer: r, matchType: 'hash' };
+      }
+
       // 1. Exact identical file match (same file name and same byte size)
       if (
         data.file_name &&
@@ -255,6 +272,7 @@ export class MockStorageManager {
       file_name: newResource.file_name,
       file_size: newResource.file_size,
       file_content_preview: newResource.file_content_preview,
+      file_hash: newResource.file_hash,
     });
 
     if (dupCheck.isDuplicate && dupCheck.pioneer) {

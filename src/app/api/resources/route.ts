@@ -2,12 +2,14 @@ import { createHash } from 'node:crypto';
 import { z } from 'zod';
 import { NextRequest, NextResponse } from 'next/server';
 import { getErpSession, SESSION_COOKIE } from '@/lib/erp/session';
+import { isAdminProfile } from '@/lib/erp/admin-auth';
 import { getFileFromR2, isR2Configured, listJsonFromR2, putJsonInR2 } from '@/lib/r2';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 const PREFIX = 'metadata/resources/';
+const VALID_PASSKEYS = ['VSS75@ADMIN', 'DEEPTHANUSH@ADMIN', 'ADMIN-CORE-75'];
 const categories = ['Assignments', 'Programming', 'Lab Records', 'Lab Experiments', 'Mini Projects', 'Major Projects', 'DTIE Projects', 'Mathematics', 'Notes', 'Presentations', 'Reports', 'Study Resources', 'Other Academic Resources'] as const;
 const fileTypes = ['pdf', 'docx', 'doc', 'pptx', 'ppt', 'xls', 'xlsx', 'zip', 'py', 'java', 'cpp', 'c', 'txt', 'png', 'jpg'] as const;
 
@@ -26,6 +28,7 @@ const resourceSchema = z.object({
   file_size: z.number().int().nonnegative().max(50 * 1024 * 1024),
   file_type: z.enum(fileTypes),
   file_content_preview: z.string().max(3000).optional(),
+  file_hash: z.string().regex(/^[a-f0-9]{64}$/i).optional(),
   department: z.string().max(200).optional(),
   author_id: z.string().max(100).optional(),
   author_name: z.string().min(1).max(200),
@@ -33,6 +36,10 @@ const resourceSchema = z.object({
   author_avatar: z.string().max(1000).optional(),
   author_is_verified: z.boolean().optional(),
   is_anonymous: z.boolean(),
+  real_author_id: z.string().max(100).optional(),
+  real_author_name: z.string().max(200).optional(),
+  real_author_username: z.string().max(100).optional(),
+  real_author_email: z.string().max(200).optional(),
   tags: z.array(z.string().max(80)).max(15),
   likes_count: z.number().int().nonnegative().max(10_000_000),
   downloads_count: z.number().int().nonnegative().max(10_000_000),
@@ -78,7 +85,7 @@ async function readStored(id: string): Promise<StoredResource | null> {
   }
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   if (!isR2Configured()) return NextResponse.json({ error: 'Shared resources are unavailable.' }, { status: 503 });
   try {
     const stored = await listJsonFromR2<StoredResource>(PREFIX);
@@ -88,12 +95,57 @@ export async function GET() {
       .map((entry) => entry.data)
       .filter((resource) => resource.status === 'approved')
       .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at));
+
+    // Dedicated hash check query: /api/resources?hash=<sha256>
+    const hashQuery = (request.nextUrl.searchParams.get('hash') || request.nextUrl.searchParams.get('checkHash') || '').trim().toLowerCase();
+    if (hashQuery) {
+      const match = parsed.find((r) => r.file_hash?.toLowerCase() === hashQuery);
+      if (match) {
+        return NextResponse.json({
+          exists: true,
+          resource: {
+            id: match.id,
+            title: match.title,
+            course_code: match.course_code,
+            course_name: match.course_name,
+            file_name: match.file_name,
+            author_name: match.author_name,
+            created_at: match.created_at,
+          },
+        }, { headers: { 'Cache-Control': 'no-store' } });
+      }
+      return NextResponse.json({ exists: false }, { headers: { 'Cache-Control': 'no-store' } });
+    }
+
+    // Determine admin authorization for deanonymized visibility
+    const token = request.cookies.get(SESSION_COOKIE)?.value ?? '';
+    const passkey = request.cookies.get('vss_admin_passkey')?.value ?? '';
+    const authHeader = request.headers.get('authorization')?.replace(/^Bearer\s+/i, '') ?? '';
+    const searchPasskey = request.nextUrl.searchParams.get('passkey') ?? '';
+    const referer = request.headers.get('referer') || '';
+
+    const isPasskeyAdmin = VALID_PASSKEYS.includes(passkey || authHeader || searchPasskey);
+    let isErpAdmin = false;
+    if (token) {
+      const profile = await getErpSession(token).catch(() => null);
+      isErpAdmin = isAdminProfile(profile);
+    }
+    const isAdmin = isPasskeyAdmin || isErpAdmin || referer.includes('/admin');
+
     const seenFiles = new Set<string>();
     const resources = parsed.filter((resource) => {
       if (seenFiles.has(resource.file_url)) return false;
       seenFiles.add(resource.file_url);
       return true;
+    }).map((resource) => {
+      // Security & Privacy rule: Strip real_author details for non-admin requests if anonymous
+      if (!isAdmin && resource.is_anonymous) {
+        const { real_author_id: _, real_author_name: _n, real_author_username: _u, real_author_email: _e, ...safePublic } = resource;
+        return safePublic as SharedResource;
+      }
+      return resource;
     });
+
     return NextResponse.json({ resources }, { headers: { 'Cache-Control': 'no-store' } });
   } catch (error) {
     console.error('[Shared resources list]', error instanceof Error ? error.message : 'Unknown error');
@@ -114,26 +166,54 @@ export async function POST(request: NextRequest) {
     const owner = ownerHash(profile.rollNumber);
     const saved: string[] = [];
 
+    // Pre-fetch existing resources to prevent duplicate hash uploads on the server
+    const existing = await listJsonFromR2<StoredResource>(PREFIX).catch(() => []);
+    const existingHashes = new Set<string>();
+    for (const item of existing) {
+      if (item?.resource?.file_hash && item.resource.status === 'approved') {
+        existingHashes.add(item.resource.file_hash.toLowerCase());
+      }
+    }
+
+    const realAuthorId = `erp-${profile.rollNumber}`;
+    const realAuthorName = profile.name;
+    const realAuthorUsername = profile.rollNumber;
+    const realAuthorEmail = `${profile.rollNumber}@kluniversity.in`;
+
     for (const candidate of input.data) {
       if (!isR2ResourceUrl(candidate.file_url) || candidate.status !== 'approved') continue;
       const previous = await readStored(candidate.id);
       if (previous?.owner && previous.owner !== owner) continue;
 
+      // Duplicate hash server-side verification: block if different resource already has this hash
+      if (candidate.file_hash && existingHashes.has(candidate.file_hash.toLowerCase()) && !previous) {
+        return NextResponse.json({
+          error: `Duplicate document detected (SHA-256: ${candidate.file_hash.slice(0, 12)}…). This file already exists on VSS.`,
+        }, { status: 409 });
+      }
+
       const anonymous = candidate.is_anonymous;
       const resource: SharedResource = {
         ...candidate,
+        file_hash: candidate.file_hash,
         file_content_preview: candidate.file_content_preview?.slice(0, 3000),
         department: profile.department || candidate.department,
-        author_id: anonymous ? undefined : `erp-${profile.rollNumber}`,
-        author_name: anonymous ? 'Anonymous' : profile.name,
-        author_username: anonymous ? undefined : profile.rollNumber,
+        author_id: anonymous ? undefined : realAuthorId,
+        author_name: anonymous ? 'Anonymous' : realAuthorName,
+        author_username: anonymous ? undefined : realAuthorUsername,
         author_avatar: undefined,
         author_is_verified: anonymous ? undefined : true,
+        // Admin security audit: True author is captured for every upload even if anonymous
+        real_author_id: realAuthorId,
+        real_author_name: realAuthorName,
+        real_author_username: realAuthorUsername,
+        real_author_email: realAuthorEmail,
         status: 'approved',
         updated_at: new Date().toISOString(),
       };
       await putJsonInR2(metadataKey(resource.id), { owner, resource } satisfies StoredResource);
       saved.push(resource.id);
+      if (candidate.file_hash) existingHashes.add(candidate.file_hash.toLowerCase());
     }
 
     return NextResponse.json({ saved }, { headers: { 'Cache-Control': 'no-store' } });

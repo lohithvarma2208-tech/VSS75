@@ -99,15 +99,25 @@ export default function AdminDashboard({ administrator, isPasskeyMode }: AdminDa
     type: 'info' as 'info' | 'warning' | 'alert',
   });
   const [saveSuccessMsg, setSaveSuccessMsg] = useState('');
+  const [copiedHashId, setCopiedHashId] = useState<string | null>(null);
 
   // Refresh data
   const refreshReferrals = () => {
     setReferralCodes(MockStorageManager.getReferralCodes());
   };
 
-  const refreshResources = () => {
+  const refreshResources = useCallback(() => {
     setResources(MockStorageManager.getResources());
-  };
+    fetch('/api/resources', { cache: 'no-store' })
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data.resources)) {
+          MockStorageManager.mergeSharedResources(data.resources);
+          setResources(MockStorageManager.getResources());
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const refreshAuditLogs = () => {
     setAuditLogs(MockStorageManager.getSecurityAuditLogs());
@@ -155,6 +165,7 @@ export default function AdminDashboard({ administrator, isPasskeyMode }: AdminDa
     // Listen for storage changes
     const onReferralChange = () => refreshReferrals();
     const onAuditChange = () => refreshAuditLogs();
+    const onResourcesChange = () => refreshResources();
     const onUsersChange = () => {
       refreshLocalUsers();
       fetchUsers();
@@ -162,14 +173,16 @@ export default function AdminDashboard({ administrator, isPasskeyMode }: AdminDa
 
     window.addEventListener('klu_referrals_change', onReferralChange);
     window.addEventListener('klu_security_audit_logged', onAuditChange);
+    window.addEventListener('klu_resources_change', onResourcesChange);
     window.addEventListener('klu_users_change', onUsersChange);
 
     return () => {
       window.removeEventListener('klu_referrals_change', onReferralChange);
       window.removeEventListener('klu_security_audit_logged', onAuditChange);
+      window.removeEventListener('klu_resources_change', onResourcesChange);
       window.removeEventListener('klu_users_change', onUsersChange);
     };
-  }, [fetchUsers, refreshLocalUsers]);
+  }, [fetchUsers, refreshLocalUsers, refreshResources]);
 
   // --- Actions ---
   const handleCopyLink = (code: string) => {
@@ -257,7 +270,7 @@ export default function AdminDashboard({ administrator, isPasskeyMode }: AdminDa
       const matchFilter = resourceFilter === 'all' || r.status === resourceFilter;
       const matchQuery =
         !resourceQuery ||
-        `${r.title} ${r.course_code || ''} ${r.department || ''} ${r.author_name || r.author_username || ''}`
+        `${r.title} ${r.course_code || ''} ${r.department || ''} ${r.author_name || ''} ${r.author_username || ''} ${r.file_hash || ''} ${r.real_author_name || ''} ${r.real_author_username || ''} ${r.real_author_email || ''}`
           .toLowerCase()
           .includes(resourceQuery.toLowerCase());
       return matchFilter && matchQuery;
@@ -1017,10 +1030,53 @@ export default function AdminDashboard({ administrator, isPasskeyMode }: AdminDa
                         <span>•</span>
                         <span>Dept: {res.department || 'All'}</span>
                         <span>•</span>
-                        <span>By: @{res.author_username || res.author_name}</span>
-                        <span>•</span>
                         <span>Downloads: {res.downloads_count}</span>
                       </div>
+
+                      {/* True Uploader Identity (Admin Security Audit) */}
+                      {res.is_anonymous ? (
+                        <div className="mt-2.5 flex flex-wrap items-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-xs text-amber-200">
+                          <ShieldAlert className="h-3.5 w-3.5 text-amber-400 shrink-0" />
+                          <span className="font-bold text-amber-300">Public: Anonymous</span>
+                          <span className="text-white/30">•</span>
+                          <span className="text-white/90">
+                            Real Contributor: <strong className="text-amber-100 font-semibold">{res.real_author_name || 'Recorded in ERP'}</strong>{' '}
+                            <span className="font-mono text-amber-300">(@{res.real_author_username || res.author_username || res.real_author_id || 'ID'})</span>
+                            {res.real_author_email ? ` · ${res.real_author_email}` : ''}
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="mt-2 text-xs text-white/70">
+                          <span>By: </span>
+                          <strong className="text-white font-semibold">{res.author_name}</strong>{' '}
+                          <span className="font-mono text-white/50">(@{res.author_username || res.author_name})</span>
+                          {res.real_author_email && <span className="text-white/40 font-mono text-[11px]"> · {res.real_author_email}</span>}
+                        </div>
+                      )}
+
+                      {/* File Hash (SHA-256) Checksum */}
+                      {res.file_hash && (
+                        <div className="mt-1.5 flex items-center gap-1.5 text-[10px] text-white/40 font-mono">
+                          <span className="text-white/30">SHA-256:</span>
+                          <span className="truncate max-w-[260px] sm:max-w-md text-white/60">{res.file_hash}</span>
+                          <button
+                            type="button"
+                            title="Copy full SHA-256 hash"
+                            onClick={() => {
+                              navigator.clipboard.writeText(res.file_hash!);
+                              setCopiedHashId(res.id);
+                              setTimeout(() => setCopiedHashId(null), 2000);
+                            }}
+                            className="text-white/30 hover:text-white transition p-0.5"
+                          >
+                            {copiedHashId === res.id ? (
+                              <Check className="h-3 w-3 text-emerald-400" />
+                            ) : (
+                              <Copy className="h-3 w-3" />
+                            )}
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
 
