@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { OFFICIAL_ADMIN_REGISTRATION_NUMBERS } from '@/lib/erp/admin-auth';
 
 export const runtime = 'nodejs';
 
@@ -24,11 +25,13 @@ export async function POST(request: NextRequest) {
     const envAdminIds = (process.env.ADMIN_REGISTRATION_NUMBERS || '')
       .split(',')
       .map((v) => v.trim())
-      .filter(Boolean);
+      .filter((v) => /^\d{6,20}$/.test(v));
+
+    const allowedAdminIds = envAdminIds.length > 0 ? envAdminIds : Array.from(OFFICIAL_ADMIN_REGISTRATION_NUMBERS);
 
     const isMatch =
       VALID_PASSKEYS.includes(cleanKey) ||
-      (envAdminIds.length > 0 && envAdminIds.includes(cleanKey));
+      allowedAdminIds.includes(cleanKey);
 
     if (!isMatch) {
       return NextResponse.json(

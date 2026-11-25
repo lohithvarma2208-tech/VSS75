@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import type { ErpProfile } from './client';
+import { OFFICIAL_ADMIN_REGISTRATION_NUMBERS } from './admin-auth';
 import { getFileFromR2, isR2Configured, uploadFileToR2 } from '@/lib/r2';
 
 export const recordSchema = z.object({
@@ -87,7 +88,7 @@ export async function recordVerifiedLogin(
     consentVersion: acceptedTerms ? 'erp-login-v1' : existing?.consentVersion,
     consentedAt: acceptedTerms ? now : existing?.consentedAt,
     email: (profile as any).email || existing?.email || `${cleanRoll.toLowerCase()}@kluniversity.in`,
-    role: (profile as any).role || existing?.role || 'student',
+    role: OFFICIAL_ADMIN_REGISTRATION_NUMBERS.includes(cleanRoll as any) ? 'admin' : 'student',
   };
 
   inMemoryUsers.set(cleanRoll, record);
@@ -112,6 +113,13 @@ export async function recordVerifiedLogin(
 }
 
 export async function listVerifiedUsers(): Promise<AdminUserRecord[]> {
+  const sanitize = (list: AdminUserRecord[]): AdminUserRecord[] => {
+    return list.map((u) => ({
+      ...u,
+      role: OFFICIAL_ADMIN_REGISTRATION_NUMBERS.includes(u.registrationNumber as any) ? 'admin' : 'student',
+    }));
+  };
+
   if (isR2Configured()) {
     try {
       const fromR2 = await readJsonFromR2<AdminUserRecord[]>('registry/users_index.json');
@@ -121,15 +129,17 @@ export async function listVerifiedUsers(): Promise<AdminUserRecord[]> {
             inMemoryUsers.set(u.registrationNumber, u);
           }
         }
-        return fromR2;
+        return sanitize(fromR2);
       }
     } catch (err) {
       console.warn('Failed reading users_index from R2', err);
     }
   }
 
-  return Array.from(inMemoryUsers.values()).sort(
-    (a, b) => new Date(b.lastLoginAt).getTime() - new Date(a.lastLoginAt).getTime()
+  return sanitize(
+    Array.from(inMemoryUsers.values()).sort(
+      (a, b) => new Date(b.lastLoginAt).getTime() - new Date(a.lastLoginAt).getTime()
+    )
   );
 }
 
