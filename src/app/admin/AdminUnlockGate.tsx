@@ -96,18 +96,9 @@ export default function AdminUnlockGate({ hasErpSession, erpUserRoll }: AdminUnl
           className="mt-6 space-y-4"
         >
           <div className="space-y-1.5 text-left">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-bold text-white/80">
-                Master Admin Passkey
-              </label>
-              <button
-                type="button"
-                onClick={() => setPasskey('VSS75@ADMIN')}
-                className="text-[10px] font-mono text-purple-400 hover:text-purple-300 hover:underline"
-              >
-                Use Passkey: VSS75@ADMIN
-              </button>
-            </div>
+            <label className="text-xs font-bold text-white/80">
+              Master Admin Passkey
+            </label>
             <div className="relative">
               <KeyRound className="absolute left-3.5 top-3.5 h-4 w-4 text-white/30" />
               <input
@@ -117,7 +108,7 @@ export default function AdminUnlockGate({ hasErpSession, erpUserRoll }: AdminUnl
                   setPasskey(e.target.value);
                   setError('');
                 }}
-                placeholder="Enter master passkey (e.g. VSS75@ADMIN)"
+                placeholder="Enter administrator passkey"
                 className="w-full h-11 rounded-2xl border border-white/10 bg-black/40 pl-10 pr-4 text-xs sm:text-sm text-white placeholder-white/30 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-400/20 font-mono transition"
                 required
               />
@@ -130,7 +121,7 @@ export default function AdminUnlockGate({ hasErpSession, erpUserRoll }: AdminUnl
             </div>
           )}
 
-          <div className="flex flex-col gap-2.5 pt-1">
+          <div className="pt-1">
             <button
               type="submit"
               disabled={busy}
@@ -144,16 +135,6 @@ export default function AdminUnlockGate({ hasErpSession, erpUserRoll }: AdminUnl
                   <span>Unlock Admin Control Center</span>
                 </>
               )}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleUnlock('VSS75@ADMIN')}
-              disabled={busy}
-              className="w-full h-10 rounded-full border border-purple-500/30 bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 text-xs font-bold transition flex items-center justify-center gap-2"
-            >
-              <Sparkles className="h-3.5 w-3.5 text-purple-400" />
-              <span>Instant SuperAdmin Access (VSS75@ADMIN)</span>
             </button>
           </div>
         </form>

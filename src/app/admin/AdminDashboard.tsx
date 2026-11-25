@@ -355,7 +355,7 @@ export default function AdminDashboard({ administrator, isPasskeyMode }: AdminDa
             </span>
             <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-[10px] font-mono font-bold text-emerald-300">
               <ShieldCheck className="h-3 w-3" />
-              {isPasskeyMode ? 'Master Passkey (VSS75@ADMIN)' : 'ERP Server Authorized'}
+              {isPasskeyMode ? 'Master Passkey Authorized' : 'ERP Server Authorized'}
             </span>
           </div>
           <h1 className="mt-2 text-2xl sm:text-3xl font-black tracking-tight text-white flex items-center gap-2.5">
