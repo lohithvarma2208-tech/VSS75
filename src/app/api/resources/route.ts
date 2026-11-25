@@ -13,7 +13,7 @@ const categories = ['Assignments', 'Programming', 'Lab Records', 'Lab Experiment
 const fileTypes = ['pdf', 'docx', 'doc', 'pptx', 'ppt', 'xls', 'xlsx', 'zip', 'py', 'java', 'cpp', 'c', 'txt', 'png', 'jpg'] as const;
 
 const resourceSchema = z.object({
-  id: z.string().regex(/^res-user-\d{10,18}(?:-[a-z0-9]+)?$/i),
+  id: z.string().regex(/^res-(?:user-)?[a-zA-Z0-9_-]+$/i),
   title: z.string().trim().min(3).max(120),
   description: z.string().trim().min(1).max(2000),
   category: z.enum(categories),
@@ -27,7 +27,7 @@ const resourceSchema = z.object({
   file_size: z.number().int().nonnegative().max(50 * 1024 * 1024),
   file_type: z.enum(fileTypes),
   file_content_preview: z.string().max(3000).optional(),
-  file_hash: z.string().regex(/^[a-f0-9]{64}$/i).optional(),
+  file_hash: z.string().max(100).optional(),
   department: z.string().max(200).optional(),
   author_id: z.string().max(100).optional(),
   author_name: z.string().min(1).max(200),

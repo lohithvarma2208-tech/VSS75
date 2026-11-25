@@ -64,12 +64,6 @@ export class MockStorageManager {
       .filter((key): key is string => Boolean(key && key.startsWith('vss_') && !key.endsWith('_v4')))
       .forEach((key) => localStorage.removeItem(key));
 
-    // One-time total clean slate: wipe old uploaded resources from browser memory
-    if (localStorage.getItem('vss_purge_uploads_v2') !== '1') {
-      localStorage.setItem(STORAGE_KEYS.RESOURCES, '[]');
-      localStorage.setItem('vss_purge_uploads_v2', '1');
-    }
-
     if (typeof window !== 'undefined' && window.indexedDB) {
       try {
         window.indexedDB.deleteDatabase('vss_files_db_v1');
