@@ -82,12 +82,18 @@ export async function GET() {
   if (!isR2Configured()) return NextResponse.json({ error: 'Shared resources are unavailable.' }, { status: 503 });
   try {
     const stored = await listJsonFromR2<StoredResource>(PREFIX);
-    const resources = stored
+    const parsed = stored
       .map((entry) => resourceSchema.safeParse(entry?.resource))
       .filter((entry): entry is { success: true; data: SharedResource } => entry.success)
       .map((entry) => entry.data)
       .filter((resource) => resource.status === 'approved')
       .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at));
+    const seenFiles = new Set<string>();
+    const resources = parsed.filter((resource) => {
+      if (seenFiles.has(resource.file_url)) return false;
+      seenFiles.add(resource.file_url);
+      return true;
+    });
     return NextResponse.json({ resources }, { headers: { 'Cache-Control': 'no-store' } });
   } catch (error) {
     console.error('[Shared resources list]', error instanceof Error ? error.message : 'Unknown error');
