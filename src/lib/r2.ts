@@ -82,6 +82,22 @@ export async function getFileFromR2(key: string) {
   return await client.send(command);
 }
 
+export async function deleteFileFromR2(key: string): Promise<boolean> {
+  const client = getR2Client();
+  if (!client) return false;
+  try {
+    const cleanKey = key.replace(/^\/+/, '');
+    await client.send(new DeleteObjectCommand({
+      Bucket: bucketName,
+      Key: cleanKey,
+    }));
+    return true;
+  } catch (err) {
+    console.warn(`[R2] Failed deleting ${key}:`, err);
+    return false;
+  }
+}
+
 export async function putJsonInR2(key: string, value: unknown) {
   const client = getR2Client();
   if (!client) throw new Error('Cloudflare R2 is not configured. Missing credentials.');

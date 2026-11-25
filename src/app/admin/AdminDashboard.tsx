@@ -83,7 +83,7 @@ export default function AdminDashboard({ administrator, isPasskeyMode }: AdminDa
 
   // --- Resource Moderation State ---
   const [resources, setResources] = useState<Resource[]>([]);
-  const [resourceFilter, setResourceFilter] = useState<'all' | 'approved' | 'pending' | 'flagged'>('all');
+  const [resourceFilter, setResourceFilter] = useState<'all' | 'approved' | 'pending' | 'flagged' | 'rejected'>('all');
   const [resourceQuery, setResourceQuery] = useState('');
 
   // --- Audit Logs State ---
@@ -211,8 +211,20 @@ export default function AdminDashboard({ administrator, isPasskeyMode }: AdminDa
     }
   };
 
-  const handleUpdateResourceStatus = (id: string, status: 'approved' | 'flagged' | 'archived') => {
+  const handleUpdateResourceStatus = async (id: string, status: 'approved' | 'flagged' | 'archived') => {
     MockStorageManager.updateResourceStatus(id, status);
+    setResources((prev) => prev.map((r) => (r.id === id ? { ...r, status } : r)));
+
+    try {
+      await fetch('/api/resources', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, status }),
+      });
+    } catch (err) {
+      console.warn('Backend status update error:', err);
+    }
+
     MockStorageManager.recordSecurityAuditLog({
       event: 'RESOURCE_MODERATED',
       masked_erp_id: administrator.registrationNumber,
@@ -224,9 +236,29 @@ export default function AdminDashboard({ administrator, isPasskeyMode }: AdminDa
     refreshResources();
   };
 
-  const handleDeleteResource = (id: string) => {
-    if (confirm('Permanently delete this resource from the repository?')) {
+  const handleDeleteResource = async (id: string) => {
+    if (confirm('Permanently delete this resource from the repository and cloud storage?')) {
       MockStorageManager.deleteResource(id);
+      setResources((prev) => prev.filter((r) => r.id !== id));
+
+      try {
+        await fetch(`/api/resources?id=${encodeURIComponent(id)}`, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id }),
+        });
+      } catch (err) {
+        console.warn('Backend resource delete error:', err);
+      }
+
+      MockStorageManager.recordSecurityAuditLog({
+        event: 'RESOURCE_MODERATED',
+        masked_erp_id: administrator.registrationNumber,
+        ip_address: '127.0.0.1 (Admin Desk)',
+        user_agent: typeof navigator !== 'undefined' ? navigator.userAgent : 'Admin Dashboard',
+        status: 'SUCCESS',
+        details: `Resource [${id}] permanently deleted by admin.`,
+      });
       refreshResources();
     }
   };
@@ -968,7 +1000,7 @@ export default function AdminDashboard({ administrator, isPasskeyMode }: AdminDa
             </div>
             <div className="flex items-center gap-2">
               <span className="text-xs text-white/40">Filter:</span>
-              {(['all', 'approved', 'pending', 'flagged'] as const).map((filter) => (
+              {(['all', 'approved', 'pending', 'flagged', 'rejected'] as const).map((filter) => (
                 <button
                   key={filter}
                   onClick={() => setResourceFilter(filter)}
@@ -1025,6 +1057,11 @@ export default function AdminDashboard({ administrator, isPasskeyMode }: AdminDa
                         </span>
                       </div>
                       <p className="mt-1 text-xs text-white/50 line-clamp-1">{res.description}</p>
+                      {res.duplicate_of_id && (
+                        <div className="mt-1.5 flex items-center gap-1.5 text-[10px] text-rose-300 font-mono bg-rose-500/10 border border-rose-500/20 px-2 py-0.5 rounded-lg w-fit">
+                          <span>⚠️ Duplicate copy of: {res.duplicate_of_title || res.duplicate_of_id}</span>
+                        </div>
+                      )}
                       <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[10px] text-white/40 font-mono">
                         <span>Course: {res.course_code || 'General'}</span>
                         <span>•</span>

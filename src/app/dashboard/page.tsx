@@ -98,10 +98,19 @@ export default function DashboardPage() {
     userOffers.filter((o) => o.status === 'accepted').map((o) => o.request_id)
   ).size;
 
-  const handleDeleteResource = (id: string, title: string) => {
+  const handleDeleteResource = async (id: string, title: string) => {
     if (confirm(`Are you sure you want to remove "${title}"?`)) {
       MockStorageManager.deleteResource(id);
       showToast('Resource removed from Virtual Student Space', 'info');
+      try {
+        await fetch(`/api/resources?id=${encodeURIComponent(id)}`, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id }),
+        });
+      } catch (err) {
+        console.warn('Backend delete error:', err);
+      }
     }
   };
 

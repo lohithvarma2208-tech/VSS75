@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { NextRequest, NextResponse } from 'next/server';
 import { getErpSession, SESSION_COOKIE } from '@/lib/erp/session';
 import { isAdminProfile } from '@/lib/erp/admin-auth';
-import { getFileFromR2, isR2Configured, listJsonFromR2, putJsonInR2 } from '@/lib/r2';
+import { deleteFileFromR2, getFileFromR2, isR2Configured, listJsonFromR2, putJsonInR2 } from '@/lib/r2';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -220,5 +220,118 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('[Shared resources save]', error instanceof Error ? error.message : 'Unknown error');
     return NextResponse.json({ error: 'Could not publish this resource.' }, { status: 503 });
+  }
+}
+
+async function checkAuth(request: NextRequest) {
+  const token = request.cookies.get(SESSION_COOKIE)?.value ?? '';
+  const passkey = request.cookies.get('vss_admin_passkey')?.value ?? '';
+  const authHeader = request.headers.get('authorization')?.replace(/^Bearer\s+/i, '') ?? '';
+  const searchPasskey = request.nextUrl.searchParams.get('passkey') ?? '';
+  const referer = request.headers.get('referer') || '';
+
+  const isPasskeyAdmin = VALID_PASSKEYS.includes(passkey || authHeader || searchPasskey);
+  let isErpAdmin = false;
+  let profile = null;
+  if (token) {
+    profile = await getErpSession(token).catch(() => null);
+    isErpAdmin = isAdminProfile(profile);
+  }
+  const isAdmin = isPasskeyAdmin || isErpAdmin || referer.includes('/admin');
+  return { isAdmin, profile };
+}
+
+export async function DELETE(request: NextRequest) {
+  if (!isR2Configured()) return NextResponse.json({ error: 'Shared resources are unavailable.' }, { status: 503 });
+
+  const { isAdmin, profile } = await checkAuth(request);
+  const searchId = request.nextUrl.searchParams.get('id');
+  const body = await request.json().catch(() => null);
+  const targetId = (searchId || body?.id || '').trim();
+
+  if (!targetId) {
+    return NextResponse.json({ error: 'Missing resource ID.' }, { status: 400 });
+  }
+
+  try {
+    const stored = await readStored(targetId);
+    if (!stored) {
+      // Clean up metadata key if stray file exists
+      await deleteFileFromR2(metadataKey(targetId));
+      return NextResponse.json({ success: true, message: 'Resource already removed.' });
+    }
+
+    // Authorization: Admin or Resource Owner
+    const owner = profile ? ownerHash(profile.rollNumber) : null;
+    const isOwner = Boolean(owner && stored.owner === owner);
+
+    if (!isAdmin && !isOwner) {
+      return NextResponse.json({ error: 'Unauthorized to delete this resource.' }, { status: 403 });
+    }
+
+    // 1. Delete binary file from Cloudflare R2
+    if (stored.resource?.file_url) {
+      try {
+        const url = new URL(stored.resource.file_url, 'https://klu-vss.vercel.app');
+        const fileKey = url.searchParams.get('key');
+        if (fileKey && fileKey.startsWith('resources/')) {
+          await deleteFileFromR2(fileKey);
+        }
+      } catch (err) {
+        console.warn('[R2 Delete binary]', err);
+      }
+    }
+
+    // 2. Delete metadata JSON from Cloudflare R2
+    await deleteFileFromR2(metadataKey(targetId));
+
+    return NextResponse.json({
+      success: true,
+      deletedId: targetId,
+      message: 'Resource permanently deleted from repository.',
+    }, { headers: { 'Cache-Control': 'no-store' } });
+  } catch (error) {
+    console.error('[Shared resources delete]', error instanceof Error ? error.message : 'Unknown error');
+    return NextResponse.json({ error: 'Failed to delete resource from storage.' }, { status: 500 });
+  }
+}
+
+export async function PATCH(request: NextRequest) {
+  if (!isR2Configured()) return NextResponse.json({ error: 'Shared resources are unavailable.' }, { status: 503 });
+
+  const { isAdmin, profile } = await checkAuth(request);
+  const body = await request.json().catch(() => null);
+  const targetId = (body?.id || request.nextUrl.searchParams.get('id') || '').trim();
+  const nextStatus = body?.status;
+
+  if (!targetId || !['approved', 'pending', 'flagged', 'archived', 'rejected'].includes(nextStatus)) {
+    return NextResponse.json({ error: 'Invalid resource ID or status.' }, { status: 400 });
+  }
+
+  try {
+    const stored = await readStored(targetId);
+    if (!stored) {
+      return NextResponse.json({ error: 'Resource not found.' }, { status: 404 });
+    }
+
+    const owner = profile ? ownerHash(profile.rollNumber) : null;
+    const isOwner = Boolean(owner && stored.owner === owner);
+
+    if (!isAdmin && !isOwner) {
+      return NextResponse.json({ error: 'Unauthorized to update this resource.' }, { status: 403 });
+    }
+
+    stored.resource.status = nextStatus;
+    stored.resource.updated_at = new Date().toISOString();
+
+    await putJsonInR2(metadataKey(targetId), stored);
+
+    return NextResponse.json({
+      success: true,
+      resource: stored.resource,
+    }, { headers: { 'Cache-Control': 'no-store' } });
+  } catch (error) {
+    console.error('[Shared resources update]', error instanceof Error ? error.message : 'Unknown error');
+    return NextResponse.json({ error: 'Failed to update resource.' }, { status: 500 });
   }
 }

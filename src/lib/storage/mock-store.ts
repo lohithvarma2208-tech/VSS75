@@ -40,6 +40,7 @@ const STORAGE_KEYS = {
   REFERRAL_CODES: 'vss_referral_codes_v4',
   REGISTERED_USERS: 'vss_registered_users_v4',
   ANNOUNCEMENT: 'vss_platform_announcement_v4',
+  DELETED_RESOURCES: 'vss_deleted_resources_v4',
 };
 
 // Initial Resource Requests, Offers, Comments, Reports, Notifications
@@ -135,12 +136,39 @@ export class MockStorageManager {
     window.dispatchEvent(new Event('klu_resources_change'));
   }
 
+  static getDeletedResourceIds(): Set<string> {
+    if (!this.isBrowser()) return new Set();
+    try {
+      const data = localStorage.getItem(STORAGE_KEYS.DELETED_RESOURCES);
+      if (data) {
+        const parsed = JSON.parse(data);
+        if (Array.isArray(parsed)) return new Set(parsed);
+      }
+    } catch (e) {
+      console.warn('Failed reading deleted resource IDs', e);
+    }
+    return new Set();
+  }
+
+  static recordDeletedResourceId(id: string): void {
+    if (!this.isBrowser() || !id) return;
+    try {
+      const set = this.getDeletedResourceIds();
+      set.add(id);
+      localStorage.setItem(STORAGE_KEYS.DELETED_RESOURCES, JSON.stringify(Array.from(set)));
+    } catch (e) {
+      console.warn('Failed recording deleted resource ID', e);
+    }
+  }
+
   static mergeSharedResources(shared: Resource[]): void {
     if (!this.isBrowser() || !Array.isArray(shared)) return;
-    const local = this.getResources();
+    const deleted = this.getDeletedResourceIds();
+    const activeShared = shared.filter((resource) => !deleted.has(resource.id));
+    const local = this.getResources().filter((resource) => !deleted.has(resource.id));
     const localById = new Map(local.map((resource) => [resource.id, resource]));
-    const sharedIds = new Set(shared.map((resource) => resource.id));
-    const mergedShared = shared.map((resource) => {
+    const sharedIds = new Set(activeShared.map((resource) => resource.id));
+    const mergedShared = activeShared.map((resource) => {
       const existing = localById.get(resource.id);
       return existing ? {
         ...resource,
@@ -367,13 +395,11 @@ export class MockStorageManager {
   }
 
   static deleteResource(id: string): boolean {
+    this.recordDeletedResourceId(id);
     const resources = this.getResources();
     const filtered = resources.filter((r) => r.id !== id);
-    if (filtered.length !== resources.length) {
-      this.saveResources(filtered);
-      return true;
-    }
-    return false;
+    this.saveResources(filtered);
+    return true;
   }
 
   static updateResourceStatus(id: string, status: 'approved' | 'pending' | 'flagged' | 'archived' | 'rejected'): void {
