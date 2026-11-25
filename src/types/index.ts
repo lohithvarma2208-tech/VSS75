@@ -21,13 +21,72 @@ export interface UserProfile {
   enrolled_courses?: string[];
   academic_year?: string;
   academic_context_source?: 'erp' | 'manual' | 'catalog';
+  attendance_summary?: StudentAttendanceSummary;
+  timetable?: StudentTimetable;
 }
 
 export interface StudentCourse {
   code: string;
   name: string;
   semester?: string;
+  attendance?: CourseAttendance;
 }
+
+export interface CourseAttendance {
+  courseCode: string; // e.g. 26SC1203
+  courseName: string; // e.g. DATA STRUCTURES AND ALGORITHMS – 1
+  category?: string;
+  ltps?: string;
+  conducted: number;
+  attended: number;
+  percentage: number;
+  safeBunks75: number;
+  safeBunks85: number;
+  neededToAttend75: number;
+  neededToAttend85: number;
+  faculty?: string;
+  room?: string;
+  lastUpdated?: string;
+}
+
+export interface StudentAttendanceSummary {
+  studentId: string;
+  name: string;
+  department?: string;
+  semester?: string;
+  academicYear?: string;
+  overallPercentage: number;
+  totalConducted: number;
+  totalAttended: number;
+  isEligibleForExams: boolean; // >= 75%
+  isEligibleForHonors: boolean; // >= 85%
+  courses: CourseAttendance[];
+  lastSyncedAt: string;
+}
+
+export type TimetableDay = 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday';
+
+export interface TimetableSlot {
+  id: string;
+  day: TimetableDay;
+  startTime: string; // e.g. "09:00 AM"
+  endTime: string; // e.g. "10:00 AM"
+  courseCode: string;
+  courseName: string;
+  room: string; // e.g. "C-421"
+  type: 'Lecture' | 'Lab' | 'Tutorial' | 'Skilling';
+  faculty: string;
+  isCurrent?: boolean;
+}
+
+export interface StudentTimetable {
+  studentId: string;
+  semester: string;
+  section: string;
+  slots: TimetableSlot[];
+  lastUpdated: string;
+}
+
 
 export type ResourceCategory =
   | 'Assignments'

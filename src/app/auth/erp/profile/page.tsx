@@ -1,6 +1,6 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { BadgeCheck, Building2, GraduationCap, Hash, Settings } from 'lucide-react';
+import { BadgeCheck, Building2, GraduationCap, Hash, Settings, CalendarCheck, Clock, LayoutDashboard } from 'lucide-react';
 import Link from 'next/link';
 import { getErpSession, SESSION_COOKIE } from '@/lib/erp/session';
 import SignOutButton from './SignOutButton';
@@ -24,8 +24,41 @@ export default async function ErpProfilePage() {
         {profile.department && <ProfileRow icon={Building2} label="Department" value={profile.department} />}
       </section>
 
-      <section className="vss-card mt-4 p-2">
-        <Link href="/settings" className="flex items-center gap-3 rounded-2xl px-3 py-3.5 hover:bg-white/[0.04]"><span className="grid h-9 w-9 place-items-center rounded-xl bg-white/[0.05]"><Settings className="h-4 w-4" /></span><span className="flex-1 text-xs font-bold">VSS settings</span><span className="text-white/25">›</span></Link>
+      <section className="vss-card mt-4 p-2 space-y-1">
+        <Link href="/attendance" className="flex items-center gap-3 rounded-2xl px-3 py-3.5 hover:bg-white/[0.04]">
+          <span className="grid h-9 w-9 place-items-center rounded-xl bg-violet-500/10 text-violet-300">
+            <CalendarCheck className="h-4 w-4" />
+          </span>
+          <span className="flex-1">
+            <b className="block text-xs font-bold">Attendance Checker</b>
+            <small className="block text-[10px] text-white/35">View course attendance & safe bunks</small>
+          </span>
+          <span className="text-white/25">›</span>
+        </Link>
+        <Link href="/timetable" className="flex items-center gap-3 rounded-2xl px-3 py-3.5 hover:bg-white/[0.04]">
+          <span className="grid h-9 w-9 place-items-center rounded-xl bg-blue-500/10 text-blue-300">
+            <Clock className="h-4 w-4" />
+          </span>
+          <span className="flex-1">
+            <b className="block text-xs font-bold">Class Timetable</b>
+            <small className="block text-[10px] text-white/35">Live schedule, period slots & classrooms</small>
+          </span>
+          <span className="text-white/25">›</span>
+        </Link>
+        <Link href="/dashboard" className="flex items-center gap-3 rounded-2xl px-3 py-3.5 hover:bg-white/[0.04]">
+          <span className="grid h-9 w-9 place-items-center rounded-xl bg-white/[0.05]">
+            <LayoutDashboard className="h-4 w-4" />
+          </span>
+          <span className="flex-1 text-xs font-bold">Student Dashboard</span>
+          <span className="text-white/25">›</span>
+        </Link>
+        <Link href="/settings" className="flex items-center gap-3 rounded-2xl px-3 py-3.5 hover:bg-white/[0.04]">
+          <span className="grid h-9 w-9 place-items-center rounded-xl bg-white/[0.05]">
+            <Settings className="h-4 w-4" />
+          </span>
+          <span className="flex-1 text-xs font-bold">VSS settings</span>
+          <span className="text-white/25">›</span>
+        </Link>
       </section>
 
       <div className="mt-6"><SignOutButton /></div>
