@@ -135,6 +135,24 @@ export class MockStorageManager {
     window.dispatchEvent(new Event('klu_resources_change'));
   }
 
+  static mergeSharedResources(shared: Resource[]): void {
+    if (!this.isBrowser() || !Array.isArray(shared)) return;
+    const local = this.getResources();
+    const localById = new Map(local.map((resource) => [resource.id, resource]));
+    const sharedIds = new Set(shared.map((resource) => resource.id));
+    const mergedShared = shared.map((resource) => {
+      const existing = localById.get(resource.id);
+      return existing ? {
+        ...resource,
+        likes_count: Math.max(resource.likes_count, existing.likes_count),
+        downloads_count: Math.max(resource.downloads_count, existing.downloads_count),
+        views_count: Math.max(resource.views_count, existing.views_count),
+      } : resource;
+    });
+    const deviceOnly = local.filter((resource) => !sharedIds.has(resource.id));
+    this.saveResources([...mergedShared, ...deviceOnly]);
+  }
+
   static checkDuplicateResource(data: {
     title: string;
     course_code: string;

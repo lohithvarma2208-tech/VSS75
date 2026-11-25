@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { UserProfile, NotificationItem } from '@/types';
 import { MockStorageManager } from '@/lib/storage/mock-store';
+import { loadSharedResources, syncSharedResources } from '@/lib/resources/client';
 
 interface AppContextType {
   currentUser: UserProfile | null;
@@ -78,6 +79,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     MockStorageManager.removeLegacyDemoData();
     refreshState();
+    loadSharedResources().catch((error) => console.warn('[Shared resources] Initial load failed', error));
 
     fetch('/api/auth/erp', { cache: 'no-store' })
       .then((response) => response.ok ? response.json() : null)
@@ -103,6 +105,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         };
         MockStorageManager.setCurrentUser(user);
         setCurrentUserState(user);
+        syncSharedResources(true).catch((error) => console.warn('[Shared resources] Sync failed', error));
       })
       .catch(() => undefined);
 

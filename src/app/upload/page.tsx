@@ -12,6 +12,7 @@ import { MockStorageManager } from '@/lib/storage/mock-store';
 import { storeUploadedFile } from '@/lib/storage/file-storage';
 import { useApp } from '@/lib/context/AppContext';
 import { formatBytes } from '@/lib/utils';
+import { publishSharedResources } from '@/lib/resources/client';
 import {
   ACADEMIC_CONTEXT_EVENT, getRelevantCourses, readAcademicContext,
   type AcademicContext,
@@ -189,8 +190,16 @@ export default function UploadPage() {
     await storeUploadedFile(file.name, file);
     if (created.file_name !== file.name) await storeUploadedFile(created.file_name, file);
 
+    if (created.status === 'rejected') { setSubmitting(false); setDuplicate(created); setError(created.rejection_reason || 'This file already exists.'); return; }
+    try {
+      const saved = await publishSharedResources([created]);
+      if (!saved.includes(created.id)) throw new Error('The shared record was not saved.');
+    } catch (failure) {
+      setSubmitting(false);
+      setError(failure instanceof Error ? `${failure.message} Refresh this page to retry.` : 'The file uploaded, but publishing failed. Refresh to retry.');
+      return;
+    }
     setSubmitting(false);
-    if (created.status === 'rejected') { setDuplicate(created); setError(created.rejection_reason || 'This file already exists.'); return; }
     showToast('Resource shared with your course community', 'success');
     router.push(`/resource/${created.id}`);
   }

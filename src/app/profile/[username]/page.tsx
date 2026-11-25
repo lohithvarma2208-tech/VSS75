@@ -34,13 +34,30 @@ export default function ProfilePage() {
       router.replace('/auth/login');
       return;
     }
-    const target = currentUser.username === username ? currentUser : null;
-    if (!target) { setProfile(null); setResources([]); setProjects([]); return; }
-    setProfile(target);
-    setBio(target.bio || ''); setDepartment(target.department); setSemester(target.semester);
-    const allResources = MockStorageManager.getResources();
-    setResources(allResources.filter((item) => item.author_username === target.username || item.author_name === target.full_name || item.author_id === target.id));
-    setProjects(MockStorageManager.getProjects().filter((item) => item.author_username === target.username || item.author_name === target.full_name));
+    const refresh = () => {
+      const allResources = MockStorageManager.getResources();
+      const authorResource = allResources.find((item) => !item.is_anonymous && item.author_username === username);
+      const target: UserProfile | null = currentUser.username === username ? currentUser : authorResource ? {
+        id: authorResource.author_id || `erp-${username}`,
+        username,
+        full_name: authorResource.author_name,
+        email: '',
+        department: authorResource.department || 'KLU',
+        semester: authorResource.semester,
+        academic_year: authorResource.academic_year,
+        role: 'student',
+        is_verified_student: Boolean(authorResource.author_is_verified),
+        created_at: authorResource.created_at,
+      } : null;
+      if (!target) { setProfile(null); setResources([]); setProjects([]); return; }
+      setProfile(target);
+      setBio(target.bio || ''); setDepartment(target.department); setSemester(target.semester);
+      setResources(allResources.filter((item) => item.author_username === target.username || item.author_name === target.full_name || item.author_id === target.id));
+      setProjects(MockStorageManager.getProjects().filter((item) => item.author_username === target.username || item.author_name === target.full_name));
+    };
+    refresh();
+    window.addEventListener('klu_resources_change', refresh);
+    return () => window.removeEventListener('klu_resources_change', refresh);
   }, [username, currentUser, router]);
 
   if (!profile) return null;

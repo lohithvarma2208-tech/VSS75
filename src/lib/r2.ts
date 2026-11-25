@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand, HeadObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 const accountId = process.env.CLOUDFLARE_ACCOUNT_ID || process.env.R2_ACCOUNT_ID || '';
@@ -80,6 +80,50 @@ export async function getFileFromR2(key: string) {
   });
 
   return await client.send(command);
+}
+
+export async function putJsonInR2(key: string, value: unknown) {
+  const client = getR2Client();
+  if (!client) throw new Error('Cloudflare R2 is not configured. Missing credentials.');
+  await client.send(new PutObjectCommand({
+    Bucket: bucketName,
+    Key: key.replace(/^\/+/, ''),
+    Body: JSON.stringify(value),
+    ContentType: 'application/json; charset=utf-8',
+    CacheControl: 'no-store',
+  }));
+}
+
+export async function listJsonFromR2<T>(prefix: string): Promise<T[]> {
+  const client = getR2Client();
+  if (!client) throw new Error('Cloudflare R2 is not configured. Missing credentials.');
+  const records: T[] = [];
+  let continuationToken: string | undefined;
+
+  do {
+    const page = await client.send(new ListObjectsV2Command({
+      Bucket: bucketName,
+      Prefix: prefix.replace(/^\/+/, ''),
+      ContinuationToken: continuationToken,
+      MaxKeys: 500,
+    }));
+    const objects = (page.Contents || []).filter((item) => item.Key?.endsWith('.json'));
+    const values = await Promise.all(objects.map(async (item) => {
+      try {
+        const response = await client.send(new GetObjectCommand({ Bucket: bucketName, Key: item.Key! }));
+        if (!response.Body) return null;
+        return JSON.parse(await response.Body.transformToString()) as T;
+      } catch {
+        return null;
+      }
+    }));
+    for (const value of values) {
+      if (value !== null) records.push(value as T);
+    }
+    continuationToken = page.IsTruncated ? page.NextContinuationToken : undefined;
+  } while (continuationToken && records.length < 2500);
+
+  return records;
 }
 
 export async function getPresignedUploadUrl(
