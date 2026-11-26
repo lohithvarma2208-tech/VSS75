@@ -27,7 +27,7 @@ const STORAGE_KEYS = {
   REPORTS: 'vss_reports_v4',
   BOOKMARKS: 'vss_bookmarks_v4',
   LIKED_RESOURCES: 'vss_liked_v4',
-  CURRENT_USER: 'vss_current_user_v4',
+  CURRENT_USER: 'vss_current_user_v5',
   NOTIFICATIONS: 'vss_notifications_v4',
   OTP_PENDING: 'vss_otp_pending_v4',
   REQUESTS: 'vss_requests_v4',
@@ -59,9 +59,9 @@ export class MockStorageManager {
   static removeLegacyDemoData(): void {
     if (!this.isBrowser()) return;
 
-    // Purge any legacy keys (v1, v2, v3, demo, or unversioned) from localStorage
+    // Purge any legacy keys from localStorage and all outdated user sessions
     Array.from({ length: localStorage.length }, (_, index) => localStorage.key(index))
-      .filter((key): key is string => Boolean(key && key.startsWith('vss_') && !key.endsWith('_v4')))
+      .filter((key): key is string => Boolean(key && ((key.startsWith('vss_') && !key.endsWith('_v4') && key !== STORAGE_KEYS.CURRENT_USER) || (key.startsWith('vss_current_user') && key !== STORAGE_KEYS.CURRENT_USER))))
       .forEach((key) => localStorage.removeItem(key));
 
     if (typeof window !== 'undefined' && window.indexedDB) {
@@ -95,6 +95,23 @@ export class MockStorageManager {
   static logout(): void {
     if (!this.isBrowser()) return;
     localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
+    // Purge any user session key variants
+    Array.from({ length: localStorage.length }, (_, index) => localStorage.key(index))
+      .filter((key): key is string => Boolean(key && key.startsWith('vss_current_user')))
+      .forEach((key) => localStorage.removeItem(key));
+    // Request server to expire all auth cookies
+    try {
+      fetch('/api/auth/erp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'logout' }),
+      }).catch(() => {});
+      fetch('/api/admin/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'logout' }),
+      }).catch(() => {});
+    } catch {}
     window.dispatchEvent(new Event('klu_auth_change'));
   }
 

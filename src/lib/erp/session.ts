@@ -20,11 +20,18 @@ const state: NonNullable<typeof globalState.vssErpState> = globalState.vssErpSta
   sessions: new Map(),
 };
 
+// Immediate global revocation salt to invalidate all previously minted sessions
+const SESSION_REVOCATION_SALT = '_revoked_all_users_2026_11_26_';
+
+// Force clear all existing in-memory sessions across all server instances
+state.challenges.clear();
+state.sessions.clear();
+
 function getSecretKey(): Buffer {
   const secret =
-    process.env.ERP_SESSION_ENCRYPTION_KEY ||
+    (process.env.ERP_SESSION_ENCRYPTION_KEY ||
     process.env.SUPABASE_SECRET_KEY ||
-    'vss_internal_erp_session_secure_key_2026_klu';
+    'vss_internal_erp_session_secure_key_2026_klu') + SESSION_REVOCATION_SALT;
   return createHash('sha256').update(secret).digest();
 }
 

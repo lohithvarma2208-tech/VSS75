@@ -85,7 +85,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       .then((response) => response.ok ? response.json() : null)
       .then((data) => {
         const erp = data?.profile;
-        if (!erp?.rollNumber || !erp?.name) return;
+        if (!erp?.rollNumber || !erp?.name) {
+          if (MockStorageManager.getCurrentUser()) {
+            MockStorageManager.logout();
+            setCurrentUserState(null);
+          }
+          return;
+        }
         const existing = MockStorageManager.getCurrentUser();
         const hasManualSemester = existing?.academic_context_source === 'manual' && Boolean(existing.semester);
         const user: UserProfile = {

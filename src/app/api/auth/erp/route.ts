@@ -13,12 +13,21 @@ import {
   SESSION_SECONDS,
 } from '@/lib/erp/session';
 import { recordVerifiedLogin } from '@/lib/erp/admin-registry';
+import { solveCaptcha, solverConfigured } from '@/lib/erp/solver';
+
+const AUTO_SOLVE_ATTEMPTS = 4;
 
 export const runtime = 'nodejs';
 
 const inputSchema = z.discriminatedUnion('action', [
   z.object({ action: z.literal('challenge') }),
   z.object({ action: z.literal('logout') }),
+  z.object({
+    action: z.literal('autologin'),
+    username: z.string().trim().regex(/^[A-Za-z0-9._-]{1,64}$/),
+    password: z.string().min(1).max(256),
+    acceptedTerms: z.literal(true),
+  }),
   z.object({
     action: z.literal('login'),
     username: z.string().trim().regex(/^[A-Za-z0-9._-]{1,64}$/),
@@ -49,9 +58,18 @@ export async function GET(request: NextRequest) {
   if (!token) return json({ authenticated: false }, 401);
   try {
     const profile = await getErpSession(token);
-    return profile ? json({ authenticated: true, profile }) : json({ authenticated: false }, 401);
+    if (!profile) {
+      const response = json({ authenticated: false }, 401);
+      response.cookies.set(SESSION_COOKIE, '', { path: '/', maxAge: 0 });
+      response.cookies.set(CHALLENGE_COOKIE, '', { path: '/', maxAge: 0 });
+      return response;
+    }
+    return json({ authenticated: true, profile });
   } catch {
-    return json({ error: 'Could not read the ERP session.' }, 503);
+    const response = json({ error: 'Could not read the ERP session.' }, 503);
+    response.cookies.set(SESSION_COOKIE, '', { path: '/', maxAge: 0 });
+    response.cookies.set(CHALLENGE_COOKIE, '', { path: '/', maxAge: 0 });
+    return response;
   }
 }
 
@@ -82,6 +100,60 @@ export async function POST(request: NextRequest) {
     } catch {
       return json({ error: 'Could not sign out. Try again shortly.' }, 503);
     }
+  }
+
+  if (input.action === 'autologin') {
+    consumeChallenge(challengeCookie);
+    if (!solverConfigured()) {
+      return json({ error: 'Auto CAPTCHA is not set up. Enter the CAPTCHA manually.', fallback: true }, 503);
+    }
+    let lastError = 'Could not solve the CAPTCHA automatically.';
+    for (let attempt = 1; attempt <= AUTO_SOLVE_ATTEMPTS; attempt++) {
+      let started;
+      try {
+        started = await startErpChallenge();
+      } catch {
+        lastError = 'Could not load a CAPTCHA from KL ERP. Try again shortly.';
+        break;
+      }
+      const guess = await solveCaptcha(started.image);
+      if (!guess) continue; // unsure: fetch a fresh image straight away
+      let profile;
+      try {
+        profile = await verifyErpLogin(started.challenge, {
+          username: input.username,
+          password: input.password,
+          captcha: guess,
+        });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : '';
+        if (/captcha/i.test(message)) {
+          lastError = message;
+          continue; // wrong guess: retry with a new CAPTCHA, no user action needed
+        }
+        return json({ error: message || 'KL ERP could not complete sign-in. Try again shortly.' }, 401);
+      }
+      if (!profile) {
+        return json({ error: 'ERP could not verify this sign-in. Check your credentials and try again.' }, 401);
+      }
+      try {
+        const id = await saveErpSession(profile);
+        if (!id) return json({ error: 'Sign-in is busy. Try again shortly.' }, 503);
+        await endErpSession(previousSession);
+        await recordVerifiedLogin(profile, true, true).catch(() => undefined);
+        return setCookie(setCookie(json({ ok: true, profile, attempts: attempt }), SESSION_COOKIE, id, SESSION_SECONDS), CHALLENGE_COOKIE, '', 0);
+      } catch (error) {
+        console.error('[ERP auto sign-in]', error instanceof Error ? error.message : 'Unknown error');
+        return json({ error: 'KL ERP could not complete sign-in. Try again shortly.' }, 502);
+      }
+    }
+    // Auto-solve gave up: hand a fresh CAPTCHA to the user for manual entry.
+    try {
+      const { challenge, image } = await startErpChallenge();
+      const id = saveChallenge(challenge);
+      if (id) return setCookie(json({ error: lastError, fallback: true, image, challengeId: id }, 200), CHALLENGE_COOKIE, id, CHALLENGE_SECONDS);
+    } catch {}
+    return json({ error: lastError, fallback: true }, 502);
   }
 
   if (input.action === 'challenge') {
