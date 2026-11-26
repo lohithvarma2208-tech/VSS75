@@ -14,6 +14,12 @@ import {
 } from '@/lib/erp/session';
 import { recordVerifiedLogin } from '@/lib/erp/admin-registry';
 import { solveCaptcha, solverConfigured } from '@/lib/erp/solver';
+import {
+  credentialVaultConfigured,
+  forgetErpLogin,
+  hasRememberedErpLogin,
+  rememberErpLogin,
+} from '@/lib/erp/credential-vault';
 
 const AUTO_SOLVE_ATTEMPTS = 4;
 
@@ -22,11 +28,13 @@ export const runtime = 'nodejs';
 const inputSchema = z.discriminatedUnion('action', [
   z.object({ action: z.literal('challenge') }),
   z.object({ action: z.literal('logout') }),
+  z.object({ action: z.literal('forget') }),
   z.object({
     action: z.literal('autologin'),
     username: z.string().trim().regex(/^[A-Za-z0-9._-]{1,64}$/),
     password: z.string().min(1).max(256),
     acceptedTerms: z.literal(true),
+    remember: z.boolean().optional(),
   }),
   z.object({
     action: z.literal('login'),
@@ -35,6 +43,7 @@ const inputSchema = z.discriminatedUnion('action', [
     captcha: z.string().trim().min(1).max(32),
     challengeId: z.string().min(1).max(4096),
     acceptedTerms: z.literal(true),
+    remember: z.boolean().optional(),
   }),
 ]);
 
@@ -53,6 +62,23 @@ function setCookie(response: NextResponse, name: string, value: string, maxAge: 
   return response;
 }
 
+// Opt-in only: saves encrypted login + ERP cookies. Never blocks or fails the sign-in.
+async function maybeRemember(
+  remember: boolean | undefined,
+  username: string,
+  password: string,
+  jar: Parameters<typeof rememberErpLogin>[2],
+) {
+  if (!remember || !credentialVaultConfigured()) return false;
+  try {
+    await rememberErpLogin(username, password, jar);
+    return true;
+  } catch (error) {
+    console.error('[ERP remember]', error instanceof Error ? error.message : 'Unknown error');
+    return false;
+  }
+}
+
 export async function GET(request: NextRequest) {
   const token = request.cookies.get(SESSION_COOKIE)?.value ?? '';
   if (!token) return json({ authenticated: false }, 401);
@@ -64,7 +90,10 @@ export async function GET(request: NextRequest) {
       response.cookies.set(CHALLENGE_COOKIE, '', { path: '/', maxAge: 0 });
       return response;
     }
-    return json({ authenticated: true, profile });
+    const remembered = credentialVaultConfigured()
+      ? await hasRememberedErpLogin(profile.rollNumber).catch(() => false)
+      : false;
+    return json({ authenticated: true, profile, remembered });
   } catch {
     const response = json({ error: 'Could not read the ERP session.' }, 503);
     response.cookies.set(SESSION_COOKIE, '', { path: '/', maxAge: 0 });
@@ -91,6 +120,18 @@ export async function POST(request: NextRequest) {
   const input = parsed.data;
   const challengeCookie = request.cookies.get(CHALLENGE_COOKIE)?.value ?? '';
   const previousSession = request.cookies.get(SESSION_COOKIE)?.value ?? '';
+
+  if (input.action === 'forget') {
+    // Only the signed-in owner can delete their saved login.
+    const profile = previousSession ? await getErpSession(previousSession).catch(() => null) : null;
+    if (!profile) return json({ error: 'Sign in first to remove your saved login.' }, 401);
+    try {
+      if (credentialVaultConfigured()) await forgetErpLogin(profile.rollNumber);
+      return json({ ok: true });
+    } catch {
+      return json({ error: 'Could not remove the saved login. Try again shortly.' }, 503);
+    }
+  }
 
   if (input.action === 'logout') {
     consumeChallenge(challengeCookie);
@@ -141,7 +182,8 @@ export async function POST(request: NextRequest) {
         if (!id) return json({ error: 'Sign-in is busy. Try again shortly.' }, 503);
         await endErpSession(previousSession);
         await recordVerifiedLogin(profile, true, true).catch(() => undefined);
-        return setCookie(setCookie(json({ ok: true, profile, attempts: attempt }), SESSION_COOKIE, id, SESSION_SECONDS), CHALLENGE_COOKIE, '', 0);
+        const remembered = await maybeRemember(input.remember, input.username, input.password, started.challenge.jar);
+        return setCookie(setCookie(json({ ok: true, profile, attempts: attempt, remembered }), SESSION_COOKIE, id, SESSION_SECONDS), CHALLENGE_COOKIE, '', 0);
       } catch (error) {
         console.error('[ERP auto sign-in]', error instanceof Error ? error.message : 'Unknown error');
         return json({ error: 'KL ERP could not complete sign-in. Try again shortly.' }, 502);
@@ -192,7 +234,8 @@ export async function POST(request: NextRequest) {
     await endErpSession(previousSession);
     stage = 'record-login';
     await recordVerifiedLogin(profile, true, true).catch(() => undefined);
-    return clearChallenge(setCookie(json({ ok: true, profile }), SESSION_COOKIE, id, SESSION_SECONDS));
+    const remembered = await maybeRemember(input.remember, input.username, input.password, challenge.jar);
+    return clearChallenge(setCookie(json({ ok: true, profile, remembered }), SESSION_COOKIE, id, SESSION_SECONDS));
   } catch (error) {
     const reason = error instanceof Error ? error.message : 'Unknown error';
     console.error('[ERP sign-in]', stage, reason);
