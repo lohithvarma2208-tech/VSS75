@@ -193,13 +193,19 @@ function RecordRow({ row }: { row: StudyRecord }) {
   const result = row.kind === 'attendance'
     ? (row.conducted ? `${(row.attended / row.conducted * 100).toFixed(1)}%` : '—')
     : row.kind === 'grades' ? row.grade
-    : row.kind === 'timetable' ? row.time
+    : row.kind === 'timetable' ? (row.time || 'Scheduled')
     : [row.mark, row.outOf].filter(Boolean).join(' / ');
+
+  const title = row.name || row.code;
+  const subtext = row.kind === 'timetable'
+    ? (row.name && row.name !== row.code ? [row.code, detail].filter(Boolean).join(' · ') : (detail || row.code))
+    : [row.code, detail].filter(Boolean).join(' · ');
+
   return (
     <li className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 p-3.5 sm:p-4">
       <div className="min-w-0">
-        <p className="break-words text-sm font-medium">{row.name || row.code}</p>
-        <p className="mt-1 break-words text-xs text-white/65">{[row.code, detail].filter(Boolean).join(' · ')}</p>
+        <p className="break-words text-sm font-medium">{title}</p>
+        {subtext && <p className="mt-1 break-words text-xs text-white/65">{subtext}</p>}
       </div>
       <span className="rounded-lg bg-vss-accent/10 px-2.5 py-1 text-sm font-semibold tabular-nums text-vss-accent">{result}</span>
     </li>
